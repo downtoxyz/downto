@@ -673,25 +673,7 @@ export default function Home() {
   // ─── Render ─────────────────────────────────────────────────────────────
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          maxWidth: 420,
-          margin: "0 auto",
-          minHeight: "100vh",
-          background: color.bg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <GlobalStyles />
-        <Grain />
-        <p style={{ fontFamily: font.mono, color: color.dim, fontSize: 12 }}>
-          Loading...
-        </p>
-      </div>
-    );
+    return <div style={{ minHeight: "100vh", background: color.bg }} />;
   }
 
   if (!isLoggedIn) {
