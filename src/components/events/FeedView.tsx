@@ -607,7 +607,7 @@ export default function FeedView({
                               >
                                 <span style={{ fontSize: 12 }}>💬</span>
                                 <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", fontWeight: 600 }}>
-                                  Squad chat{check.squadMemberCount ? ` · ${check.squadMemberCount}/${check.maxSquadSize ?? 5}` : ""}
+                                  Squad chat{check.squadMemberCount ? ` · ${check.squadMemberCount}` : ""}
                                 </span>
                                 <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", marginLeft: "auto" }}>→</span>
                               </div>
@@ -835,16 +835,6 @@ export default function FeedView({
                                     💬 Squad →
                                   </button>
                                 ) : check.squadId ? (
-                                  (check.squadMemberCount ?? 0) >= (check.maxSquadSize ?? 5) ? (
-                                    <span style={{
-                                      fontFamily: font.mono,
-                                      fontSize: 10,
-                                      color: color.dim,
-                                      padding: "6px 8px",
-                                    }}>
-                                      Squad full ({check.squadMemberCount}/{check.maxSquadSize ?? 5})
-                                    </span>
-                                  ) : (
                                     <button
                                       onClick={async (e) => {
                                         e.stopPropagation();
@@ -878,7 +868,6 @@ export default function FeedView({
                                     >
                                       Join Squad →
                                     </button>
-                                  )
                                 ) : pendingDownCheckIds.has(check.id) ? (
                                   <span style={{
                                     fontFamily: font.mono,

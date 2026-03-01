@@ -989,7 +989,7 @@ const AddModal = ({
             {/* Squad size picker */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                Squad size
+                Starting squad size
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {[3, 4, 5, 6, 8].map((n) => (
