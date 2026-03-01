@@ -86,6 +86,7 @@ export async function getFriendshipWith(userId: string): Promise<{ id: string; s
 // ============================================================================
 
 export async function getPublicEvents(date?: Date): Promise<Event[]> {
+  const today = toLocalISODate(new Date());
   let query = supabase
     .from('events')
     .select('*')
@@ -94,6 +95,8 @@ export async function getPublicEvents(date?: Date): Promise<Event[]> {
 
   if (date) {
     query = query.eq('date', toLocalISODate(date));
+  } else {
+    query = query.gte('date', today);
   }
 
   const { data, error } = await query;
@@ -118,10 +121,12 @@ export async function getFriendsEvents(): Promise<Event[]> {
     f.requester_id === user.id ? f.addressee_id : f.requester_id
   );
 
+  const today = toLocalISODate(new Date());
   const { data, error } = await supabase
     .from('events')
     .select('*')
     .in('created_by', friendIds)
+    .gte('date', today)
     .order('date', { ascending: true });
 
   if (error) throw error;
