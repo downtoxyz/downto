@@ -904,30 +904,20 @@ const GroupsView = ({
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", flexShrink: 0 }} />
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, flexShrink: 0 }}>
+                {g.time}
                 {(() => {
                   const exp = formatExpiryShort(g.expiresAt);
                   if (!exp) return null;
                   const msLeft = g.expiresAt ? new Date(g.expiresAt).getTime() - Date.now() : Infinity;
                   const isUrgent = msLeft < 24 * 60 * 60 * 1000;
                   return (
-                    <span style={{
-                      fontFamily: font.mono,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: isUrgent ? "#ff3b30" : color.faint,
-                      background: isUrgent ? "rgba(255,59,48,0.12)" : "rgba(255,255,255,0.05)",
-                      padding: "2px 5px",
-                      borderRadius: 6,
-                    }}>
-                      ⏳ {exp}
+                    <span style={{ color: isUrgent ? "#ff3b30" : color.faint }}>
+                      {" · "}expires {exp}
                     </span>
                   );
                 })()}
-                <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
-                  {g.time}
-                </span>
-              </div>
+              </span>
             </div>
             <div
               style={{
