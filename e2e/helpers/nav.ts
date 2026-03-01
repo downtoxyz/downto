@@ -16,7 +16,8 @@ export function navButton(page: Page, label: string): Locator {
 
 /**
  * Wait for the app to finish loading after auth.
+ * Waits for the bottom nav to actually render instead of a fixed delay.
  */
 export async function waitForAppLoaded(page: Page) {
-  await page.waitForTimeout(3_000);
+  await page.getByRole("button", { name: /Feed$/ }).waitFor({ timeout: 15_000 });
 }
