@@ -654,7 +654,7 @@ export default function FeedView({
                               style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", minWidth: 0 }}
                             >
                               <div style={{ display: "flex", flexShrink: 0 }}>
-                                {check.responses.map((r, i) => (
+                                {check.responses.slice(0, 6).map((r, i) => (
                                   <div
                                     key={r.name}
                                     style={{
@@ -681,6 +681,27 @@ export default function FeedView({
                                     {r.avatar}
                                   </div>
                                 ))}
+                                {check.responses.length > 6 && (
+                                  <div
+                                    style={{
+                                      width: 24,
+                                      height: 24,
+                                      borderRadius: "50%",
+                                      background: color.faint,
+                                      color: color.dim,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontFamily: font.mono,
+                                      fontSize: 8,
+                                      fontWeight: 700,
+                                      marginLeft: -6,
+                                      border: `2px solid ${color.card}`,
+                                    }}
+                                  >
+                                    +{check.responses.length - 6}
+                                  </div>
+                                )}
                               </div>
                               <span
                                 style={{
