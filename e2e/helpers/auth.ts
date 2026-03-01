@@ -43,6 +43,4 @@ export async function loginAsTestUser(
   await page.goto(actionLink);
   // Wait for auth redirect to complete and app to render
   await page.waitForURL(/127\.0\.0\.1:3000/, { timeout: 15_000 });
-  // Give the SPA time to hydrate and process the auth token
-  await page.waitForTimeout(2_000);
 }

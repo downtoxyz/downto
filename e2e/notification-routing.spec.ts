@@ -44,7 +44,6 @@ test.describe("Notification click routing", () => {
 
   test("friend_request routes to You tab", async ({ page }) => {
     await dispatchNotificationClick(page, "friend_request");
-    await page.waitForTimeout(1_000);
   });
 
   test("check_response routes to Feed tab", async ({ page }) => {
@@ -68,7 +67,6 @@ test.describe("Notification click routing", () => {
       "squad_invite",
       "d1111111-1111-1111-1111-111111111111"
     );
-    await page.waitForTimeout(1_000);
     const drinksVisible = await page.getByText("Drinks Crew").isVisible().catch(() => false);
     if (!drinksVisible) {
       await navButton(page, "Squads").click();

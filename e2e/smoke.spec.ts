@@ -18,7 +18,6 @@ test.describe("Smoke tests", () => {
 
     // Switch to You tab
     await navButton(page, "You").click();
-    await page.waitForTimeout(500);
 
     // Switch to Feed tab
     await navButton(page, "Feed").click();
@@ -26,6 +25,5 @@ test.describe("Smoke tests", () => {
 
     // Switch to Cal tab — use .last() because "Save to Cal" button also exists
     await navButton(page, "Cal").last().click();
-    await page.waitForTimeout(500);
   });
 });
