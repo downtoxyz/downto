@@ -81,6 +81,14 @@ export async function getFriendshipWith(userId: string): Promise<{ id: string; s
   return { id: data.id, status: data.status, isRequester: data.requester_id === user.id };
 }
 
+export async function logVersionPing(buildId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("version_pings")
+    .insert({ user_id: user.id, build_id: buildId });
+}
+
 // ============================================================================
 // EVENTS
 // ============================================================================

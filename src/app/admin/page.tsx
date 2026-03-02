@@ -31,6 +31,9 @@ interface Metrics {
     stale24h: number;
     recentFailures: PushFailure[];
   };
+  versions: {
+    distribution: { build_id: string; users: number; pings24h: number }[];
+  };
 }
 
 export default function AdminPage() {
@@ -249,6 +252,49 @@ export default function AdminPage() {
             </table>
           </div>
         </>
+      )}
+
+      {/* Version distribution */}
+      <h2 style={{ ...sectionHeader, marginTop: 40 }}>Versions (7d)</h2>
+
+      {metrics.versions.distribution.length > 0 && (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: font.mono, fontSize: 12 }}>
+            <thead>
+              <tr>
+                {["Build ID", "Users", "Pings (24h)"].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px 12px",
+                      color: color.dim,
+                      borderBottom: `1px solid ${color.borderLight}`,
+                      fontWeight: 400,
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.versions.distribution.map((v) => (
+                <tr key={v.build_id}>
+                  <td style={{ ...cellStyle, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {v.build_id || "—"}
+                  </td>
+                  <td style={cellStyle}>
+                    <span style={{ color: color.accent, fontWeight: 700 }}>{v.users}</span>
+                  </td>
+                  <td style={cellStyle}>
+                    <span style={{ color: color.muted }}>{v.pings24h}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

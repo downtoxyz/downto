@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Space_Mono } from "next/font/google";
 import DevProdBanner from "@/components/DevProdBanner";
+import UpdateBanner from "@/components/UpdateBanner";
 import Grain from "@/components/Grain";
 
 import "./global.css";
@@ -67,6 +68,7 @@ export default function RootLayout({
       <body>
         <Grain />
         <DevProdBanner />
+        <UpdateBanner />
         <div className="container">{children}</div>
       </body>
     </html>
