@@ -21,18 +21,36 @@ self.addEventListener("push", (event) => {
   const { title = "down to", body = "", type, relatedId } = data;
 
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: type ? `${type}-${relatedId || "default"}` : undefined,
-      data: { type, relatedId },
-    })
+    Promise.all([
+      self.registration.showNotification(title, {
+        body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: type ? `${type}-${relatedId || "default"}` : undefined,
+        data: { type, relatedId },
+      }),
+      // Increment PWA app icon badge
+      self.registration.getNotifications().then((notifs) => {
+        // Count visible notifications as a proxy for unread count
+        if (navigator.setAppBadge) {
+          navigator.setAppBadge(notifs.length + 1);
+        }
+      }),
+    ])
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  // Update app badge: decrement or clear
+  self.registration.getNotifications().then((notifs) => {
+    if (navigator.setAppBadge && notifs.length > 0) {
+      navigator.setAppBadge(notifs.length);
+    } else if (navigator.clearAppBadge) {
+      navigator.clearAppBadge();
+    }
+  });
 
   const { type, relatedId } = event.notification.data || {};
 

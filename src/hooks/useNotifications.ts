@@ -60,6 +60,16 @@ export function useNotifications({ userId, isDemoMode, onUnreadSquadIds }: UseNo
     loadNotificationsRef.current();
   }, [isDemoMode, userId]);
 
+  // Sync unread count to PWA app badge
+  useEffect(() => {
+    if (!("setAppBadge" in navigator)) return;
+    if (unreadCount > 0) {
+      navigator.setAppBadge(unreadCount).catch(() => {});
+    } else {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  }, [unreadCount]);
+
   // Reload notifications on app focus
   useEffect(() => {
     if (isDemoMode || !userId) return;
