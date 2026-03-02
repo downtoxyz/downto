@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'date required' }, { status: 400 });
   }
 
-  // Determine if this is a proposal (dateless check getting a date for the first time)
-  const isProposal = squad?.check_id && !checkHadDate;
+  // Any date change on a check-based squad triggers the confirm flow
+  const isProposal = !!squad?.check_id;
 
   // Update expires_at to date + 24h
   const expiresAt = new Date(date + 'T23:59:59Z');
