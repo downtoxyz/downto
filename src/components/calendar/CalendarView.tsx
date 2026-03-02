@@ -137,11 +137,31 @@ const CalendarView = ({
     return parts.join(" · ") || "0 events";
   })();
 
-  // Format check date for card display
-  const formatCheckDate = (isoDate: string) => {
+  // Unified date formatter for card display
+  // Today → "TODAY" + day, within 2-week grid → "THU" + day, outside → "MAR" + day
+  const gridDateKeys = new Set(days.map((d) => d.dateKey));
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MONTH_ABBREVS_REV = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const formatCardDate = (dateKey: string, dateObj: Date) => {
+    const todayKey = `${todayMonth}-${todayDate}`;
+    if (dateKey === todayKey) return { label: "Today", day: dateObj.getDate().toString() };
+    if (gridDateKeys.has(dateKey)) return { label: DAY_NAMES[dateObj.getDay()], day: dateObj.getDate().toString() };
+    return { label: MONTH_ABBREVS_REV[dateObj.getMonth()], day: dateObj.getDate().toString() };
+  };
+
+  const formatEventCardDate = (e: Event) => {
+    const key = eventDateKey(e);
+    const match = e.date.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)/);
+    if (!match) return { label: e.date.split(",")[0], day: e.date.split(" ").pop() || "" };
+    const d = new Date(today.getFullYear(), MONTH_ABBREVS[match[1]], parseInt(match[2]));
+    return formatCardDate(key, d);
+  };
+
+  const formatCheckCardDate = (isoDate: string) => {
     const d = new Date(isoDate + "T00:00:00");
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return { month: months[d.getMonth()], day: d.getDate().toString() };
+    const key = `${d.getMonth()}-${d.getDate()}`;
+    return formatCardDate(key, d);
   };
 
   return (
@@ -252,7 +272,9 @@ const CalendarView = ({
         </div>
       ) : (
         <>
-          {displayedEvents.map((e) => (
+          {displayedEvents.map((e) => {
+            const { label: eDateLabel, day: eDateDay } = formatEventCardDate(e);
+            return (
             <div
               key={e.id}
               onClick={() => setSelectedEvent(e)}
@@ -277,10 +299,10 @@ const CalendarView = ({
                     textTransform: "uppercase",
                   }}
                 >
-                  {e.date.split(",")[0]}
+                  {eDateLabel}
                 </div>
                 <div style={{ fontFamily: font.serif, fontSize: 26, color: color.text }}>
-                  {e.date.split(" ").pop()}
+                  {eDateDay}
                 </div>
               </div>
               <div>
@@ -300,9 +322,10 @@ const CalendarView = ({
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           {displayedChecks.map((c) => {
-            const { month, day } = formatCheckDate(c.eventDate!);
+            const { label: cDateLabel, day: cDateDay } = formatCheckCardDate(c.eventDate!);
             const response = myCheckResponses[c.id];
             return (
               <div
@@ -327,10 +350,10 @@ const CalendarView = ({
                       textTransform: "uppercase",
                     }}
                   >
-                    {month}
+                    {cDateLabel}
                   </div>
                   <div style={{ fontFamily: font.serif, fontSize: 26, color: color.text }}>
-                    {day}
+                    {cDateDay}
                   </div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
