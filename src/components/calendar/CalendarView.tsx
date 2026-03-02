@@ -105,15 +105,33 @@ const CalendarView = ({
     return `${MONTH_ABBREVS[match[1]]}-${parseInt(match[2])}`;
   };
 
-  const displayedEvents = selectedDateKey
+  const filteredEvents = selectedDateKey
     ? saved.filter((e) => eventDateKey(e) === selectedDateKey)
     : saved;
 
-  const displayedChecks = selectedDateKey
+  const filteredChecks = selectedDateKey
     ? calendarChecks.filter((c) => checkDateKeyFromIso(c.eventDate!) === selectedDateKey)
     : calendarChecks;
 
-  const totalItems = displayedEvents.length + displayedChecks.length;
+  // Merge events and checks into a single date-sorted list
+  type CalItem = { type: "event"; data: Event } | { type: "check"; data: InterestCheck };
+  const calItems: CalItem[] = [
+    ...filteredEvents.map((e) => ({ type: "event" as const, data: e })),
+    ...filteredChecks.map((c) => ({ type: "check" as const, data: c })),
+  ].sort((a, b) => {
+    const dateA = a.type === "event"
+      ? (a.data as Event).rawDate ?? ""
+      : (a.data as InterestCheck).eventDate ?? "";
+    const dateB = b.type === "event"
+      ? (b.data as Event).rawDate ?? ""
+      : (b.data as InterestCheck).eventDate ?? "";
+    if (!dateA && !dateB) return 0;
+    if (!dateA) return 1;
+    if (!dateB) return -1;
+    return dateA.localeCompare(dateB);
+  });
+
+  const totalItems = calItems.length;
 
   // Header: show month(s) covered by the 2-week span
   const startMonth = monday.getMonth();
@@ -132,8 +150,8 @@ const CalendarView = ({
       return parts.length > 0 ? `Upcoming (${parts.join(" · ")})` : "Upcoming";
     }
     const parts: string[] = [];
-    if (displayedEvents.length > 0) parts.push(`${displayedEvents.length} event${displayedEvents.length !== 1 ? "s" : ""}`);
-    if (displayedChecks.length > 0) parts.push(`${displayedChecks.length} check${displayedChecks.length !== 1 ? "s" : ""}`);
+    if (filteredEvents.length > 0) parts.push(`${filteredEvents.length} event${filteredEvents.length !== 1 ? "s" : ""}`);
+    if (filteredChecks.length > 0) parts.push(`${filteredChecks.length} check${filteredChecks.length !== 1 ? "s" : ""}`);
     return parts.join(" · ") || "0 events";
   })();
 
@@ -272,64 +290,14 @@ const CalendarView = ({
         </div>
       ) : (
         <>
-          {displayedEvents.map((e) => {
-            const { label: eDateLabel, day: eDateDay } = formatEventCardDate(e);
-            return (
-            <div
-              key={e.id}
-              onClick={() => setSelectedEvent(e)}
-              style={{
-                background: color.card,
-                borderRadius: 14,
-                padding: 16,
-                marginBottom: 8,
-                border: `1px solid ${color.border}`,
-                display: "flex",
-                gap: 14,
-                alignItems: "center",
-                cursor: "pointer",
-              }}
-            >
-              <div style={{ minWidth: 44, textAlign: "center" }}>
-                <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 9,
-                    color: color.accent,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {eDateLabel}
-                </div>
-                <div style={{ fontFamily: font.serif, fontSize: 26, color: color.text }}>
-                  {eDateDay}
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: font.serif,
-                    fontSize: 16,
-                    color: color.text,
-                    marginBottom: 2,
-                    fontWeight: 400,
-                  }}
-                >
-                  {e.title}
-                </div>
-                <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
-                  {e.venue} · {e.time}
-                </div>
-              </div>
-            </div>
-            );
-          })}
-          {displayedChecks.map((c) => {
-            const { label: cDateLabel, day: cDateDay } = formatCheckCardDate(c.eventDate!);
-            const response = myCheckResponses[c.id];
-            return (
+          {calItems.map((item) => {
+            if (item.type === "event") {
+              const e = item.data as Event;
+              const { label: eDateLabel, day: eDateDay } = formatEventCardDate(e);
+              return (
               <div
-                key={`check-${c.id}`}
+                key={e.id}
+                onClick={() => setSelectedEvent(e)}
                 style={{
                   background: color.card,
                   borderRadius: 14,
@@ -339,6 +307,7 @@ const CalendarView = ({
                   display: "flex",
                   gap: 14,
                   alignItems: "center",
+                  cursor: "pointer",
                 }}
               >
                 <div style={{ minWidth: 44, textAlign: "center" }}>
@@ -346,17 +315,17 @@ const CalendarView = ({
                     style={{
                       fontFamily: font.mono,
                       fontSize: 9,
-                      color: CHECK_DOT_COLOR,
+                      color: color.accent,
                       textTransform: "uppercase",
                     }}
                   >
-                    {cDateLabel}
+                    {eDateLabel}
                   </div>
                   <div style={{ fontFamily: font.serif, fontSize: 26, color: color.text }}>
-                    {cDateDay}
+                    {eDateDay}
                   </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div>
                   <div
                     style={{
                       fontFamily: font.serif,
@@ -366,21 +335,73 @@ const CalendarView = ({
                       fontWeight: 400,
                     }}
                   >
-                    {c.text}
+                    {e.title}
                   </div>
-                  <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, display: "flex", alignItems: "center", gap: 6 }}>
-                    {c.eventTime && <span>{c.eventTime}</span>}
-                    {c.eventTime && <span>·</span>}
-                    <span style={{
-                      color: response === "down" ? color.accent : color.muted,
-                      fontWeight: 700,
-                    }}>
-                      {response === "down" ? "✓ Down" : "✓ Maybe"}
-                    </span>
+                  <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                    {e.venue} · {e.time}
                   </div>
                 </div>
               </div>
-            );
+              );
+            } else {
+              const c = item.data as InterestCheck;
+              const { label: cDateLabel, day: cDateDay } = formatCheckCardDate(c.eventDate!);
+              const response = myCheckResponses[c.id];
+              return (
+                <div
+                  key={`check-${c.id}`}
+                  style={{
+                    background: color.card,
+                    borderRadius: 14,
+                    padding: 16,
+                    marginBottom: 8,
+                    border: `1px solid ${color.border}`,
+                    display: "flex",
+                    gap: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ minWidth: 44, textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontFamily: font.mono,
+                        fontSize: 9,
+                        color: CHECK_DOT_COLOR,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {cDateLabel}
+                    </div>
+                    <div style={{ fontFamily: font.serif, fontSize: 26, color: color.text }}>
+                      {cDateDay}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontFamily: font.serif,
+                        fontSize: 16,
+                        color: color.text,
+                        marginBottom: 2,
+                        fontWeight: 400,
+                      }}
+                    >
+                      {c.text}
+                    </div>
+                    <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, display: "flex", alignItems: "center", gap: 6 }}>
+                      {c.eventTime && <span>{c.eventTime}</span>}
+                      {c.eventTime && <span>·</span>}
+                      <span style={{
+                        color: response === "down" ? color.accent : color.muted,
+                        fontWeight: 700,
+                      }}>
+                        {response === "down" ? "✓ Down" : "✓ Maybe"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
           })}
         </>
       )}
