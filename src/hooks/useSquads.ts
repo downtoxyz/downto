@@ -161,8 +161,9 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
   const startSquadFromCheck = async (check: InterestCheck) => {
     if (creatingSquad) return;
     setCreatingSquad(true);
+    const maxSize = check.maxSquadSize ?? 5;
     const allDown = check.responses.filter((r) => r.status === "down" && r.name !== "You");
-    const downPeople = check.maxSquadSize ? allDown.slice(0, check.maxSquadSize - 1) : allDown;
+    const downPeople = allDown.slice(0, maxSize - 1);
     const memberNames = downPeople.map((p) => p.name);
     const squadName = check.text.slice(0, 30) + (check.text.length > 30 ? "..." : "");
     const opener = pickOpener(check.text);
