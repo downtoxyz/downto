@@ -1,0 +1,19 @@
+.input, .input:autofill {
+  background: var(--color-surface-secondary);
+  border: solid 1px var(--color-border-secondary);
+  border-radius: var(--border-radius-large);
+  padding: var(--spacing-100);
+  color: var(--color-content-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-md);
+  outline: none;
+  margin-bottom: var(--spacing-100);
+}
+
+.input::placeholder {
+  color: var(--color-content-tertiary);
+}
+
+.input:focus {
+  border-color: var(--color-border-highlight);
+}

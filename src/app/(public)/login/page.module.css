@@ -1,0 +1,7 @@
+.errorContainer {
+    margin-bottom: var(--spacing-100);
+}
+
+.highlight {
+    color: var(--color-content-highlight);
+}

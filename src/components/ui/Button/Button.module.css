@@ -1,0 +1,56 @@
+.button {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  border: none;
+  cursor: pointer;
+}
+
+/* Type */
+.primary {
+  background: var(--color-surface-highlight);
+}
+
+.outline {
+  color: var(--color-content-secondary);
+  border: solid 1px var(--color-border-secondary);
+  background: transparent;
+  font-weight: var(--font-weight-regular);
+}
+
+.highlight {
+  color: var(--color-content-highlight);
+  border: solid 1px var(--color-border-highlight);
+  background: transparent;
+}
+
+/* Size */
+.small {
+  font-size: var(--font-size-xxs);
+  padding: 0.4rem 0.625rem;
+  border-radius: var(--border-radius-small);
+}
+
+.medium {
+  font-size: var(--font-size-xs);
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--border-radius-small);
+}
+
+.large {
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  padding: var(--spacing-100);
+  border-radius: var(--border-radius-large);
+  letter-spacing: 0.1em;
+}
+
+.disabled {
+  background: var(--color-surface-tertiary);
+  color: var(--color-content-secondary);
+  cursor: not-allowed;
+}
+
+.fullWidth { 
+  width: 100%;
+}

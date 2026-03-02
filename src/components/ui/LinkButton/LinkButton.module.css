@@ -1,0 +1,9 @@
+.linkButton {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    background: transparent;
+    border: none;
+    color: var(--color-content-secondary);
+    cursor: pointer;
+    text-decoration: underline;
+}

@@ -1,0 +1,33 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.highlight {
+    color: var(--color-content-highlight);
+}
+
+.codeInput {
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.messageContainer {
+    margin-bottom: var(--spacing-125);
+}
+
+.linkContainer {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-100);
+    margin-top: var(--spacing-075);
+}
+
+.errorContainer {
+    margin-bottom: var(--spacing-100);
+}
+
+.navLink {
+    color: var(--color-content-secondary);
+}

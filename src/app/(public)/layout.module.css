@@ -1,0 +1,7 @@
+.displaySection {
+  margin: 60px 0 48px 0;
+}
+
+.displaySubheading {
+  font-size: var(--font-size-xs);
+}
