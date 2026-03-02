@@ -73,6 +73,7 @@ export interface InterestCheck {
   event_date: string | null; // ISO date from natural language parsing
   event_time: string | null; // display time like "7 PM"
   date_flexible: boolean;
+  time_flexible: boolean;
   max_squad_size: number;
   letterboxd_url: string | null;
   movie_metadata: {

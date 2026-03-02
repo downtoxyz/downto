@@ -38,10 +38,6 @@ const GlobalStyles = () => (
       0%, 100% { box-shadow: 0 0 8px rgba(232,255,90,0.4), 0 0 20px rgba(232,255,90,0.2); }
       50% { box-shadow: 0 0 16px rgba(232,255,90,0.6), 0 0 32px rgba(232,255,90,0.3); }
     }
-    @keyframes dashPulse {
-      0%, 100% { border-color: rgba(232,255,90,0.35); }
-      50% { border-color: rgba(232,255,90,0.12); }
-    }
 
     ::-webkit-scrollbar { width: 0; }
 

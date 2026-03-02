@@ -577,8 +577,8 @@ export default function FeedView({
                                     <span style={{
                                       display: "inline-block",
                                       padding: "3px 8px",
-                                      background: check.dateFlexible ? "transparent" : "rgba(232,255,90,0.1)",
-                                      border: check.dateFlexible ? "1px dashed rgba(232,255,90,0.3)" : "none",
+                                      background: check.timeFlexible ? "transparent" : "rgba(232,255,90,0.1)",
+                                      border: check.timeFlexible ? "1px dashed rgba(232,255,90,0.3)" : "none",
                                       borderRadius: 6,
                                       fontFamily: font.mono,
                                       fontSize: 10,

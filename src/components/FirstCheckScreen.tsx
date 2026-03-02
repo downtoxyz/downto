@@ -10,7 +10,7 @@ const FirstCheckScreen = ({
   onComplete,
   onSkip,
 }: {
-  onComplete: (idea: string, expiresInHours: number | null, eventDate: string | null, maxSquadSize: number, eventTime?: string | null, dateFlexible?: boolean) => void;
+  onComplete: (idea: string, expiresInHours: number | null, eventDate: string | null, maxSquadSize: number, eventTime?: string | null, dateFlexible?: boolean, timeFlexible?: boolean) => void;
   onSkip: () => void;
 }) => {
   const [idea, setIdea] = useState("");
@@ -22,6 +22,8 @@ const FirstCheckScreen = ({
   const [dateDismissed, setDateDismissed] = useState(false);
   const [timeDismissed, setTimeDismissed] = useState(false);
   const [dateLocked, setDateLocked] = useState(false);
+  const [timeLocked, setTimeLocked] = useState(false);
+  const [hasToggledLock, setHasToggledLock] = useState(false);
   const ideaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -108,11 +110,10 @@ const FirstCheckScreen = ({
               background: dateLocked ? "rgba(232,255,90,0.08)" : "transparent",
               borderRadius: 8,
               border: dateLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
-              animation: dateLocked ? "none" : "dashPulse 2s ease-in-out infinite",
               cursor: "pointer",
             }}>
               <span
-                onClick={() => setDateLocked((v) => !v)}
+                onClick={() => { setDateLocked((v) => !v); setHasToggledLock(true); }}
                 style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600, cursor: "pointer" }}
               >
                 📅 {detectedDate.label}
@@ -140,14 +141,13 @@ const FirstCheckScreen = ({
               alignItems: "center",
               gap: 6,
               padding: "6px 10px",
-              background: dateLocked ? "rgba(232,255,90,0.08)" : "transparent",
+              background: timeLocked ? "rgba(232,255,90,0.08)" : "transparent",
               borderRadius: 8,
-              border: dateLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
-              animation: dateLocked ? "none" : "dashPulse 2s ease-in-out infinite",
+              border: timeLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
               cursor: "pointer",
             }}>
               <span
-                onClick={() => setDateLocked((v) => !v)}
+                onClick={() => { setTimeLocked((v) => !v); setHasToggledLock(true); }}
                 style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600, cursor: "pointer" }}
               >
                 🕐 {detectedTime}
@@ -167,6 +167,11 @@ const FirstCheckScreen = ({
               >
                 ×
               </button>
+            </div>
+          )}
+          {!hasToggledLock && (
+            <div style={{ width: "100%", fontFamily: font.mono, fontSize: 9, color: color.faint, marginTop: 2 }}>
+              tap to lock in · dashed = flexible
             </div>
           )}
         </div>
@@ -244,7 +249,7 @@ const FirstCheckScreen = ({
           if (idea.trim()) {
             const eventDate = (!dateDismissed && detectedDate) ? detectedDate.iso : null;
             const eventTime = (!timeDismissed && detectedTime) ? detectedTime : null;
-            onComplete(sanitize(idea, 280), checkTimer, eventDate, squadSize, eventTime, !dateLocked);
+            onComplete(sanitize(idea, 280), checkTimer, eventDate, squadSize, eventTime, !dateLocked, !timeLocked);
           }
         }}
         disabled={!idea.trim()}
