@@ -30,6 +30,13 @@ export interface Event {
   ig_url: string | null;
   dice_url: string | null;
   letterboxd_url: string | null;
+  movie_metadata: {
+    title: string;
+    year?: string;
+    director?: string;
+    thumbnail?: string;
+    vibes?: string[];
+  } | null;
   is_public: boolean;
   created_by: string | null;
   created_at: string;

@@ -60,6 +60,12 @@ const AddModal = ({
   const checkMovieUrlRef = useRef<string | null>(null);
   const checkMovieLoadingRef = useRef(false);
 
+  // Manual mode: movie search
+  const [movieMode, setMovieMode] = useState(false);
+  const [manualMovie, setManualMovie] = useState<{ title: string; year: string; director: string; thumbnail: string; url: string; vibes: string[] } | null>(null);
+  const [movieSearching, setMovieSearching] = useState(false);
+  const movieSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (open) {
       if (defaultMode) setMode(defaultMode);
@@ -85,6 +91,10 @@ const AddModal = ({
       setCheckMovieLoading(false);
       checkMovieLoadingRef.current = false;
       checkMovieUrlRef.current = null;
+      setMovieMode(false);
+      setManualMovie(null);
+      setMovieSearching(false);
+      if (movieSearchTimer.current) clearTimeout(movieSearchTimer.current);
     }
   }, [open, mode, defaultMode]);
 
@@ -262,20 +272,20 @@ const AddModal = ({
             onClick={() => setMode("paste")}
             style={{
               flex: 1,
-              background: mode === "paste" ? color.accent : "transparent",
-              color: mode === "paste" ? "#000" : color.dim,
-              border: mode === "paste" ? "none" : `1px solid ${color.borderMid}`,
+              background: (mode === "paste" || mode === "manual") ? color.accent : "transparent",
+              color: (mode === "paste" || mode === "manual") ? "#000" : color.dim,
+              border: (mode === "paste" || mode === "manual") ? "none" : `1px solid ${color.borderMid}`,
               borderRadius: 10,
               padding: "10px",
               fontFamily: font.mono,
               fontSize: 11,
-              fontWeight: mode === "paste" ? 700 : 400,
+              fontWeight: (mode === "paste" || mode === "manual") ? 700 : 400,
               cursor: "pointer",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
             }}
           >
-            Paste Link
+            Save Event
           </button>
         </div>
 
@@ -1059,6 +1069,39 @@ const AddModal = ({
         {mode === "manual" && (
           <>
             <div style={{ marginBottom: 16 }}>
+              {/* Event / Movie toggle */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                {(["EVENT", "MOVIE"] as const).map((label) => {
+                  const active = label === "MOVIE" ? movieMode : !movieMode;
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => {
+                        const isMovie = label === "MOVIE";
+                        setMovieMode(isMovie);
+                        if (!isMovie) { setManualMovie(null); setMovieSearching(false); }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "8px 0",
+                        background: active ? color.accent : "transparent",
+                        color: active ? "#000" : color.muted,
+                        border: `1px solid ${active ? color.accent : color.borderMid}`,
+                        borderRadius: 10,
+                        fontFamily: font.mono,
+                        fontSize: 11,
+                        fontWeight: active ? 700 : 400,
+                        cursor: "pointer",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
               <p
                 style={{
                   fontFamily: font.mono,
@@ -1068,14 +1111,46 @@ const AddModal = ({
                   lineHeight: 1.6,
                 }}
               >
-                Enter event details manually
+                {movieMode ? "Search for a movie to create a screening event" : "Enter event details manually"}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <input
                   type="text"
                   value={manual.title}
-                  onChange={(e) => setManual({ ...manual, title: e.target.value.slice(0, 100) })}
-                  placeholder="Event name"
+                  onChange={(e) => {
+                    const val = e.target.value.slice(0, 100);
+                    setManual({ ...manual, title: val });
+                    // Movie search: debounce when in movie mode and 3+ chars
+                    if (movieMode) {
+                      if (movieSearchTimer.current) clearTimeout(movieSearchTimer.current);
+                      if (val.trim().length >= 3) {
+                        setMovieSearching(true);
+                        movieSearchTimer.current = setTimeout(async () => {
+                          try {
+                            const res = await fetch("/api/search-letterboxd", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ query: val.trim() }),
+                            });
+                            const data = await res.json();
+                            if (data.found && data.movie) {
+                              setManualMovie(data.movie);
+                            } else {
+                              setManualMovie(null);
+                            }
+                          } catch {
+                            setManualMovie(null);
+                          } finally {
+                            setMovieSearching(false);
+                          }
+                        }, 800);
+                      } else {
+                        setManualMovie(null);
+                        setMovieSearching(false);
+                      }
+                    }
+                  }}
+                  placeholder={movieMode ? "Movie title (e.g., The Bride)" : "Event name"}
                   maxLength={100}
                   style={{
                     background: color.deep,
@@ -1088,6 +1163,126 @@ const AddModal = ({
                     outline: "none",
                   }}
                 />
+                {/* Movie search loading */}
+                {movieMode && movieSearching && (
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 12px",
+                    background: color.deep,
+                    borderRadius: 10,
+                    border: `1px solid ${color.borderLight}`,
+                  }}>
+                    <div style={{
+                      width: 16,
+                      height: 16,
+                      border: `2px solid ${color.borderMid}`,
+                      borderTopColor: color.accent,
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
+                      flexShrink: 0,
+                    }} />
+                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                      searching letterboxd...
+                    </span>
+                  </div>
+                )}
+                {/* Movie match preview */}
+                {movieMode && manualMovie && !movieSearching && (
+                  <div style={{
+                    padding: 12,
+                    background: color.deep,
+                    borderRadius: 12,
+                    border: `1px solid ${color.borderLight}`,
+                    animation: "fadeIn 0.3s ease",
+                  }}>
+                    <div style={{ display: "flex", gap: 12 }}>
+                      {manualMovie.thumbnail && (
+                        <img
+                          src={manualMovie.thumbnail}
+                          alt={manualMovie.title}
+                          style={{
+                            width: 60,
+                            height: 90,
+                            objectFit: "cover",
+                            borderRadius: 8,
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div style={{
+                            fontFamily: font.serif,
+                            fontSize: 17,
+                            color: color.text,
+                            lineHeight: 1.2,
+                            marginBottom: 3,
+                          }}>
+                            {manualMovie.title}
+                          </div>
+                          <button
+                            onClick={() => setManualMovie(null)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: color.dim,
+                              fontFamily: font.mono,
+                              fontSize: 14,
+                              cursor: "pointer",
+                              padding: "0 2px",
+                              lineHeight: 1,
+                              flexShrink: 0,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div style={{
+                          fontFamily: font.mono,
+                          fontSize: 11,
+                          color: color.muted,
+                          marginBottom: 4,
+                        }}>
+                          {manualMovie.year}{manualMovie.director && ` · ${manualMovie.director}`}
+                        </div>
+                        {manualMovie.vibes && manualMovie.vibes.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                            {manualMovie.vibes.slice(0, 4).map((v) => (
+                              <span
+                                key={v}
+                                style={{
+                                  background: "#1f1f1f",
+                                  color: color.accent,
+                                  padding: "2px 6px",
+                                  borderRadius: 12,
+                                  fontFamily: font.mono,
+                                  fontSize: 9,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.08em",
+                                }}
+                              >
+                                {v}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* No match hint */}
+                {movieMode && !manualMovie && !movieSearching && manual.title.trim().length >= 3 && (
+                  <div style={{
+                    fontFamily: font.mono,
+                    fontSize: 10,
+                    color: color.faint,
+                    padding: "4px 0",
+                  }}>
+                    No match found — you can still save the event manually
+                  </div>
+                )}
                 <input
                   type="text"
                   value={manual.venue}
@@ -1143,36 +1338,49 @@ const AddModal = ({
                     }}
                   />
                 </div>
-                <input
-                  type="text"
-                  value={manual.vibe}
-                  onChange={(e) => setManual({ ...manual, vibe: e.target.value.slice(0, 100) })}
-                  placeholder="Vibes (comma separated, e.g., techno, late night)"
-                  maxLength={100}
-                  style={{
-                    background: color.deep,
-                    border: `1px solid ${color.borderMid}`,
-                    borderRadius: 10,
-                    padding: "12px 14px",
-                    color: color.text,
-                    fontFamily: font.mono,
-                    fontSize: 13,
-                    outline: "none",
-                  }}
-                />
+                {!movieMode && (
+                  <input
+                    type="text"
+                    value={manual.vibe}
+                    onChange={(e) => setManual({ ...manual, vibe: e.target.value.slice(0, 100) })}
+                    placeholder="Vibes (comma separated, e.g., techno, late night)"
+                    maxLength={100}
+                    style={{
+                      background: color.deep,
+                      border: `1px solid ${color.borderMid}`,
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      color: color.text,
+                      fontFamily: font.mono,
+                      fontSize: 13,
+                      outline: "none",
+                    }}
+                  />
+                )}
               </div>
             </div>
             <button
               onClick={() => {
                 if (manual.title.trim()) {
+                  const hasMovie = movieMode && manualMovie;
                   onSubmit({
-                    title: manual.title,
+                    type: hasMovie ? "movie" : "event",
+                    title: hasMovie ? `${manualMovie.title} screening` : manual.title,
                     venue: manual.venue || "TBD",
                     date: manual.date || "TBD",
                     time: manual.time || "TBD",
-                    vibe: manual.vibe ? manual.vibe.split(",").map(v => v.trim().toLowerCase()) : ["event"],
+                    vibe: hasMovie
+                      ? (manualMovie.vibes.length > 0 ? manualMovie.vibes : ["film", "movie night"])
+                      : (manual.vibe ? manual.vibe.split(",").map(v => v.trim().toLowerCase()) : ["event"]),
                     igHandle: "",
                     isPublicPost: false,
+                    ...(hasMovie ? {
+                      movieTitle: manualMovie.title,
+                      year: manualMovie.year,
+                      director: manualMovie.director,
+                      thumbnail: manualMovie.thumbnail,
+                      letterboxdUrl: manualMovie.url,
+                    } : {}),
                   }, false);
                   onClose();
                 }
@@ -1193,7 +1401,7 @@ const AddModal = ({
                 letterSpacing: "0.1em",
               }}
             >
-              Save to Calendar →
+              {movieMode && manualMovie ? "Save Movie Night →" : "Save to Calendar →"}
             </button>
             <button
               onClick={() => setMode("paste")}

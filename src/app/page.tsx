@@ -196,6 +196,10 @@ export default function Home() {
             igUrl: se.event!.ig_url ?? undefined,
             diceUrl: se.event!.dice_url ?? undefined,
             letterboxdUrl: se.event!.letterboxd_url ?? undefined,
+            movieTitle: se.event!.movie_metadata?.title,
+            movieYear: se.event!.movie_metadata?.year,
+            movieDirector: se.event!.movie_metadata?.director,
+            movieThumbnail: se.event!.movie_metadata?.thumbnail,
             saved: true,
             isDown: se.is_down,
             isPublic: se.event!.is_public ?? false,
@@ -218,6 +222,10 @@ export default function Home() {
               igUrl: e.ig_url ?? undefined,
               diceUrl: e.dice_url ?? undefined,
               letterboxdUrl: e.letterboxd_url ?? undefined,
+              movieTitle: e.movie_metadata?.title,
+              movieYear: e.movie_metadata?.year,
+              movieDirector: e.movie_metadata?.director,
+              movieThumbnail: e.movie_metadata?.thumbnail,
               saved: false,
               isDown: false,
               peopleDown: prevPeopleDown.get(e.id) ?? [],
@@ -253,6 +261,10 @@ export default function Home() {
             igUrl: e.ig_url ?? undefined,
             diceUrl: e.dice_url ?? undefined,
             letterboxdUrl: e.letterboxd_url ?? undefined,
+            movieTitle: e.movie_metadata?.title,
+            movieYear: e.movie_metadata?.year,
+            movieDirector: e.movie_metadata?.director,
+            movieThumbnail: e.movie_metadata?.thumbnail,
             saved: savedEventIdSet.has(e.id),
             isDown: savedDownMap.get(e.id) ?? false,
             isPublic: true,
@@ -1047,6 +1059,9 @@ export default function Home() {
           const igUrl = e.igUrl || null;
           const diceUrl = e.diceUrl || null;
           const letterboxdUrl = e.letterboxdUrl || null;
+          const movieMetadata = e.type === "movie" && e.movieTitle
+            ? { title: e.movieTitle, year: e.year, director: e.director, thumbnail: e.thumbnail, vibes: e.vibe }
+            : null;
 
           if (!isDemoMode && userId) {
             try {
@@ -1077,6 +1092,7 @@ export default function Home() {
                   ig_url: igUrl,
                   dice_url: diceUrl,
                   letterboxd_url: letterboxdUrl,
+                  movie_metadata: movieMetadata,
                   is_public: sharePublicly,
                   created_by: userId,
                 });
@@ -1090,6 +1106,7 @@ export default function Home() {
               }
               await db.toggleDown(dbEvent.id, true);
 
+              const mm = dbEvent.movie_metadata ?? movieMetadata;
               const newEvent: Event = {
                 id: dbEvent.id,
                 createdBy: userId,
@@ -1103,6 +1120,10 @@ export default function Home() {
                 igUrl: dbEvent.ig_url ?? undefined,
                 diceUrl: dbEvent.dice_url ?? undefined,
                 letterboxdUrl: dbEvent.letterboxd_url ?? undefined,
+                movieTitle: mm?.title,
+                movieYear: mm?.year,
+                movieDirector: mm?.director,
+                movieThumbnail: mm?.thumbnail,
                 saved: true,
                 isDown: true,
                 isPublic: dbEvent.is_public ?? sharePublicly,
@@ -1129,6 +1150,10 @@ export default function Home() {
               igUrl: e.igUrl,
               diceUrl: e.diceUrl,
               letterboxdUrl: e.letterboxdUrl,
+              movieTitle: movieMetadata?.title,
+              movieYear: movieMetadata?.year,
+              movieDirector: movieMetadata?.director,
+              movieThumbnail: movieMetadata?.thumbnail,
               saved: true,
               isDown: true,
               isPublic: sharePublicly,

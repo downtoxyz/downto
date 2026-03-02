@@ -244,6 +244,25 @@ const EventCard = ({
             <div style={{ fontFamily: font.mono, fontSize: 12, color: color.dim }}>
               {event.venue}
             </div>
+            {event.movieTitle && (
+              <div style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                marginTop: 4,
+                padding: "3px 8px",
+                background: color.deep,
+                borderRadius: 8,
+                fontFamily: font.mono,
+                fontSize: 10,
+                color: color.muted,
+              }}>
+                <span>🎬</span>
+                {event.movieTitle}
+                {event.movieYear && ` (${event.movieYear})`}
+                {event.movieDirector && ` · ${event.movieDirector}`}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             {event.vibe.map((v) => (

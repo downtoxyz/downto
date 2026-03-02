@@ -19,6 +19,10 @@ export interface Event {
   igUrl?: string;
   diceUrl?: string;
   letterboxdUrl?: string;
+  movieTitle?: string;
+  movieYear?: string;
+  movieDirector?: string;
+  movieThumbnail?: string;
   saved: boolean;
   isDown: boolean;
   peopleDown: Person[];
