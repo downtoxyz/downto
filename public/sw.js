@@ -39,11 +39,11 @@ self.addEventListener("notificationclick", (event) => {
   // Map notification type to a tab
   let tab = "/";
   if (type === "friend_request" || type === "friend_accepted") {
-    tab = "/?tab=profile";
+    tab = "/?tab=profile&openFriends=1";
   } else if (type === "squad_message" || type === "squad_invite") {
     tab = relatedId ? `/?tab=groups&squadId=${relatedId}` : "/?tab=groups";
   } else if (type === "check_response" || type === "friend_check") {
-    tab = "/?tab=feed";
+    tab = relatedId ? `/?tab=feed&checkId=${relatedId}` : "/?tab=feed";
   }
 
   event.waitUntil(

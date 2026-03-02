@@ -417,6 +417,19 @@ export default function Home() {
       localStorage.setItem("pendingAddUsername", addUser);
       window.history.replaceState({}, "", "/");
     }
+    // Deep-link params from SW cold-open
+    if (params.get("openFriends")) {
+      friendsHook.setFriendsInitialTab("friends");
+      friendsHook.setFriendsOpen(true);
+      window.history.replaceState({}, "", `/?tab=${params.get("tab") || "profile"}`);
+    }
+    const checkId = params.get("checkId");
+    if (checkId) {
+      setFeedMode("foryou");
+      checksHook.setNewlyAddedCheckId(checkId);
+      setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
+      window.history.replaceState({}, "", "/?tab=feed");
+    }
   }, []);
 
   // Activate demo mode via ?demo=true
@@ -566,13 +579,21 @@ export default function Home() {
     const handler = (event: MessageEvent) => {
       if (event.data?.type === 'NOTIFICATION_CLICK') {
         const nType = event.data.notificationType;
+        const relatedId = event.data.relatedId;
         if (nType === 'friend_request' || nType === 'friend_accepted') {
           setTab('profile');
+          friendsHook.setFriendsInitialTab("friends");
+          friendsHook.setFriendsOpen(true);
         } else if (nType === 'squad_message' || nType === 'squad_invite') {
-          if (event.data.relatedId) squadsHook.setAutoSelectSquadId(event.data.relatedId);
+          if (relatedId) squadsHook.setAutoSelectSquadId(relatedId);
           setTab('groups');
         } else if (nType === 'check_response' || nType === 'friend_check') {
           setTab('feed');
+          setFeedMode('foryou');
+          if (relatedId) {
+            checksHook.setNewlyAddedCheckId(relatedId);
+            setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
+          }
         }
       }
     };
