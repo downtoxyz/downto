@@ -291,6 +291,7 @@ const FriendsModal = ({
           onTouchEnd={handleScrollTouchEnd}
           style={{
             overflowY: "auto",
+            overflowX: "hidden",
             flex: 1,
             paddingBottom: 40,
           }}
