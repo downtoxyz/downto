@@ -1,11 +1,10 @@
-"use server";
+'use server';
 
-import { redirect } from "next/navigation"; // For redirection after successful verification
-import { supabase } from "./supabase";
+import { redirect } from 'next/navigation'; // For redirection after successful verification
+import { supabase } from './supabase';
 
 export async function sendOtp(_prevState: any, formData: FormData) {
-  "use server";
-  const email = formData.get("email") as string;
+  const email = formData.get('email') as string;
 
   const { error } = await supabase.auth.signInWithOtp({ email });
 
@@ -17,8 +16,6 @@ export async function sendOtp(_prevState: any, formData: FormData) {
 }
 
 export async function resendOtp(_prevState: any, email: string) {
-  "use server";
-
   const { error } = await supabase.auth.signInWithOtp({ email });
 
   if (error) {
@@ -27,15 +24,13 @@ export async function resendOtp(_prevState: any, email: string) {
 }
 
 export async function verifyOtp(_prevState: any, formData: FormData) {
-  "use server";
-
-  const email = formData.get("email") as string; // Pass email via hidden input or query param
-  const token = formData.get("otp") as string; // The OTP code entered by the user
+  const email = formData.get('email') as string; // Pass email via hidden input or query param
+  const token = formData.get('code') as string; // The OTP code entered by the user
 
   const { error } = await supabase.auth.verifyOtp({
     email,
     token,
-    type: "email",
+    type: 'email',
   });
 
   if (error) {
@@ -44,5 +39,5 @@ export async function verifyOtp(_prevState: any, formData: FormData) {
 
   // Upon successful verification, the user is signed in and session stored in a cookie
   // Redirect the user to a protected route
-  redirect("/");
+  redirect('/');
 }
