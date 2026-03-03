@@ -64,9 +64,9 @@ const EventCard = ({
       }}
     >
       <div style={{ position: "relative", height: 180, overflow: "hidden" }}>
-        {event.image ? (
+        {(event.movieThumbnail || event.image) ? (
           <img
-            src={event.image}
+            src={event.movieThumbnail || event.image}
             alt=""
             style={{
               width: "100%",

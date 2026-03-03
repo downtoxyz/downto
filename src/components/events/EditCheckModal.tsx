@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, CSSProperties } from "react";
+import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
+import { parseNaturalDate, parseNaturalTime } from "@/lib/utils";
 import type { InterestCheck } from "@/lib/ui-types";
 
 const EditCheckModal = ({
@@ -23,10 +24,11 @@ const EditCheckModal = ({
   }) => void;
 }) => {
   const [text, setText] = useState("");
-  const [dateInput, setDateInput] = useState("");
-  const [timeInput, setTimeInput] = useState("");
+  const [dateDismissed, setDateDismissed] = useState(false);
+  const [timeDismissed, setTimeDismissed] = useState(false);
   const [dateLocked, setDateLocked] = useState(false);
   const [timeLocked, setTimeLocked] = useState(false);
+  const [hasToggledLock, setHasToggledLock] = useState(false);
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [closing, setClosing] = useState(false);
@@ -36,10 +38,11 @@ const EditCheckModal = ({
   useEffect(() => {
     if (check && open) {
       setText(check.text);
-      setDateInput(check.eventDate ?? "");
-      setTimeInput(check.eventTime ?? "");
+      setDateDismissed(false);
+      setTimeDismissed(false);
       setDateLocked(!check.dateFlexible);
       setTimeLocked(!check.timeFlexible);
+      setHasToggledLock(false);
     }
   }, [check, open]);
 
@@ -71,54 +74,21 @@ const EditCheckModal = ({
 
   if (!open || !check) return null;
 
-  const formatDateLabel = (iso: string): string | null => {
-    if (!iso) return null;
-    try {
-      return new Date(iso + "T00:00:00").toLocaleDateString("en-US", {
-        weekday: "short", month: "short", day: "numeric",
-      });
-    } catch {
-      return null;
-    }
-  };
+  const detectedDate = text ? parseNaturalDate(text) : null;
+  const detectedTime = text ? parseNaturalTime(text) : null;
 
   const handleSave = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
 
-    const finalDate = dateInput || null;
-    const finalTime = timeInput || null;
-
     onSave({
       text: trimmed,
-      eventDate: finalDate,
-      eventDateLabel: finalDate ? formatDateLabel(finalDate) : null,
-      eventTime: finalTime,
+      eventDate: !dateDismissed && detectedDate ? detectedDate.iso : null,
+      eventDateLabel: !dateDismissed && detectedDate ? detectedDate.label : null,
+      eventTime: !timeDismissed && detectedTime ? detectedTime : null,
       dateFlexible: !dateLocked,
       timeFlexible: !timeLocked,
     });
-  };
-
-  const inputStyle: CSSProperties = {
-    background: color.deep,
-    border: `1px solid ${color.borderMid}`,
-    borderRadius: 10,
-    padding: "12px 14px",
-    color: color.text,
-    fontFamily: font.mono,
-    fontSize: 13,
-    outline: "none",
-    width: "100%",
-    boxSizing: "border-box",
-  };
-
-  const labelStyle: CSSProperties = {
-    fontFamily: font.mono,
-    fontSize: 10,
-    textTransform: "uppercase",
-    letterSpacing: "0.15em",
-    color: color.dim,
-    marginBottom: 8,
   };
 
   return (
@@ -181,115 +151,111 @@ const EditCheckModal = ({
           </h2>
 
           {/* Text */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={labelStyle}>What&apos;s the plan?</div>
+          <div style={{ marginBottom: 16 }}>
             <textarea
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value.slice(0, 280));
+                setDateDismissed(false);
+                setTimeDismissed(false);
+              }}
+              maxLength={280}
               rows={3}
               style={{
-                ...inputStyle,
-                fontFamily: font.serif,
-                fontSize: 16,
-                lineHeight: "1.4",
+                width: "100%",
+                background: color.deep,
+                border: `1px solid ${color.borderMid}`,
+                borderRadius: 12,
+                padding: "14px 16px",
+                color: color.text,
+                fontFamily: font.mono,
+                fontSize: 13,
+                outline: "none",
                 resize: "none",
+                lineHeight: 1.5,
+                boxSizing: "border-box",
               }}
             />
           </div>
 
-          {/* Date */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={labelStyle}>Date</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="date"
-                value={dateInput}
-                onChange={(e) => setDateInput(e.target.value)}
-                style={{ ...inputStyle, flex: 1 }}
-              />
-              <button
-                onClick={() => setDateInput("")}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${color.border}`,
-                  borderRadius: 8,
-                  color: color.dim,
-                  padding: "10px 12px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
-              >
-                Clear
-              </button>
+          {/* Auto-detected date/time chips */}
+          {((detectedDate && !dateDismissed) || (detectedTime && !timeDismissed)) && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+              {detectedDate && !dateDismissed && (
+                <div
+                  onClick={() => { setDateLocked((v) => !v); setHasToggledLock(true); }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 10px",
+                    background: dateLocked ? "rgba(232,255,90,0.08)" : "transparent",
+                    borderRadius: 8,
+                    border: dateLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}>
+                    📅 {detectedDate.label}
+                  </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDateDismissed(true); }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: color.dim,
+                      fontFamily: font.mono,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      padding: "0 2px",
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              {detectedTime && !timeDismissed && (
+                <div
+                  onClick={() => { setTimeLocked((v) => !v); setHasToggledLock(true); }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 10px",
+                    background: timeLocked ? "rgba(232,255,90,0.08)" : "transparent",
+                    borderRadius: 8,
+                    border: timeLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}>
+                    🕐 {detectedTime}
+                  </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setTimeDismissed(true); }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: color.dim,
+                      fontFamily: font.mono,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      padding: "0 2px",
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              {!hasToggledLock && (
+                <div style={{ width: "100%", fontFamily: font.mono, fontSize: 9, color: color.faint, marginTop: 2 }}>
+                  tap to lock in · dashed = flexible
+                </div>
+              )}
             </div>
-            {dateInput && (
-              <button
-                onClick={() => setDateLocked(!dateLocked)}
-                style={{
-                  marginTop: 8,
-                  background: dateLocked ? "rgba(232,255,90,0.1)" : "transparent",
-                  border: dateLocked ? `1px solid ${color.accent}` : `1px dashed ${color.borderMid}`,
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  color: dateLocked ? color.accent : color.dim,
-                  cursor: "pointer",
-                }}
-              >
-                {dateLocked ? "Locked in" : "Flexible"}
-              </button>
-            )}
-          </div>
-
-          {/* Time */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={labelStyle}>Time</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="time"
-                value={timeInput ? convertTo24h(timeInput) : ""}
-                onChange={(e) => setTimeInput(e.target.value ? formatTime12h(e.target.value) : "")}
-                style={{ ...inputStyle, flex: 1 }}
-              />
-              <button
-                onClick={() => setTimeInput("")}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${color.border}`,
-                  borderRadius: 8,
-                  color: color.dim,
-                  padding: "10px 12px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
-              >
-                Clear
-              </button>
-            </div>
-            {timeInput && (
-              <button
-                onClick={() => setTimeLocked(!timeLocked)}
-                style={{
-                  marginTop: 8,
-                  background: timeLocked ? "rgba(232,255,90,0.1)" : "transparent",
-                  border: timeLocked ? `1px solid ${color.accent}` : `1px dashed ${color.borderMid}`,
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  color: timeLocked ? color.accent : color.dim,
-                  cursor: "pointer",
-                }}
-              >
-                {timeLocked ? "Locked in" : "Flexible"}
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Save button */}
@@ -319,28 +285,5 @@ const EditCheckModal = ({
     </div>
   );
 };
-
-function convertTo24h(display: string): string {
-  // "7 PM" or "7:30 PM" → "19:00" or "19:30"
-  const match = display.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
-  if (!match) return display; // already 24h format like "19:00"
-  let h = parseInt(match[1]);
-  const m = match[2] ?? "00";
-  const period = match[3]?.toUpperCase();
-  if (period === "PM" && h < 12) h += 12;
-  if (period === "AM" && h === 12) h = 0;
-  return `${h.toString().padStart(2, "0")}:${m}`;
-}
-
-function formatTime12h(time24: string): string {
-  // "19:00" → "7 PM", "19:30" → "7:30 PM"
-  const [hStr, mStr] = time24.split(":");
-  let h = parseInt(hStr);
-  const m = parseInt(mStr);
-  const period = h >= 12 ? "PM" : "AM";
-  if (h === 0) h = 12;
-  else if (h > 12) h -= 12;
-  return m > 0 ? `${h}:${mStr} ${period}` : `${h} ${period}`;
-}
 
 export default EditCheckModal;
