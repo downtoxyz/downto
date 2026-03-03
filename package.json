@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check-notify": "bash scripts/check-notify.sh"
   },
   "keywords": [],
   "author": "",

@@ -29,8 +29,8 @@ export default function UpdateBanner() {
 
       fetch("/api/version")
         .then((r) => r.json())
-        .then(({ buildId }) => {
-          if (buildId && buildId !== CLIENT_BUILD_ID) setShow(true);
+        .then(({ buildId, skipNotify }) => {
+          if (buildId && buildId !== CLIENT_BUILD_ID && !skipNotify) setShow(true);
         })
         .catch(() => {});
     }
