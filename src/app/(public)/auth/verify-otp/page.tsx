@@ -13,6 +13,9 @@ import { resendOtp } from "@/lib/auth";
 import styles from "./page.module.css";
 import ErrorText from "@/components/ui/ErrorText/ErrorText";
 
+/**
+ * Page handles OTP entry, verification, and resend
+ */
 export default function VerifyOtpPage({
   searchParams,
 }: {
