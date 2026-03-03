@@ -560,7 +560,13 @@ const FriendsModal = ({
                         </span>
                       ) : (
                         <button
-                          onClick={() => f.status === "none" && onAddFriend(f.id)}
+                          onClick={() => {
+                            if (f.status !== "none") return;
+                            onAddFriend(f.id);
+                            setSearchResults((prev) =>
+                              prev.map((r) => r.id === f.id ? { ...r, status: "pending" as const } : r)
+                            );
+                          }}
                           disabled={f.status === "pending"}
                           style={{
                             background: f.status === "pending" ? "transparent" : color.accent,
@@ -574,7 +580,7 @@ const FriendsModal = ({
                             cursor: f.status === "pending" ? "default" : "pointer",
                           }}
                         >
-                          {f.status === "pending" ? "Pending" : "Add"}
+                          {f.status === "pending" ? "Requested" : "Add"}
                         </button>
                       )}
                     </div>
@@ -671,7 +677,7 @@ const FriendsModal = ({
                           cursor: f.status === "pending" ? "default" : "pointer",
                         }}
                       >
-                        {f.status === "pending" ? "Pending" : "Add"}
+                        {f.status === "pending" ? "Requested" : "Add"}
                       </button>
                     </div>
                   ))
