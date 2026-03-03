@@ -124,11 +124,16 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
   };
 
   const searchUsers = !isDemoMode && userId ? async (query: string) => {
-    const results = await db.searchUsers(query);
+    // Fetch search results + outgoing pending requests in parallel
+    const [results, outgoing] = await Promise.all([
+      db.searchUsers(query),
+      db.getOutgoingPendingIds(),
+    ]);
     const friendIds = new Set(friends.map((f) => f.id));
-    const pendingIds = new Set(
-      suggestions.filter((s) => s.status === "pending" || s.status === "incoming").map((s) => s.id)
-    );
+    const pendingIds = new Set([
+      ...suggestions.filter((s) => s.status === "pending" || s.status === "incoming").map((s) => s.id),
+      ...outgoing,
+    ]);
 
     return results
       .filter((p) => p.id !== userId)

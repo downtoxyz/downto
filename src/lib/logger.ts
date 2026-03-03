@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+
 const isDev = process.env.NODE_ENV === "development";
 
 /**
@@ -41,6 +43,10 @@ export function logError(
     console.error(
       JSON.stringify({ level: "error", action, error: errorInfo, ...context }),
     );
+    Sentry.captureException(error instanceof Error ? error : new Error(String(errorInfo.message ?? errorInfo.raw)), {
+      tags: { action },
+      extra: context,
+    });
   }
 }
 
