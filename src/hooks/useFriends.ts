@@ -25,7 +25,8 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
   const hydrateFriends = useCallback((
     friendsList: Awaited<ReturnType<typeof db.getFriends>>,
     pendingRequests: Awaited<ReturnType<typeof db.getPendingRequests>>,
-    suggestedUsers: Profile[]
+    suggestedUsers: Profile[],
+    outgoingRequests: { profile: Profile; friendshipId: string }[] = []
   ) => {
     const transformedFriends: Friend[] = friendsList.map(({ profile: p, friendshipId }) => ({
       id: p.id,
@@ -48,6 +49,15 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
       status: "incoming" as const,
       igHandle: f.requester!.ig_handle ?? undefined,
     }));
+    const outgoingFriends: Friend[] = outgoingRequests.map(({ profile: p, friendshipId }) => ({
+      id: p.id,
+      friendshipId,
+      name: p.display_name,
+      username: p.username,
+      avatar: p.avatar_letter,
+      status: "pending" as const,
+      igHandle: p.ig_handle ?? undefined,
+    }));
     const suggestedFriends: Friend[] = suggestedUsers.map((p) => ({
       id: p.id,
       name: p.display_name,
@@ -56,7 +66,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
       status: "none" as const,
       igHandle: p.ig_handle ?? undefined,
     }));
-    setSuggestions([...incomingFriends, ...suggestedFriends]);
+    setSuggestions([...incomingFriends, ...outgoingFriends, ...suggestedFriends]);
   }, []);
 
   const addFriend = async (id: string) => {

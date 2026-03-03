@@ -164,6 +164,7 @@ export default function Home() {
         friendsEvents,
         friendsList,
         pendingRequests,
+        outgoingRequests,
         suggestedUsers,
         activeChecks,
         squadsList,
@@ -175,6 +176,7 @@ export default function Home() {
         db.getFriendsEvents(),
         db.getFriends(),
         db.getPendingRequests(),
+        db.getOutgoingPendingRequests().catch((err) => { logWarn("loadOutgoingRequests", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getOutgoingPendingRequests>>; }),
         db.getSuggestedUsers().catch((err) => { logWarn("loadSuggestions", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getSuggestedUsers>>; }),
         db.getActiveChecks().catch((err) => { logWarn("loadChecks", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getActiveChecks>>; }),
         db.getSquads().catch((err) => { logWarn("loadSquads", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getSquads>>; }),
@@ -282,7 +284,7 @@ export default function Home() {
       });
 
       // Phase 3: Hydrate domain hooks
-      friendsHook.hydrateFriends(friendsList, pendingRequests, suggestedUsers);
+      friendsHook.hydrateFriends(friendsList, pendingRequests, suggestedUsers, outgoingRequests);
       checksHook.hydrateChecks(activeChecks, hiddenIds, fofAnnotations);
       squadsHook.hydrateSquads(squadsList);
 

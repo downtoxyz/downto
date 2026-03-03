@@ -466,6 +466,22 @@ export function subscribeToFriendships(
   return { unsubscribe: () => { ch1.unsubscribe(); ch2.unsubscribe(); } };
 }
 
+export async function getOutgoingPendingRequests(): Promise<{ profile: Profile; friendshipId: string }[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('friendships')
+    .select('id, addressee:profiles!addressee_id(*)')
+    .eq('requester_id', user.id)
+    .eq('status', 'pending');
+
+  if (error) return [];
+  return ((data ?? []) as unknown as { id: string; addressee: Profile }[])
+    .filter((r) => r.addressee)
+    .map((r) => ({ profile: r.addressee, friendshipId: r.id }));
+}
+
 export async function getOutgoingPendingIds(): Promise<string[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];

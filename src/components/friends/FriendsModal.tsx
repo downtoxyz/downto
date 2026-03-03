@@ -83,7 +83,13 @@ const FriendsModal = ({
   const hasAddedFriend = friends.length > 0 || suggestions.some((s) => s.status === "pending" || s.status === "incoming");
 
   const incomingRequests = suggestions.filter((s) => s.status === "incoming");
+  const outgoingRequests = suggestions.filter((s) => s.status === "pending");
   const filteredFriends = friends.filter(
+    (f) =>
+      f.name.toLowerCase().includes(search.toLowerCase()) ||
+      f.username.toLowerCase().includes(search.toLowerCase())
+  );
+  const filteredOutgoing = outgoingRequests.filter(
     (f) =>
       f.name.toLowerCase().includes(search.toLowerCase()) ||
       f.username.toLowerCase().includes(search.toLowerCase())
@@ -290,7 +296,7 @@ const FriendsModal = ({
         >
         {tab === "friends" ? (
           <>
-            {filteredFriends.length === 0 ? (
+            {filteredFriends.length === 0 && filteredOutgoing.length === 0 ? (
               <p
                 style={{
                   textAlign: "center",
@@ -303,71 +309,151 @@ const FriendsModal = ({
                 {search ? "No friends found" : "No friends yet"}
               </p>
             ) : (
-              filteredFriends.map((f) => (
-                <div
-                  key={f.id}
-                  onClick={() => onViewProfile ? onViewProfile(f.id) : setSelectedFriend(f)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "12px 0",
-                    borderBottom: `1px solid ${color.border}`,
-                    cursor: "pointer",
-                  }}
-                >
+              <>
+                {filteredFriends.map((f) => (
                   <div
+                    key={f.id}
+                    onClick={() => onViewProfile ? onViewProfile(f.id) : setSelectedFriend(f)}
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      background: color.accent,
-                      color: "#000",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      fontFamily: font.mono,
-                      fontSize: 16,
-                      fontWeight: 700,
-                      marginRight: 12,
+                      padding: "12px 0",
+                      borderBottom: `1px solid ${color.border}`,
+                      cursor: "pointer",
                     }}
                   >
-                    {f.avatar}
-                  </div>
-                  <div style={{ flex: 1 }}>
                     <div
                       style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: "50%",
+                        background: color.accent,
+                        color: "#000",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         fontFamily: font.mono,
-                        fontSize: 13,
-                        color: color.text,
+                        fontSize: 16,
+                        fontWeight: 700,
+                        marginRight: 12,
                       }}
                     >
-                      {f.name}
+                      {f.avatar}
                     </div>
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontFamily: font.mono,
+                          fontSize: 13,
+                          color: color.text,
+                        }}
+                      >
+                        {f.name}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: font.mono,
+                          fontSize: 11,
+                          color: color.dim,
+                        }}
+                      >
+                        @{f.username}
+                      </div>
+                    </div>
+                    {f.availability && (
+                      <span
+                        style={{
+                          fontSize: 12,
+                          opacity: 0.8,
+                        }}
+                      >
+                        {f.availability === "open" && "✨"}
+                        {f.availability === "awkward" && "👀"}
+                        {f.availability === "not-available" && "🌙"}
+                      </span>
+                    )}
+                    <span style={{ color: color.faint, fontSize: 16, marginLeft: 8 }}>›</span>
+                  </div>
+                ))}
+
+                {filteredOutgoing.length > 0 && (
+                  <>
                     <div
                       style={{
                         fontFamily: font.mono,
-                        fontSize: 11,
+                        fontSize: 10,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
                         color: color.dim,
+                        marginTop: filteredFriends.length > 0 ? 20 : 0,
+                        marginBottom: 12,
                       }}
                     >
-                      @{f.username}
+                      Requested ({filteredOutgoing.length})
                     </div>
-                  </div>
-                  {f.availability && (
-                    <span
-                      style={{
-                        fontSize: 12,
-                        opacity: 0.8,
-                      }}
-                    >
-                      {f.availability === "open" && "✨"}
-                      {f.availability === "awkward" && "👀"}
-                      {f.availability === "not-available" && "🌙"}
-                    </span>
-                  )}
-                  <span style={{ color: color.faint, fontSize: 16, marginLeft: 8 }}>›</span>
-                </div>
-              ))
+                    {filteredOutgoing.map((f) => (
+                      <div
+                        key={f.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "12px 0",
+                          borderBottom: `1px solid ${color.border}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: "50%",
+                            background: color.borderLight,
+                            color: color.dim,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: font.mono,
+                            fontSize: 16,
+                            fontWeight: 700,
+                            marginRight: 12,
+                          }}
+                        >
+                          {f.avatar}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              fontFamily: font.mono,
+                              fontSize: 13,
+                              color: color.text,
+                            }}
+                          >
+                            {f.name}
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: font.mono,
+                              fontSize: 11,
+                              color: color.dim,
+                            }}
+                          >
+                            @{f.username}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontFamily: font.mono,
+                            fontSize: 11,
+                            color: color.faint,
+                            padding: "8px 14px",
+                          }}
+                        >
+                          Pending
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
             )}
           </>
         ) : (
