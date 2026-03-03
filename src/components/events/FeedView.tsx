@@ -609,7 +609,7 @@ export default function FeedView({
                               >
                                 <span style={{ fontSize: 12 }}>💬</span>
                                 <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", fontWeight: 600 }}>
-                                  Squad chat{check.squadMemberCount ? ` · ${check.squadMemberCount}` : ""}
+                                  Squad chat{check.squadMemberCount ? ` · ${check.squadMemberCount}/${check.maxSquadSize ?? "?"}` : ""}
                                 </span>
                                 <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", marginLeft: "auto" }}>→</span>
                               </div>
@@ -814,7 +814,12 @@ export default function FeedView({
                               >
                                 {myCheckResponses[check.id] === "maybe" ? "✓ Maybe" : "Maybe"}
                               </button>
-                              {myCheckResponses[check.id] === "down" && (
+                              {myCheckResponses[check.id] === "down" && (() => {
+                                const memberCount = check.squadMemberCount ?? 0;
+                                const maxSize = check.maxSquadSize ?? 5;
+                                const isFull = memberCount >= maxSize;
+                                const capacityLabel = `${memberCount}/${maxSize}`;
+                                return (
                                 check.inSquad ? (
                                   <button
                                     onClick={(e) => {
@@ -834,14 +839,40 @@ export default function FeedView({
                                       whiteSpace: "nowrap" as const,
                                     }}
                                   >
-                                    💬 Squad →
+                                    💬 Squad →{check.squadId && <span style={{ color: "rgba(175, 82, 222, 0.6)", marginLeft: 4, fontWeight: 400 }}>{capacityLabel}</span>}
                                   </button>
-                                ) : check.squadId ? (
+                                ) : check.isWaitlisted ? (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onNavigateToGroups(check.squadId!);
+                                      }}
+                                      style={{
+                                        background: "transparent",
+                                        color: color.faint,
+                                        border: `1px solid ${color.border}`,
+                                        borderRadius: 8,
+                                        padding: "6px 8px",
+                                        fontFamily: font.mono,
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap" as const,
+                                      }}
+                                    >
+                                      Waitlisted<span style={{ fontWeight: 400, marginLeft: 4 }}>{capacityLabel}</span>
+                                    </button>
+                                ) : check.squadId && !isFull ? (
                                     <button
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         try {
-                                          await db.joinSquad(check.squadId!);
+                                          const result = await db.joinSquadIfRoom(check.squadId!);
+                                          if (result === 'waitlisted') {
+                                            showToast("Squad is full — you're on the waitlist");
+                                            await loadRealData();
+                                            return;
+                                          }
                                           showToast("Joined the squad! 🚀");
                                         } catch (err: unknown) {
                                           const code = err && typeof err === 'object' && 'code' in err ? err.code : '';
@@ -868,7 +899,36 @@ export default function FeedView({
                                         whiteSpace: "nowrap" as const,
                                       }}
                                     >
-                                      Join Squad →
+                                      Join Squad →<span style={{ color: color.dim, marginLeft: 4, fontWeight: 400 }}>{capacityLabel}</span>
+                                    </button>
+                                ) : check.squadId && isFull ? (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          const result = await db.joinSquadIfRoom(check.squadId!);
+                                          showToast(result === 'joined' ? "Joined the squad! 🚀" : "Squad is full — you're on the waitlist");
+                                          await loadRealData();
+                                          if (result === 'joined') onNavigateToGroups(check.squadId!);
+                                        } catch (err: unknown) {
+                                          logError("waitlistSquad", err, { squadId: check.squadId });
+                                          showToast("Failed to join waitlist");
+                                        }
+                                      }}
+                                      style={{
+                                        background: "transparent",
+                                        color: color.faint,
+                                        border: `1px solid ${color.border}`,
+                                        borderRadius: 8,
+                                        padding: "6px 8px",
+                                        fontFamily: font.mono,
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap" as const,
+                                      }}
+                                    >
+                                      Waitlist →<span style={{ fontWeight: 400, marginLeft: 4 }}>{capacityLabel}</span>
                                     </button>
                                 ) : pendingDownCheckIds.has(check.id) ? (
                                   <span style={{
@@ -901,7 +961,7 @@ export default function FeedView({
                                     Squad →
                                   </button>
                                 )
-                              )}
+                                ); })()}
                             </div>
                           )}
                           </div>

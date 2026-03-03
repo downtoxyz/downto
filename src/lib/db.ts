@@ -371,7 +371,7 @@ export async function sendFriendRequest(userId: string): Promise<Friendship> {
   if (!user) throw new Error('Not authenticated');
 
   // Check if the other user already sent us a pending request — if so, accept it
-  const { data: existing } = await supabase
+  const { data: incoming } = await supabase
     .from('friendships')
     .select('*')
     .eq('requester_id', userId)
@@ -379,16 +379,27 @@ export async function sendFriendRequest(userId: string): Promise<Friendship> {
     .eq('status', 'pending')
     .maybeSingle();
 
-  if (existing) {
+  if (incoming) {
     const { data: accepted, error: acceptError } = await supabase
       .from('friendships')
       .update({ status: 'accepted' })
-      .eq('id', existing.id)
+      .eq('id', incoming.id)
       .select()
       .single();
     if (acceptError) throw acceptError;
     return accepted;
   }
+
+  // Check if we already sent an outgoing request — return it as-is (idempotent)
+  const { data: outgoing } = await supabase
+    .from('friendships')
+    .select('*')
+    .eq('requester_id', user.id)
+    .eq('addressee_id', userId)
+    .in('status', ['pending', 'accepted'])
+    .maybeSingle();
+
+  if (outgoing) return outgoing;
 
   const { data, error } = await supabase
     .from('friendships')
@@ -453,6 +464,20 @@ export function subscribeToFriendships(
     .subscribe();
 
   return { unsubscribe: () => { ch1.unsubscribe(); ch2.unsubscribe(); } };
+}
+
+export async function getOutgoingPendingIds(): Promise<string[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('friendships')
+    .select('addressee_id')
+    .eq('requester_id', user.id)
+    .eq('status', 'pending');
+
+  if (error) return [];
+  return (data ?? []).map((r) => r.addressee_id);
 }
 
 export async function getSuggestedUsers(): Promise<Profile[]> {
@@ -540,7 +565,7 @@ export async function getActiveChecks(): Promise<(InterestCheck & { author: Prof
       *,
       author:profiles!author_id(*),
       responses:check_responses(*, user:profiles!user_id(*)),
-      squads(id, archived_at, members:squad_members(id))
+      squads(id, archived_at, members:squad_members(id, role))
     `)
     .or(`expires_at.gt.${new Date().toISOString()},expires_at.is.null`)
     .or(`event_date.gte.${new Date().toISOString().slice(0, 10)},event_date.is.null`)
@@ -748,6 +773,13 @@ export async function joinSquad(squadId: string): Promise<void> {
     .insert({ squad_id: squadId, user_id: user.id });
 
   if (error) throw error;
+}
+
+/** Join a check-linked squad if there's room, or join waitlist if full. */
+export async function joinSquadIfRoom(squadId: string): Promise<'joined' | 'waitlisted'> {
+  const { data, error } = await supabase.rpc('join_squad_if_room', { p_squad_id: squadId });
+  if (error) throw error;
+  return (data as { status: string }).status as 'joined' | 'waitlisted';
 }
 
 export async function leaveSquad(squadId: string): Promise<void> {

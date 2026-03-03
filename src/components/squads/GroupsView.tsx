@@ -982,7 +982,20 @@ const GroupsView = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
+        {/* Input — hidden for waitlisted users */}
+        {selectedSquad.isWaitlisted ? (
+          <div
+            style={{
+              padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
+              borderTop: `1px solid ${color.border}`,
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>
+              You&apos;re on the waitlist — read only
+            </span>
+          </div>
+        ) : (
         <div
           style={{
             padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
@@ -1042,6 +1055,7 @@ const GroupsView = ({
             ↑
           </button>
         </div>
+        )}
       </div>
     );
   }
@@ -1116,6 +1130,9 @@ const GroupsView = ({
                 <span style={{ fontFamily: font.serif, fontSize: 17, color: color.text, fontWeight: 400 }}>
                   {g.name}
                 </span>
+                {g.isWaitlisted && (
+                  <span style={{ fontFamily: font.mono, fontSize: 9, color: color.faint, border: `1px solid ${color.border}`, borderRadius: 4, padding: "1px 5px" }}>waitlist</span>
+                )}
                 {g.hasUnread && (
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", flexShrink: 0 }} />
                 )}

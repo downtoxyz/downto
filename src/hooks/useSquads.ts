@@ -95,7 +95,9 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
 
   const hydrateSquads = useCallback((squadsList: Awaited<ReturnType<typeof db.getSquads>>) => {
     const transformedSquads: Squad[] = squadsList.map((s) => {
-      const members = (s.members ?? []).map((m) => ({
+      const myMembership = (s.members ?? []).find((m) => m.user_id === userId);
+      const isWaitlisted = myMembership?.role === 'waitlist';
+      const members = (s.members ?? []).filter((m) => m.role !== 'waitlist').map((m) => ({
         name: m.user_id === userId ? "You" : (m.user?.display_name ?? "Unknown"),
         avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
         userId: m.user_id,
@@ -129,6 +131,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         transportNotes: s.transport_notes ?? undefined,
         expiresAt: s.expires_at ?? undefined,
         graceStartedAt: s.grace_started_at ?? undefined,
+        isWaitlisted,
         lastActivityAt: lastRawMessage?.created_at ?? s.created_at,
       };
     });
@@ -142,18 +145,18 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
       return transformedSquads.map((s) => unreadMap.has(s.id) ? { ...s, hasUnread: true } : s);
     });
 
-    // Link checks to their squads
-    const checkToSquad = new Map<string, { squadId: string; inSquad: boolean }>();
+    // Link checks to their squads (distinguish member vs waitlisted)
+    const checkToSquad = new Map<string, { squadId: string; inSquad: boolean; isWaitlisted: boolean }>();
     for (const sq of transformedSquads) {
       if (sq.checkId) {
-        checkToSquad.set(sq.checkId, { squadId: sq.id, inSquad: true });
+        checkToSquad.set(sq.checkId, { squadId: sq.id, inSquad: !sq.isWaitlisted, isWaitlisted: !!sq.isWaitlisted });
       }
     }
     setChecks((prev) => prev.map((c) => {
       const sq = checkToSquad.get(c.id);
-      if (sq) return { ...c, squadId: sq.squadId, inSquad: true };
-      // Clear stale inSquad for checks no longer in user's squads
-      if (c.inSquad) return { ...c, inSquad: undefined };
+      if (sq) return { ...c, squadId: sq.squadId, inSquad: sq.inSquad, isWaitlisted: sq.isWaitlisted };
+      // Clear stale inSquad/isWaitlisted for checks no longer in user's squads
+      if (c.inSquad || c.isWaitlisted) return { ...c, inSquad: undefined, isWaitlisted: undefined };
       return c;
     }));
   }, [userId, setChecks]);

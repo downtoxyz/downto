@@ -52,6 +52,7 @@ export interface InterestCheck {
   squadId?: string;
   squadMemberCount?: number;
   inSquad?: boolean;
+  isWaitlisted?: boolean;
   movieTitle?: string;
   year?: string;
   director?: string;
@@ -98,6 +99,7 @@ export interface Squad {
   expiresAt?: string;
   graceStartedAt?: string;
   hasUnread?: boolean;
+  isWaitlisted?: boolean;
   lastActivityAt?: string;
 }
 

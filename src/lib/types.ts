@@ -136,6 +136,7 @@ export interface SquadMember {
   squad_id: string;
   user_id: string;
   joined_at: string;
+  role?: string;
   // Joined data
   user?: Profile;
 }

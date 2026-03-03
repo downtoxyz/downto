@@ -51,7 +51,7 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
     isYours: c.author_id === userId,
     maxSquadSize: c.max_squad_size,
     squadId: c.squads?.find((s) => !s.archived_at)?.id,
-    squadMemberCount: c.squads?.find((s) => !s.archived_at)?.members?.length ?? 0,
+    squadMemberCount: c.squads?.find((s) => !s.archived_at)?.members?.filter((m) => (m as { role?: string }).role !== 'waitlist')?.length ?? 0,
     eventDate: c.event_date ?? undefined,
     eventDateLabel: c.event_date ? new Date(c.event_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : undefined,
     eventTime: c.event_time ?? undefined,
