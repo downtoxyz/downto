@@ -60,8 +60,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
   }, []);
 
   const addFriend = async (id: string) => {
-    const person = suggestions.find((s) => s.id === id);
-    if (!person || isDemoMode) {
+    if (isDemoMode) {
       setSuggestions((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status: "pending" as const } : s))
       );
@@ -70,13 +69,13 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
     }
 
     try {
-      await db.sendFriendRequest(person.id);
+      await db.sendFriendRequest(id);
       setSuggestions((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status: "pending" as const } : s))
       );
       showToast("Friend request sent! \u{1F91D}");
     } catch (err) {
-      logError("sendFriendRequest", err, { friendId: person.id });
+      logError("sendFriendRequest", err, { friendId: id });
       showToast("Failed to send request");
     }
   };
