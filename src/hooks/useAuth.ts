@@ -14,31 +14,18 @@ export function useAuth() {
   const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
-    let loadingCleared = false;
-    const clearLoading = () => {
-      if (!loadingCleared) {
-        loadingCleared = true;
-        setIsLoading(false);
-      }
-    };
-
-    // Hard safety net: always clear loading after 3 seconds no matter what
-    const safetyTimer = setTimeout(clearLoading, 3000);
-
     const handleSession = async (session: Session | null) => {
       try {
         if (session?.user) {
           setIsLoggedIn(true);
           setUserId(session.user.id);
 
-          // Fetch profile with timeout — don't let it block loading
           try {
-            const { data } = await Promise.race([
-              supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-              new Promise<{ data: null; error: null }>((r) =>
-                setTimeout(() => r({ data: null, error: null }), 3000)
-              ),
-            ]);
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
             if (data) {
               setProfile(data as Profile);
             }
@@ -49,8 +36,7 @@ export function useAuth() {
       } catch (err) {
         logError("authSession", err);
       } finally {
-        clearLoading();
-        clearTimeout(safetyTimer);
+        setIsLoading(false);
       }
     };
 
@@ -62,15 +48,13 @@ export function useAuth() {
           setIsLoggedIn(false);
           setUserId(null);
           setProfile(null);
-          clearLoading();
-          clearTimeout(safetyTimer);
+          setIsLoading(false);
         }
       }
     );
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(safetyTimer);
     };
   }, []);
 
