@@ -18,7 +18,7 @@ export default function IconButton({
 }: IconButtonProps) {
   const typeVariants = {
     stroke: 'fill-none bg-transparent stroke-neutral-500 stroke-2',
-    fill: 'bg-dt text-neutral-800',
+    fill: 'bg-dt text-neutral-950 font-bold',
   };
 
   return (
