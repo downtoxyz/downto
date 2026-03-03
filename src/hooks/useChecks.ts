@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck } from "@/lib/ui-types";
 import { logError, logWarn } from "@/lib/logger";
+import { formatTimeAgo } from "@/lib/utils";
 
 // ─── Shared transform helpers ──────────────────────────────────────────────
 
@@ -15,8 +16,6 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
   const now = new Date();
   const created = new Date(c.created_at);
   const msElapsed = now.getTime() - created.getTime();
-  const minsElapsed = Math.floor(msElapsed / (1000 * 60));
-  const hoursElapsed = Math.floor(msElapsed / (1000 * 60 * 60));
 
   let expiresIn: string;
   let expiryPercent: number;
@@ -39,7 +38,7 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
     text: c.text,
     author: c.author.display_name,
     authorId: c.author_id,
-    timeAgo: hoursElapsed > 0 ? `${hoursElapsed}h` : minsElapsed > 0 ? `${minsElapsed}m` : "now",
+    timeAgo: formatTimeAgo(created),
     expiresIn,
     expiryPercent,
     responses: c.responses.map((r) => ({
