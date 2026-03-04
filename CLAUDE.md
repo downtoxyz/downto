@@ -77,17 +77,18 @@ Use `color.faint` for the whole line, or per-segment coloring (e.g. red for urge
 ## Testing with agent-browser
 
 ### Auth
-Local Supabase uses magic links. To log in without manual OTP entry:
+Local Supabase uses OTP codes. Emails go to Mailpit (http://127.0.0.1:54324). To log in for testing:
+1. Send OTP via the app (enter email, click "Send Code")
+2. Get the 6-digit code from Mailpit:
 ```bash
-SERVICE_ROLE=$(grep SUPABASE_SERVICE_ROLE_KEY .env.development.local | cut -d= -f2-)
-LINK=$(curl -s http://127.0.0.1:54321/auth/v1/admin/generate_link \
-  -H "apikey: $SERVICE_ROLE" -H "Authorization: Bearer $SERVICE_ROLE" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"magiclink","email":"kat@test.com"}' \
-  | python3 -c "import json,sys; print(json.load(sys.stdin).get('properties',{}).get('action_link',''))")
-npx agent-browser --session-name downto open "$LINK"
+# Fetch latest OTP code for a test user
+OTP=$(curl -s "http://127.0.0.1:54324/api/v1/search?query=to:kat@test.com" | \
+  python3 -c "import json,sys,re; msgs=json.load(sys.stdin)['messages']; print(re.search(r'\d{6}', msgs[0]['Snippet']).group())")
+echo "$OTP"
 ```
-Use `--session-name downto` on all commands to persist auth across browser restarts.
+3. Enter the code in the app
+
+Use `--session-name downto` on all agent-browser commands to persist auth across browser restarts.
 
 Test users: `kat@test.com`, `zereptak.burner@gmail.com`
 
