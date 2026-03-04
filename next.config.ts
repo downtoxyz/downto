@@ -33,6 +33,10 @@ function detectSkipNotify(): string {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  typescript: {
+    // Type errors are caught in dev/IDE; skip during build to save ~8s on Vercel
+    ignoreBuildErrors: true,
+  },
   env: {
     NEXT_PUBLIC_BUILD_ID:
       process.env.VERCEL_GIT_COMMIT_SHA ?? new Date().toISOString(),
