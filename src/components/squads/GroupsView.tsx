@@ -75,6 +75,8 @@ const GroupsView = ({
   const [datePickerValue, setDatePickerValue] = useState("");
   const [settingDate, setSettingDate] = useState(false);
   const [dateConfirmStatus, setDateConfirmStatus] = useState<'yes' | 'no' | 'pending' | 'none'>('none');
+  const [dateConfirms, setDateConfirms] = useState<Map<string, 'yes' | 'no' | null>>(new Map());
+  const [confirmListOpen, setConfirmListOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
@@ -103,9 +105,14 @@ const GroupsView = ({
   useEffect(() => {
     if (!selectedSquad?.id || selectedSquad.dateStatus !== 'proposed' || !userId) {
       setDateConfirmStatus('none');
+      setDateConfirms(new Map());
+      setConfirmListOpen(false);
       return;
     }
     db.getDateConfirms(selectedSquad.id).then((confirms) => {
+      const map = new Map<string, 'yes' | 'no' | null>();
+      for (const c of confirms) map.set(c.userId, c.response);
+      setDateConfirms(map);
       const mine = confirms.find((c) => c.userId === userId);
       if (!mine) { setDateConfirmStatus('none'); return; }
       setDateConfirmStatus(mine.response ?? 'pending');
@@ -316,30 +323,80 @@ const GroupsView = ({
               )}
             </div>
             <div style={{ display: "flex", gap: 4, marginLeft: 12, flexShrink: 0 }}>
-              {selectedSquad.members.map((m) => (
-                <div
-                  key={m.name}
-                  onClick={() => m.name !== "You" && m.userId && onViewProfile?.(m.userId)}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    background: m.name === "You" ? color.accent : color.borderLight,
-                    color: m.name === "You" ? "#000" : color.dim,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontFamily: font.mono,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    cursor: m.name !== "You" && m.userId ? "pointer" : "default",
-                  }}
-                >
-                  {m.avatar}
-                </div>
-              ))}
+              {selectedSquad.members.map((m) => {
+                const hasConfirmFlow = selectedSquad.dateStatus === 'proposed' || selectedSquad.dateStatus === 'locked';
+                const confirmResponse = m.userId ? dateConfirms.get(m.userId) : undefined;
+                const ringStyle = hasConfirmFlow && dateConfirms.size > 0
+                  ? confirmResponse === 'yes'
+                    ? { border: '2px solid #34C759' }
+                    : confirmResponse === 'no'
+                      ? { border: '2px solid #ff3b30' }
+                      : { border: `2px dashed ${color.faint}` }
+                  : {};
+                return (
+                  <div
+                    key={m.name}
+                    onClick={() => m.name !== "You" && m.userId && onViewProfile?.(m.userId)}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: m.name === "You" ? color.accent : color.borderLight,
+                      color: m.name === "You" ? "#000" : color.dim,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: font.mono,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      cursor: m.name !== "You" && m.userId ? "pointer" : "default",
+                      ...ringStyle,
+                    }}
+                  >
+                    {m.avatar}
+                  </div>
+                );
+              })}
             </div>
           </div>
+          {(selectedSquad.dateStatus === 'proposed' || selectedSquad.dateStatus === 'locked') && dateConfirms.size > 0 && (() => {
+            const confirmedCount = Array.from(dateConfirms.values()).filter((v) => v === 'yes').length;
+            const totalCount = selectedSquad.members.length;
+            return (
+              <div style={{ margin: "6px 0 0" }}>
+                <button
+                  onClick={() => setConfirmListOpen((o) => !o)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    fontFamily: font.mono,
+                    fontSize: 10,
+                    color: confirmedCount === totalCount ? '#34C759' : color.dim,
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {confirmedCount}/{totalCount} confirmed {confirmListOpen ? "▴" : "▾"}
+                </button>
+                {confirmListOpen && (
+                  <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+                    {selectedSquad.members.map((m) => {
+                      const status = m.userId ? dateConfirms.get(m.userId) : undefined;
+                      const icon = status === 'yes' ? '✓' : status === 'no' ? '✗' : '…';
+                      const iconColor = status === 'yes' ? '#34C759' : status === 'no' ? '#ff3b30' : color.faint;
+                      return (
+                        <div key={m.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontFamily: font.mono, fontSize: 11, color: iconColor, width: 12 }}>{icon}</span>
+                          <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>{m.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {(() => {
             const expiryLabel = formatExpiryLabel(selectedSquad.expiresAt, selectedSquad.graceStartedAt);
             if (!expiryLabel) return null;
@@ -611,6 +668,7 @@ const GroupsView = ({
                       try {
                         await onConfirmDate(selectedSquad.id, 'no');
                         setDateConfirmStatus('no');
+                        if (userId) setDateConfirms((prev) => new Map(prev).set(userId, 'no'));
                         onSquadUpdate((prev) => prev.filter((s) => s.id !== selectedSquad.id));
                         setSelectedSquad(null);
                       } catch (err) {
@@ -848,6 +906,7 @@ const GroupsView = ({
                             try {
                               await onConfirmDate?.(selectedSquad.id, 'yes');
                               setDateConfirmStatus('yes');
+                              if (userId) setDateConfirms((prev) => new Map(prev).set(userId, 'yes'));
                             } catch (err) {
                               logError('dateConfirm', err);
                             } finally {
