@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
     // Type errors are caught in dev/IDE; skip during build to save ~8s on Vercel
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ["@sentry/nextjs", "@sentry/node"],
   env: {
     NEXT_PUBLIC_BUILD_ID:
       process.env.VERCEL_GIT_COMMIT_SHA ?? new Date().toISOString(),
