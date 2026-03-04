@@ -6,11 +6,11 @@ Event saving app with social layer. Save events from Instagram to your calendar,
 - Next.js (App Router)
 - TypeScript
 - Supabase (auth, Postgres, RLS, Realtime, DB triggers)
-- No CSS framework — inline styles, Space Mono + Instrument Serif fonts, dark theme with #E8FF5A accent
+- Migrating to Tailwind CSS — inline styles are fine during this transition. Space Mono + Instrument Serif fonts, dark theme with #E8FF5A accent
 
 ## Design Rules
 
-All styles are inline — no CSS classes. Tokens live in `src/lib/styles.ts`.
+Migrating from inline styles to Tailwind CSS. Inline styles with tokens from `src/lib/styles.ts` are acceptable during the transition.
 
 ### Typography
 - **Headings**: `font.serif`, weight 400 — 22px for sheet/panel titles, 24px for event card titles, 18px for check body text and modal titles, 17px for squad card names

@@ -77,15 +77,21 @@ const EditCheckModal = ({
   const detectedDate = text ? parseNaturalDate(text) : null;
   const detectedTime = text ? parseNaturalTime(text) : null;
 
+  // Fall back to the check's existing date/time when parsing doesn't detect anything
+  const existingDate = check.eventDate ? { label: check.eventDateLabel || check.eventDate, iso: check.eventDate } : null;
+  const existingTime = check.eventTime || null;
+  const effectiveDate = detectedDate || existingDate;
+  const effectiveTime = detectedTime || existingTime;
+
   const handleSave = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
 
     onSave({
       text: trimmed,
-      eventDate: !dateDismissed && detectedDate ? detectedDate.iso : null,
-      eventDateLabel: !dateDismissed && detectedDate ? detectedDate.label : null,
-      eventTime: !timeDismissed && detectedTime ? detectedTime : null,
+      eventDate: !dateDismissed && effectiveDate ? effectiveDate.iso : null,
+      eventDateLabel: !dateDismissed && effectiveDate ? effectiveDate.label : null,
+      eventTime: !timeDismissed && effectiveTime ? effectiveTime : null,
       dateFlexible: !dateLocked,
       timeFlexible: !timeLocked,
     });
@@ -179,9 +185,9 @@ const EditCheckModal = ({
           </div>
 
           {/* Auto-detected date/time chips */}
-          {((detectedDate && !dateDismissed) || (detectedTime && !timeDismissed)) && (
+          {((effectiveDate && !dateDismissed) || (effectiveTime && !timeDismissed)) && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-              {detectedDate && !dateDismissed && (
+              {effectiveDate && !dateDismissed && (
                 <div
                   onClick={() => { setDateLocked((v) => !v); setHasToggledLock(true); }}
                   style={{
@@ -196,7 +202,7 @@ const EditCheckModal = ({
                   }}
                 >
                   <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}>
-                    📅 {detectedDate.label}
+                    📅 {effectiveDate.label}
                   </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDateDismissed(true); }}
@@ -215,7 +221,7 @@ const EditCheckModal = ({
                   </button>
                 </div>
               )}
-              {detectedTime && !timeDismissed && (
+              {effectiveTime && !timeDismissed && (
                 <div
                   onClick={() => { setTimeLocked((v) => !v); setHasToggledLock(true); }}
                   style={{
@@ -230,7 +236,7 @@ const EditCheckModal = ({
                   }}
                 >
                   <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}>
-                    🕐 {detectedTime}
+                    🕐 {effectiveTime}
                   </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setTimeDismissed(true); }}
