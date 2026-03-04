@@ -22,12 +22,14 @@ const AddModal = ({
   onSubmit,
   onInterestCheck,
   defaultMode,
+  friends,
 }: {
   open: boolean;
   onClose: () => void;
   onSubmit: (e: ScrapedEvent, sharePublicly: boolean) => void;
-  onInterestCheck: (idea: string, expiresInHours: number | null, eventDate: string | null, maxSquadSize: number, movieData?: CheckMovie, eventTime?: string | null, dateFlexible?: boolean, timeFlexible?: boolean) => void;
+  onInterestCheck: (idea: string, expiresInHours: number | null, eventDate: string | null, maxSquadSize: number, movieData?: CheckMovie, eventTime?: string | null, dateFlexible?: boolean, timeFlexible?: boolean, taggedFriendIds?: string[]) => void;
   defaultMode?: "paste" | "idea" | "manual" | null;
+  friends?: { id: string; name: string; avatar: string }[];
 }) => {
   const [mode, setMode] = useState<"paste" | "idea" | "manual">("idea");
   const [url, setUrl] = useState("");
@@ -42,6 +44,8 @@ const AddModal = ({
   const [dateLocked, setDateLocked] = useState(false);
   const [timeLocked, setTimeLocked] = useState(false);
   const [hasToggledLock, setHasToggledLock] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIdx, setMentionIdx] = useState(-1); // cursor position of @
   const [loading, setLoading] = useState(false);
   const [scraped, setScraped] = useState<ScrapedEvent | null>(null);
   const [sharePublicly, setSharePublicly] = useState(false);
@@ -94,6 +98,8 @@ const AddModal = ({
       setCheckMovieLoading(false);
       checkMovieLoadingRef.current = false;
       checkMovieUrlRef.current = null;
+      setMentionQuery(null);
+      setMentionIdx(-1);
       setMovieMode(false);
       setManualMovie(null);
       setMovieSearching(false);
@@ -730,6 +736,17 @@ const AddModal = ({
                   setIdea(val);
                   setDateDismissed(false);
                   setTimeDismissed(false);
+                  // Detect @mention
+                  const cursor = e.target.selectionStart ?? val.length;
+                  const before = val.slice(0, cursor);
+                  const atMatch = before.match(/@([^\s@]*)$/);
+                  if (atMatch) {
+                    setMentionQuery(atMatch[1].toLowerCase());
+                    setMentionIdx(before.length - atMatch[0].length);
+                  } else {
+                    setMentionQuery(null);
+                    setMentionIdx(-1);
+                  }
                   // Detect Letterboxd URL
                   const lbMatch = val.match(/https?:\/\/(www\.)?letterboxd\.com\/film\/[a-z0-9-]+\/?/i)
                     || val.match(/https?:\/\/boxd\.it\/[a-zA-Z0-9]+\/?/i);
@@ -766,8 +783,14 @@ const AddModal = ({
                     checkMovieUrlRef.current = null;
                   }
                 }}
+                onKeyDown={(e) => {
+                  if (mentionQuery !== null && e.key === "Escape") {
+                    setMentionQuery(null);
+                    setMentionIdx(-1);
+                  }
+                }}
                 maxLength={280}
-                placeholder="e.g., dinner at 7 tomorrow? rooftop picnic saturday? movie night?"
+                placeholder="e.g., dinner at 7 tomorrow? @sara wanna come?"
                 style={{
                   width: "100%",
                   background: color.deep,
@@ -783,6 +806,49 @@ const AddModal = ({
                   lineHeight: 1.5,
                 }}
               />
+              {/* @mention autocomplete dropdown */}
+              {mentionQuery !== null && friends && friends.length > 0 && (() => {
+                const filtered = friends.filter(f => f.name.toLowerCase().includes(mentionQuery));
+                if (filtered.length === 0) return null;
+                return (
+                  <div style={{
+                    background: color.deep, border: `1px solid ${color.borderMid}`,
+                    borderRadius: 10, marginTop: 4, maxHeight: 140, overflowY: "auto",
+                  }}>
+                    {filtered.slice(0, 6).map(f => (
+                      <button
+                        key={f.id}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          // Replace @query with @Name
+                          const before = idea.slice(0, mentionIdx);
+                          const after = idea.slice(mentionIdx + 1 + (mentionQuery?.length ?? 0));
+                          setIdea(before + "@" + f.name + " " + after);
+                          setMentionQuery(null);
+                          setMentionIdx(-1);
+                          ideaRef.current?.focus();
+                        }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          width: "100%", padding: "8px 12px",
+                          background: "transparent", border: "none", cursor: "pointer",
+                          borderBottom: `1px solid ${color.border}`,
+                        }}
+                      >
+                        <div style={{
+                          width: 24, height: 24, borderRadius: "50%",
+                          background: color.borderLight, color: color.dim,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontFamily: font.mono, fontSize: 10, fontWeight: 700,
+                        }}>
+                          {f.avatar}
+                        </div>
+                        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>{f.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
             {/* Auto-detected date/time chips */}
             {((detectedDate && !dateDismissed) || (detectedTime && !timeDismissed)) && (
@@ -1048,7 +1114,12 @@ const AddModal = ({
                 if (idea.trim()) {
                   const eventDate = (!dateDismissed && detectedDate) ? detectedDate.iso : null;
                   const eventTime = (!timeDismissed && detectedTime) ? detectedTime : null;
-                  onInterestCheck(sanitize(idea, 280), checkTimer, eventDate, squadSize, checkMovie ?? undefined, eventTime, !dateLocked, !timeLocked);
+                  // Extract @mentions → friend IDs
+                  const mentionNames = [...idea.matchAll(/@(\S+)/g)].map(m => m[1].toLowerCase());
+                  const taggedIds = (friends ?? [])
+                    .filter(f => mentionNames.includes(f.name.toLowerCase()))
+                    .map(f => f.id);
+                  onInterestCheck(sanitize(idea, 280), checkTimer, eventDate, squadSize, checkMovie ?? undefined, eventTime, !dateLocked, !timeLocked, taggedIds.length > 0 ? taggedIds : undefined);
                   onClose();
                 }
               }}

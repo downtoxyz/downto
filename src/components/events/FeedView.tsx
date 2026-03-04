@@ -9,10 +9,11 @@ import EventCard from "@/components/events/EventCard";
 import EditCheckModal from "@/components/events/EditCheckModal";
 import { logError } from "@/lib/logger";
 
-/** Render text with inline URLs as clickable links */
+/** Render @mentions highlighted + inline URLs as clickable links */
 function Linkify({ children, dimmed }: { children: string; dimmed?: boolean }) {
-  const urlRe = /(https?:\/\/[^\s),]+)/g;
-  const parts = children.split(urlRe);
+  // Split on URLs and @mentions
+  const tokenRe = /(https?:\/\/[^\s),]+|@\S+)/g;
+  const parts = children.split(tokenRe);
   if (parts.length === 1) return <>{children}</>;
   return (
     <>
@@ -34,6 +35,13 @@ function Linkify({ children, dimmed }: { children: string; dimmed?: boolean }) {
             >
               {prettifyUrl(part)}
             </a>
+          );
+        }
+        if (/^@\S+/.test(part)) {
+          return (
+            <span key={i} style={{ color: color.accent, fontWeight: 600 }}>
+              {part}
+            </span>
           );
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
@@ -90,6 +98,8 @@ export interface FeedViewProps {
   pendingDownCheckIds: Set<string>;
   onHideCheck: (checkId: string) => void;
   onUnhideCheck: (checkId: string) => void;
+  acceptCoAuthorTag: (checkId: string) => Promise<void>;
+  declineCoAuthorTag: (checkId: string) => Promise<void>;
 }
 
 export default function FeedView({
@@ -126,6 +136,8 @@ export default function FeedView({
   pendingDownCheckIds,
   onHideCheck,
   onUnhideCheck,
+  acceptCoAuthorTag,
+  declineCoAuthorTag,
 }: FeedViewProps) {
   const [showHidden, setShowHidden] = useState(false);
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
@@ -221,11 +233,11 @@ export default function FeedView({
                           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
                         } : undefined}
                         style={{
-                          background: check.isYours ? "rgba(232,255,90,0.05)" : color.card,
+                          background: (check.isYours || check.isCoAuthor) ? "rgba(232,255,90,0.05)" : color.card,
                           borderRadius: 14,
                           overflow: "hidden",
                           marginBottom: 8,
-                          border: `1px solid ${check.id === newlyAddedCheckId ? "rgba(90,200,255,0.5)" : check.isYours ? "rgba(232,255,90,0.2)" : color.border}`,
+                          border: `1px solid ${check.id === newlyAddedCheckId ? "rgba(90,200,255,0.5)" : (check.isYours || check.isCoAuthor) ? "rgba(232,255,90,0.2)" : color.border}`,
                           ...(check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : {}),
                         }}
                       >
@@ -360,7 +372,7 @@ export default function FeedView({
                               style={{
                                 fontFamily: font.mono,
                                 fontSize: 11,
-                                color: check.isYours ? color.accent : color.muted,
+                                color: (check.isYours || check.isCoAuthor) ? color.accent : color.muted,
                               }}
                             >
                               {check.author}
@@ -370,6 +382,24 @@ export default function FeedView({
                                 </span>
                               )}
                             </span>
+                            {check.coAuthors && check.coAuthors.filter(ca => ca.status === 'accepted').length > 0 && (
+                              <div style={{ display: "flex", alignItems: "center", marginLeft: 4 }}>
+                                <span style={{ color: color.dim, fontFamily: font.mono, fontSize: 10, marginRight: 2 }}>+</span>
+                                {check.coAuthors.filter(ca => ca.status === 'accepted').slice(0, 3).map((ca, i) => (
+                                  <div key={ca.userId} style={{
+                                    width: 18, height: 18, borderRadius: "50%",
+                                    background: ca.userId === userId ? color.accent : color.borderLight,
+                                    color: ca.userId === userId ? "#000" : color.dim,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontFamily: font.mono, fontSize: 7, fontWeight: 700,
+                                    marginLeft: i > 0 ? -4 : 0,
+                                    border: `1.5px solid ${color.card}`,
+                                  }}>
+                                    {ca.avatar}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <span
@@ -381,7 +411,7 @@ export default function FeedView({
                             >
                               {check.expiresIn === "open" ? "open" : check.expiresIn === "expired" ? "expired" : `${check.expiresIn} left`}
                             </span>
-                            {!check.isYours && (
+                            {!check.isYours && !check.isCoAuthor && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -404,6 +434,42 @@ export default function FeedView({
                             )}
                           </div>
                         </div>
+                        {check.pendingTagForYou && (
+                          <div style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "8px 16px", marginBottom: 0,
+                            background: "rgba(232,255,90,0.06)",
+                            borderBottom: "1px solid rgba(232,255,90,0.15)",
+                          }}>
+                            <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent }}>
+                              You were tagged as co-author
+                            </span>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); acceptCoAuthorTag(check.id); }}
+                                style={{
+                                  background: color.accent, color: "#000", border: "none",
+                                  borderRadius: 8, padding: "4px 10px",
+                                  fontFamily: font.mono, fontSize: 10, fontWeight: 700,
+                                  cursor: "pointer", textTransform: "uppercase",
+                                }}
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); declineCoAuthorTag(check.id); }}
+                                style={{
+                                  background: "transparent", color: color.dim,
+                                  border: `1px solid ${color.borderMid}`, borderRadius: 8,
+                                  padding: "4px 8px",
+                                  fontFamily: font.mono, fontSize: 10, cursor: "pointer",
+                                }}
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        )}
                         <div style={{ marginBottom: 12 }}>
                               <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
                                 <p
@@ -419,7 +485,7 @@ export default function FeedView({
                                 >
                                   <Linkify>{check.text}</Linkify>
                                 </p>
-                                {check.isYours && (
+                                {(check.isYours || check.isCoAuthor) && (
                                   <div style={{ display: "flex", gap: 4, flexShrink: 0, marginTop: 2 }}>
                                     <button
                                       onClick={(e) => {
@@ -506,7 +572,7 @@ export default function FeedView({
                                   )}
                                 </div>
                               )}
-                            {check.isYours && check.squadId && (
+                            {(check.isYours || check.isCoAuthor) && check.squadId && (
                               <div
                                 style={{
                                   display: "flex",
@@ -530,7 +596,7 @@ export default function FeedView({
                                 <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", marginLeft: "auto" }}>→</span>
                               </div>
                             )}
-                            {check.isYours && !check.squadId && check.responses.some((r) => r.status === "down") && (
+                            {(check.isYours || check.isCoAuthor) && !check.squadId && check.responses.some((r) => r.status === "down") && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1431,6 +1497,7 @@ export default function FeedView({
         check={editModalCheck}
         open={!!editModalCheck}
         onClose={() => setEditModalCheck(null)}
+        friends={friends.filter(f => f.status === 'friend').map(f => ({ id: f.id, name: f.name, avatar: f.avatar }))}
         onSave={async (updates) => {
           if (!editModalCheck) return;
           const checkId = editModalCheck.id;
@@ -1462,6 +1529,10 @@ export default function FeedView({
                 date_flexible: updates.dateFlexible,
                 time_flexible: updates.timeFlexible,
               });
+              // Tag new @mentioned friends as co-authors
+              if (updates.taggedFriendIds && updates.taggedFriendIds.length > 0) {
+                await db.tagCoAuthors(checkId, updates.taggedFriendIds);
+              }
               // Also update linked squad name if exists
               if (editModalCheck.squadId) {
                 await db.updateSquadName(editModalCheck.squadId, updates.text);

@@ -285,7 +285,7 @@ const NotificationsPanel = ({
                     }
                     onClose();
                     onNavigate({ type: "groups", squadId: squadId ?? undefined });
-                  } else if (n.type === "check_response" || n.type === "friend_check") {
+                  } else if (n.type === "check_response" || n.type === "friend_check" || n.type === "check_tag") {
                     // Mark single notification as read
                     if (!n.is_read) {
                       if (!isDemoMode && userId) db.markNotificationRead(n.id);
@@ -320,6 +320,7 @@ const NotificationsPanel = ({
                       : n.type === "check_response" ? "#FF9F0A22"
                       : n.type === "squad_invite" ? "#AF52DE22"
                       : n.type === "date_confirm" ? "#E8FF5A22"
+                      : n.type === "check_tag" ? "#E8FF5A22"
                       : "#5856D622",
                     display: "flex",
                     alignItems: "center",
@@ -333,6 +334,7 @@ const NotificationsPanel = ({
                     : n.type === "check_response" ? "🔥"
                     : n.type === "squad_invite" ? "🚀"
                     : n.type === "date_confirm" ? "📅"
+                    : n.type === "check_tag" ? "🏷️"
                     : "💬"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>

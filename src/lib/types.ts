@@ -99,6 +99,17 @@ export interface CheckResponse {
   user?: Profile;
 }
 
+export interface CheckCoAuthor {
+  id: string;
+  check_id: string;
+  user_id: string;
+  invited_by: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  // Joined data
+  user?: Profile;
+}
+
 export interface Squad {
   id: string;
   name: string;
@@ -156,7 +167,7 @@ export interface Message {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'friend_request' | 'friend_accepted' | 'check_response' | 'squad_message' | 'squad_invite' | 'friend_check' | 'date_confirm';
+  type: 'friend_request' | 'friend_accepted' | 'check_response' | 'squad_message' | 'squad_invite' | 'friend_check' | 'date_confirm' | 'check_tag';
   title: string;
   body: string | null;
   related_user_id: string | null;
