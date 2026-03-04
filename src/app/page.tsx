@@ -862,6 +862,17 @@ export default function Home() {
                 graceStartedAt: undefined,
                 dateStatus: date_status === 'proposed' ? 'proposed' : undefined,
               } : s));
+              // Update the linked check's date so the feed card reflects the change
+              const squad = squadsHook.squads.find((s) => s.id === squadDbId);
+              if (squad?.checkId) {
+                const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
+                  ...c,
+                  eventDate: date,
+                  eventDateLabel: dateLabel,
+                  eventTime: time ?? c.eventTime,
+                } : c));
+              }
             }}
             onClearSquadDate={async (squadDbId) => {
               const token = (await supabase.auth.getSession()).data.session?.access_token;
@@ -880,6 +891,16 @@ export default function Home() {
                 eventIsoDate: undefined,
                 dateStatus: undefined,
               } : s));
+              // Clear the linked check's date so the feed card reflects the change
+              const squad = squadsHook.squads.find((s) => s.id === squadDbId);
+              if (squad?.checkId) {
+                checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
+                  ...c,
+                  eventDate: undefined,
+                  eventDateLabel: undefined,
+                  eventTime: undefined,
+                } : c));
+              }
             }}
             onConfirmDate={async (squadDbId, response) => {
               await db.respondToDateConfirm(squadDbId, response);
