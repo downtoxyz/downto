@@ -32,6 +32,21 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
     expiresIn = hoursRemaining > 0 ? `${hoursRemaining}h` : minsRemaining > 0 ? `${minsRemaining}m` : "expired";
   }
 
+  const coAuthors = (c.co_authors ?? []).map(ca => ({
+    userId: ca.user_id,
+    name: ca.user?.display_name ?? "Unknown",
+    avatar: ca.user?.avatar_letter ?? "?",
+    status: ca.status as 'pending' | 'accepted' | 'declined',
+  }));
+
+  const isCoAuthor = userId
+    ? coAuthors.some(ca => ca.userId === userId && ca.status === 'accepted')
+    : false;
+
+  const pendingTagForYou = userId
+    ? coAuthors.some(ca => ca.userId === userId && ca.status === 'pending')
+    : false;
+
   const mm = c.movie_metadata;
   return {
     id: c.id,
@@ -62,6 +77,9 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
     thumbnail: mm?.thumbnail,
     letterboxdUrl: c.letterboxd_url ?? undefined,
     vibes: mm?.vibes,
+    coAuthors,
+    isCoAuthor,
+    pendingTagForYou,
   };
 }
 
@@ -197,7 +215,8 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     movieData?: { letterboxdUrl: string; title: string; year?: string; director?: string; thumbnail?: string; vibes?: string[] },
     eventTime?: string | null,
     dateFlexible?: boolean,
-    timeFlexible?: boolean
+    timeFlexible?: boolean,
+    taggedFriendIds?: string[]
   ) => {
     const expiresLabel = expiresInHours == null ? "open" : expiresInHours >= 24 ? "24h" : `${expiresInHours}h`;
     const dateLabel = eventDate ? new Date(eventDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : undefined;
@@ -213,6 +232,9 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     if (!isDemoMode && userId) {
       try {
         const dbCheck = await db.createInterestCheck(idea, expiresInHours, eventDate, maxSquadSize, movieData, eventTime ?? null, dateFlexible ?? true, timeFlexible ?? true);
+        if (taggedFriendIds && taggedFriendIds.length > 0) {
+          await db.tagCoAuthors(dbCheck.id, taggedFriendIds);
+        }
         const newCheck: InterestCheck = {
           id: dbCheck.id,
           text: idea,
@@ -287,6 +309,60 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     }
   };
 
+  const acceptCoAuthorTag = async (checkId: string) => {
+    if (isDemoMode) return;
+    try {
+      await db.respondToCoAuthorTag(checkId, true);
+      setChecks(prev => prev.map(c =>
+        c.id === checkId
+          ? {
+              ...c,
+              isCoAuthor: true,
+              pendingTagForYou: false,
+              coAuthors: c.coAuthors?.map(ca =>
+                ca.userId === userId ? { ...ca, status: 'accepted' as const } : ca
+              ),
+            }
+          : c
+      ));
+      // DB trigger auto-responds "down" — update local state too
+      setMyCheckResponses(prev => ({ ...prev, [checkId]: 'down' }));
+      setChecks(prev => prev.map(c => {
+        if (c.id !== checkId) return c;
+        const alreadyResponded = c.responses.some(r => r.name === 'You');
+        if (alreadyResponded) {
+          return { ...c, responses: c.responses.map(r => r.name === 'You' ? { ...r, status: 'down' as const } : r) };
+        }
+        return { ...c, responses: [...c.responses, { name: 'You', avatar: profile?.avatar_letter ?? '?', status: 'down' as const }] };
+      }));
+      showToast("You're now a co-author!");
+      loadChecks();
+    } catch (err) {
+      logError('acceptCoAuthorTag', err, { checkId });
+      showToast('Failed to accept tag');
+    }
+  };
+
+  const declineCoAuthorTag = async (checkId: string) => {
+    if (isDemoMode) return;
+    try {
+      await db.respondToCoAuthorTag(checkId, false);
+      setChecks(prev => prev.map(c =>
+        c.id === checkId
+          ? {
+              ...c,
+              pendingTagForYou: false,
+              coAuthors: c.coAuthors?.map(ca =>
+                ca.userId === userId ? { ...ca, status: 'declined' as const } : ca
+              ),
+            }
+          : c
+      ));
+    } catch (err) {
+      logError('declineCoAuthorTag', err, { checkId });
+    }
+  };
+
   const hideCheck = async (checkId: string) => {
     setHiddenCheckIds((prev) => new Set(prev).add(checkId));
     if (!isDemoMode) {
@@ -325,6 +401,8 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     hydrateChecks,
     respondToCheck,
     handleCreateCheck,
+    acceptCoAuthorTag,
+    declineCoAuthorTag,
     hideCheck,
     unhideCheck,
   };

@@ -60,6 +60,9 @@ export interface InterestCheck {
   letterboxdUrl?: string;
   vibes?: string[];
   viaFriendName?: string;
+  coAuthors?: { userId: string; name: string; avatar: string; status: 'pending' | 'accepted' | 'declined' }[];
+  isCoAuthor?: boolean;
+  pendingTagForYou?: boolean;
 }
 
 export interface ScrapedEvent {

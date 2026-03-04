@@ -465,6 +465,9 @@ export default function Home() {
       } else if (newNotif.type === "friend_check") {
         if (newNotif.body) showToastRef.current(newNotif.body);
         loadRealDataRef.current();
+      } else if (newNotif.type === "check_tag") {
+        if (newNotif.body) showToastRef.current(newNotif.title + ": " + newNotif.body);
+        loadRealDataRef.current();
       } else if (newNotif.type === "friend_accepted" && newNotif.related_user_id) {
         if (newNotif.body) showToastRef.current(newNotif.body);
         loadRealDataRef.current();
@@ -516,7 +519,7 @@ export default function Home() {
         } else if (nType === 'squad_message' || nType === 'squad_invite') {
           if (relatedId) squadsHook.setAutoSelectSquadId(relatedId);
           setTab('groups');
-        } else if (nType === 'check_response' || nType === 'friend_check') {
+        } else if (nType === 'check_response' || nType === 'friend_check' || nType === 'check_tag') {
           setTab('feed');
           setFeedMode('foryou');
           if (relatedId) {
@@ -815,6 +818,8 @@ export default function Home() {
             pendingDownCheckIds={checksHook.pendingDownCheckIds}
             onHideCheck={checksHook.hideCheck}
             onUnhideCheck={checksHook.unhideCheck}
+            acceptCoAuthorTag={checksHook.acceptCoAuthorTag}
+            declineCoAuthorTag={checksHook.declineCoAuthorTag}
           />
         )}
         {feedLoaded && tab === "calendar" && (
@@ -1125,6 +1130,7 @@ export default function Home() {
           }
         }}
         onInterestCheck={checksHook.handleCreateCheck}
+        friends={friendsHook.friends.filter(f => f.status === 'friend').map(f => ({ id: f.id, name: f.name, avatar: f.avatar }))}
       />
       <EventLobby
         event={squadsHook.socialEvent}

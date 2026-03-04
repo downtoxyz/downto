@@ -11,6 +11,7 @@ import type {
   Message,
   Notification,
   CrewPoolEntry,
+  CheckCoAuthor,
 } from './types';
 
 // ============================================================================
@@ -571,14 +572,15 @@ export async function getFofAnnotations(): Promise<{ check_id: string; via_frien
   return data ?? [];
 }
 
-export async function getActiveChecks(): Promise<(InterestCheck & { author: Profile; responses: (CheckResponse & { user: Profile })[]; squads: { id: string; archived_at: string | null; members: { id: string }[] }[] })[]> {
+export async function getActiveChecks(): Promise<(InterestCheck & { author: Profile; responses: (CheckResponse & { user: Profile })[]; squads: { id: string; archived_at: string | null; members: { id: string }[] }[]; co_authors: (CheckCoAuthor & { user: Profile })[] })[]> {
   const { data, error } = await supabase
     .from('interest_checks')
     .select(`
       *,
       author:profiles!author_id(*),
       responses:check_responses(*, user:profiles!user_id(*)),
-      squads(id, archived_at, members:squad_members(id, role))
+      squads(id, archived_at, members:squad_members(id, role)),
+      co_authors:check_co_authors(*, user:profiles!user_id(*))
     `)
     .or(`expires_at.gt.${new Date().toISOString()},expires_at.is.null`)
     .or(`event_date.gte.${new Date().toISOString().slice(0, 10)},event_date.is.null`)
@@ -641,14 +643,11 @@ export async function createInterestCheck(
 }
 
 export async function deleteInterestCheck(checkId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
   const { error } = await supabase
     .from('interest_checks')
     .delete()
-    .eq('id', checkId)
-    .eq('author_id', user.id);
+    .eq('id', checkId);
+  // RLS policy allows author and accepted co-authors
 
   if (error) throw error;
 }
@@ -657,14 +656,11 @@ export async function updateInterestCheck(
   checkId: string,
   updates: { text?: string; max_squad_size?: number; event_date?: string | null; event_time?: string | null; date_flexible?: boolean; time_flexible?: boolean }
 ): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
   const { error } = await supabase
     .from('interest_checks')
     .update(updates)
-    .eq('id', checkId)
-    .eq('author_id', user.id);
+    .eq('id', checkId);
+  // RLS policy allows author and accepted co-authors
 
   if (error) throw error;
 }
@@ -718,9 +714,57 @@ export function subscribeToChecks(
       { event: '*', schema: 'public', table: 'check_responses' },
       () => callback()
     )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'check_co_authors' },
+      () => callback()
+    )
     .subscribe();
 
   return { unsubscribe: () => { channel.unsubscribe(); } };
+}
+
+// ============================================================================
+// CHECK CO-AUTHORS
+// ============================================================================
+
+export async function tagCoAuthors(checkId: string, userIds: string[]): Promise<void> {
+  if (userIds.length === 0) return;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('check_co_authors')
+    .upsert(
+      userIds.map(uid => ({ check_id: checkId, user_id: uid, invited_by: user.id })),
+      { onConflict: 'check_id,user_id', ignoreDuplicates: true }
+    );
+
+  if (error) throw error;
+}
+
+export async function respondToCoAuthorTag(checkId: string, accept: boolean): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('check_co_authors')
+    .update({ status: accept ? 'accepted' : 'declined' })
+    .eq('check_id', checkId)
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+}
+
+export async function removeCoAuthor(checkId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('check_co_authors')
+    .delete()
+    .eq('check_id', checkId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
 }
 
 // ============================================================================

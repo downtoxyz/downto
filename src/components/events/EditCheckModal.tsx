@@ -10,6 +10,9 @@ const EditCheckModal = ({
   open,
   onClose,
   onSave,
+  friends,
+  onTagFriend,
+  onRemoveTag,
 }: {
   check: InterestCheck | null;
   open: boolean;
@@ -21,7 +24,11 @@ const EditCheckModal = ({
     eventTime: string | null;
     dateFlexible: boolean;
     timeFlexible: boolean;
+    taggedFriendIds?: string[];
   }) => void;
+  friends?: { id: string; name: string; avatar: string }[];
+  onTagFriend?: (checkId: string, friendId: string) => Promise<void>;
+  onRemoveTag?: (checkId: string, userId: string) => Promise<void>;
 }) => {
   const [text, setText] = useState("");
   const [dateDismissed, setDateDismissed] = useState(false);
@@ -29,10 +36,13 @@ const EditCheckModal = ({
   const [dateLocked, setDateLocked] = useState(false);
   const [timeLocked, setTimeLocked] = useState(false);
   const [hasToggledLock, setHasToggledLock] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIdx, setMentionIdx] = useState(-1);
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [closing, setClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isDragging = useRef(false);
 
   useEffect(() => {
@@ -43,6 +53,8 @@ const EditCheckModal = ({
       setDateLocked(!check.dateFlexible);
       setTimeLocked(!check.timeFlexible);
       setHasToggledLock(false);
+      setMentionQuery(null);
+      setMentionIdx(-1);
     }
   }, [check, open]);
 
@@ -87,6 +99,15 @@ const EditCheckModal = ({
     const trimmed = text.trim();
     if (!trimmed) return;
 
+    // Extract @mentions → friend IDs for new tags
+    const mentionNames = [...trimmed.matchAll(/@(\S+)/g)].map(m => m[1].toLowerCase());
+    const taggedIds = (friends ?? [])
+      .filter(f => mentionNames.includes(f.name.toLowerCase()))
+      .map(f => f.id);
+    // Filter out already-tagged co-authors
+    const existingIds = new Set((check.coAuthors ?? []).map(ca => ca.userId));
+    const newTagIds = taggedIds.filter(id => !existingIds.has(id));
+
     onSave({
       text: trimmed,
       eventDate: !dateDismissed && effectiveDate ? effectiveDate.iso : null,
@@ -94,6 +115,7 @@ const EditCheckModal = ({
       eventTime: !timeDismissed && effectiveTime ? effectiveTime : null,
       dateFlexible: !dateLocked,
       timeFlexible: !timeLocked,
+      taggedFriendIds: newTagIds.length > 0 ? newTagIds : undefined,
     });
   };
 
@@ -159,11 +181,30 @@ const EditCheckModal = ({
           {/* Text */}
           <div style={{ marginBottom: 16 }}>
             <textarea
+              ref={textareaRef}
               value={text}
               onChange={(e) => {
-                setText(e.target.value.slice(0, 280));
+                const val = e.target.value.slice(0, 280);
+                setText(val);
                 setDateDismissed(false);
                 setTimeDismissed(false);
+                // Detect @mention
+                const cursor = e.target.selectionStart ?? val.length;
+                const before = val.slice(0, cursor);
+                const atMatch = before.match(/@([^\s@]*)$/);
+                if (atMatch) {
+                  setMentionQuery(atMatch[1].toLowerCase());
+                  setMentionIdx(before.length - atMatch[0].length);
+                } else {
+                  setMentionQuery(null);
+                  setMentionIdx(-1);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (mentionQuery !== null && e.key === "Escape") {
+                  setMentionQuery(null);
+                  setMentionIdx(-1);
+                }
               }}
               maxLength={280}
               rows={3}
@@ -182,6 +223,48 @@ const EditCheckModal = ({
                 boxSizing: "border-box",
               }}
             />
+            {/* @mention autocomplete dropdown */}
+            {mentionQuery !== null && friends && friends.length > 0 && (() => {
+              const filtered = friends.filter(f => f.name.toLowerCase().includes(mentionQuery));
+              if (filtered.length === 0) return null;
+              return (
+                <div style={{
+                  background: color.deep, border: `1px solid ${color.borderMid}`,
+                  borderRadius: 10, marginTop: 4, maxHeight: 140, overflowY: "auto",
+                }}>
+                  {filtered.slice(0, 6).map(f => (
+                    <button
+                      key={f.id}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        const before = text.slice(0, mentionIdx);
+                        const after = text.slice(mentionIdx + 1 + (mentionQuery?.length ?? 0));
+                        setText(before + "@" + f.name + " " + after);
+                        setMentionQuery(null);
+                        setMentionIdx(-1);
+                        textareaRef.current?.focus();
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        width: "100%", padding: "8px 12px",
+                        background: "transparent", border: "none", cursor: "pointer",
+                        borderBottom: `1px solid ${color.border}`,
+                      }}
+                    >
+                      <div style={{
+                        width: 24, height: 24, borderRadius: "50%",
+                        background: color.borderLight, color: color.dim,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontFamily: font.mono, fontSize: 10, fontWeight: 700,
+                      }}>
+                        {f.avatar}
+                      </div>
+                      <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>{f.name}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Auto-detected date/time chips */}
