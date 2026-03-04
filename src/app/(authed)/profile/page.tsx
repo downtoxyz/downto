@@ -1,5 +1,5 @@
-export default function Page() {
-    return (
-        <p>Profile</p>
-    )
+import Page from '../Page';
+
+export default function ProfilePage() {
+  return <Page>Profile</Page>;
 }

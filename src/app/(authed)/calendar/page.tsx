@@ -1,5 +1,5 @@
-export default function Page() {
-    return (
-        <p>Cal</p>
-    )
+import Page from '../Page';
+
+export default function CalendarPage() {
+  return <Page>Cal</Page>;
 }

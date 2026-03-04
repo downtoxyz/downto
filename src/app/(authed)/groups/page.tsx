@@ -1,5 +1,5 @@
-export default function Page() {
-    return (
-        <p>Squads</p>
-    )
+import Page from '../Page';
+
+export default function GroupsPage() {
+  return <Page>Squads</Page>;
 }

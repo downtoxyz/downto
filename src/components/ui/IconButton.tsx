@@ -1,7 +1,5 @@
-import clsx from "clsx";
-
-import Badge from "../Badge/Badge";
-import styles from "./IconButton.module.css";
+import cn from '@/lib/tailwindMerge';
+import Badge from './Badge';
 
 interface IconButtonProps {
   badge?: boolean;
@@ -18,10 +16,18 @@ export default function IconButton({
   type,
   onClick,
 }: IconButtonProps) {
+  const typeVariants = {
+    stroke: 'fill-none bg-transparent stroke-neutral-500 stroke-2',
+    fill: 'bg-dt text-neutral-950 font-bold',
+  };
+
   return (
     <button
       onClick={onClick}
-      className={clsx(styles.button, styles[type])}
+      className={cn(
+        'relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-0 text-2xl',
+        typeVariants[type]
+      )}
     >
       {icon}
       {badge && <Badge count={badgeCount} />}

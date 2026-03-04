@@ -1,36 +1,36 @@
-import type { Metadata } from "next";
-import { Instrument_Serif, Space_Mono } from "next/font/google";
-import DevProdBanner from "@/components/DevProdBanner";
-import UpdateBanner from "@/components/UpdateBanner";
-import Grain from "@/components/Grain";
+import type { Metadata } from 'next';
+import { Instrument_Serif, Space_Mono } from 'next/font/google';
+import DevProdBanner from '@/components/DevProdBanner';
+import UpdateBanner from '@/components/UpdateBanner';
+import Grain from '@/components/Grain';
 
-import "./global.css";
-import "./animations.css";
+import './global.css';
+import './animations.css';
 
 const instrumentSerif = Instrument_Serif({
-  weight: "400",
-  variable: "--font-instrument-serif",
-  subsets: ["latin"],
+  weight: '400',
+  variable: '--font-instrument-serif',
+  subsets: ['latin'],
 });
 const spaceMono = Space_Mono({
-  weight: ["400", "700"],
-  variable: "--font-space-mono",
-  subsets: ["latin"],
+  weight: ['400', '700'],
+  variable: '--font-space-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "down to",
+  title: 'down to',
   description: "Save events. See who's going.",
-  manifest: "/manifest.json",
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "down to",
+    statusBarStyle: 'black-translucent',
+    title: 'down to',
   },
   openGraph: {
-    title: "down to",
+    title: 'down to',
     description: "Save events. See who's going.",
-    siteName: "downto.xyz",
+    siteName: 'downto.xyz',
   },
 };
 
@@ -65,11 +65,13 @@ export default function RootLayout({
           input, textarea, select { font-size: 16px !important; }
         `}</style>
       </head>
-      <body>
+      <body className="flex h-screen justify-center bg-neutral-950 font-mono font-normal text-neutral-500 antialiased">
         <Grain />
         <DevProdBanner />
         <UpdateBanner />
-        <div className="container">{children}</div>
+        <div className="container mx-auto flex max-w-105 flex-col">
+          {children}
+        </div>
       </body>
     </html>
   );
