@@ -146,15 +146,24 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
     });
 
     // Link checks to their squads (distinguish member vs waitlisted)
-    const checkToSquad = new Map<string, { squadId: string; inSquad: boolean; isWaitlisted: boolean }>();
+    const checkToSquad = new Map<string, { squadId: string; inSquad: boolean; isWaitlisted: boolean; eventIsoDate?: string }>();
     for (const sq of transformedSquads) {
       if (sq.checkId) {
-        checkToSquad.set(sq.checkId, { squadId: sq.id, inSquad: !sq.isWaitlisted, isWaitlisted: !!sq.isWaitlisted });
+        checkToSquad.set(sq.checkId, { squadId: sq.id, inSquad: !sq.isWaitlisted, isWaitlisted: !!sq.isWaitlisted, eventIsoDate: sq.eventIsoDate });
       }
     }
     setChecks((prev) => prev.map((c) => {
       const sq = checkToSquad.get(c.id);
-      if (sq) return { ...c, squadId: sq.squadId, inSquad: sq.inSquad, isWaitlisted: sq.isWaitlisted };
+      if (sq) {
+        // Backfill check date from squad locked_date if check has no date
+        const datePatch: Partial<InterestCheck> = {};
+        if (!c.eventDate && sq.eventIsoDate) {
+          datePatch.eventDate = sq.eventIsoDate;
+          datePatch.eventDateLabel = new Date(sq.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+          datePatch.dateFlexible = false;
+        }
+        return { ...c, squadId: sq.squadId, inSquad: sq.inSquad, isWaitlisted: sq.isWaitlisted, ...datePatch };
+      }
       // Clear stale inSquad/isWaitlisted for checks no longer in user's squads
       if (c.inSquad || c.isWaitlisted) return { ...c, inSquad: undefined, isWaitlisted: undefined };
       return c;
