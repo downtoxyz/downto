@@ -697,8 +697,9 @@ const GroupsView = ({
                 top: 0, left: 0, right: 0, bottom: 0,
                 background: "rgba(0,0,0,0.7)",
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 justifyContent: "center",
+                paddingTop: "20vh",
                 zIndex: 9999,
               }}
               onClick={() => setShowDatePicker(false)}
