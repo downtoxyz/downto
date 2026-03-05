@@ -34,7 +34,7 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
   };
 
   const handleVerifyCode = async () => {
-    if (otp.length !== 6) return;
+    if (otp.length !== 8) return;
     setLoading(true);
     setError(null);
 
@@ -191,9 +191,9 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
             inputMode="numeric"
             autoComplete="one-time-code"
             value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
             onKeyDown={(e) => e.key === "Enter" && handleVerifyCode()}
-            placeholder="000000"
+            placeholder="00000000"
             autoFocus
             style={{
               background: color.card,
@@ -211,17 +211,17 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
           />
           <button
             onClick={handleVerifyCode}
-            disabled={otp.length !== 6 || loading}
+            disabled={otp.length !== 8 || loading}
             style={{
-              background: otp.length === 6 ? color.accent : color.borderMid,
-              color: otp.length === 6 ? "#000" : color.dim,
+              background: otp.length === 8 ? color.accent : color.borderMid,
+              color: otp.length === 8 ? "#000" : color.dim,
               border: "none",
               borderRadius: 12,
               padding: "16px",
               fontFamily: font.mono,
               fontSize: 14,
               fontWeight: 700,
-              cursor: otp.length === 6 ? "pointer" : "not-allowed",
+              cursor: otp.length === 8 ? "pointer" : "not-allowed",
               textTransform: "uppercase",
               letterSpacing: "0.1em",
               marginBottom: 12,

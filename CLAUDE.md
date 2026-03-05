@@ -79,11 +79,11 @@ Use `color.faint` for the whole line, or per-segment coloring (e.g. red for urge
 ### Auth
 Local Supabase uses OTP codes. Emails go to Mailpit (http://127.0.0.1:54324). To log in for testing:
 1. Send OTP via the app (enter email, click "Send Code")
-2. Get the 6-digit code from Mailpit:
+2. Get the 8-digit code from Mailpit:
 ```bash
 # Fetch latest OTP code for a test user
 OTP=$(curl -s "http://127.0.0.1:54324/api/v1/search?query=to:kat@test.com" | \
-  python3 -c "import json,sys,re; msgs=json.load(sys.stdin)['messages']; print(re.search(r'\d{6}', msgs[0]['Snippet']).group())")
+  python3 -c "import json,sys,re; msgs=json.load(sys.stdin)['messages']; print(re.search(r'\d{8}', msgs[0]['Snippet']).group())")
 echo "$OTP"
 ```
 3. Enter the code in the app
