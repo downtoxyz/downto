@@ -105,6 +105,31 @@ export const parseNaturalDate = (text: string): { label: string; iso: string } |
     const d = new Date(today); d.setDate(d.getDate() + 7);
     return { label: lbl(d), iso: fmt(d) };
   }
+  // "in N weeks" / "in two weeks" etc.
+  const inWeeksMatch = lower.match(/\bin (\d+|two|three|four) weeks?\b/);
+  if (inWeeksMatch) {
+    const wordToNum: Record<string, number> = { two: 2, three: 3, four: 4 };
+    const n = wordToNum[inWeeksMatch[1]] ?? parseInt(inWeeksMatch[1]);
+    if (n > 0) {
+      const d = new Date(today); d.setDate(d.getDate() + n * 7);
+      return { label: lbl(d), iso: fmt(d) };
+    }
+  }
+  // "next month"
+  if (/\bnext month\b/.test(lower)) {
+    const d = new Date(today); d.setMonth(d.getMonth() + 1, 1);
+    return { label: lbl(d), iso: fmt(d) };
+  }
+  // "in N months"
+  const inMonthsMatch = lower.match(/\bin (\d+|two|three) months?\b/);
+  if (inMonthsMatch) {
+    const wordToNum: Record<string, number> = { two: 2, three: 3 };
+    const n = wordToNum[inMonthsMatch[1]] ?? parseInt(inMonthsMatch[1]);
+    if (n > 0) {
+      const d = new Date(today); d.setMonth(d.getMonth() + n, 1);
+      return { label: lbl(d), iso: fmt(d) };
+    }
+  }
   // "next [day]" — skip this week
   const nextDayMatch = lower.match(/\bnext (mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
   if (nextDayMatch) {
@@ -197,6 +222,26 @@ const formatTimeMatch = (rawHour: number, minutes: string | null, meridiem: "am"
   if (rawHour === 0 || rawHour > 12) return null;
   const suffix = meridiem ? meridiem.toUpperCase() : "PM";
   return minutes ? `${rawHour}:${minutes} ${suffix}` : `${rawHour} ${suffix}`;
+};
+
+/** Parse a location from text, e.g. "dinner at Jollibee" → "Jollibee" */
+export const parseNaturalLocation = (text: string): string | null => {
+  const lower = text.toLowerCase();
+
+  // Skip "at" followed by time-like words
+  const timeWords = /^(noon|midnight|night|\d{1,2}(:\d{2})?\s*(am|pm)?)\b/;
+
+  // Match "at {location}" — capture everything after "at" until end or common stop words
+  const atMatch = lower.match(/\bat\s+(.+?)(?:\s*[·|,]|\s+(?:on|at|around|from|with)\s|\s*$)/);
+  if (atMatch) {
+    const candidate = atMatch[1].trim();
+    if (timeWords.test(candidate)) return null;
+    if (candidate.length < 2 || candidate.length > 50) return null;
+    // Capitalize first letter of each word
+    return candidate.replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  return null;
 };
 
 /** Format a date as relative time ago (e.g., "2h", "5m", "now") */

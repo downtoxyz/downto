@@ -176,18 +176,23 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
     setCreatingSquad(true);
     const maxSize = check.maxSquadSize ?? 5;
     const allDown = check.responses.filter((r) => r.status === "down" && r.name !== "You");
-    const downPeople = allDown.slice(0, maxSize - 1);
-    const memberNames = downPeople.map((p) => p.name);
     const squadName = check.text.slice(0, 30) + (check.text.length > 30 ? "..." : "");
     const opener = pickOpener(check.text);
+
+    // Collect unique member IDs: author + creator (current user) + down responders, capped at maxSize
+    const memberSet = new Set<string>();
+    if (check.authorId) memberSet.add(check.authorId);
+    if (userId) memberSet.add(userId);
+    for (const p of allDown) {
+      if (memberSet.size >= maxSize) break;
+      if (p.odbc) memberSet.add(p.odbc);
+    }
+    const downPeople = allDown.filter((p) => p.odbc && memberSet.has(p.odbc));
 
     let squadDbId: string | undefined;
     if (!isDemoMode && check.id) {
       try {
-        const memberIds = [
-          ...downPeople.map((p) => p.odbc).filter((id): id is string => !!id),
-          ...(check.authorId ? [check.authorId] : []),
-        ];
+        const memberIds = Array.from(memberSet);
         const dbSquad = await db.createSquad(squadName, memberIds, undefined, check.id);
         await db.sendMessage(dbSquad.id, opener);
         squadDbId = dbSquad.id;
@@ -223,7 +228,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
       squadName: check.text,
       startedBy: "You",
       ideaBy: check.author,
-      members: memberNames,
+      members: downPeople.map((p) => p.name),
       squadId: newSquad.id,
     });
     setTimeout(() => setSquadNotification(null), 4000);

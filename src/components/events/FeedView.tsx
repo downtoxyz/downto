@@ -547,32 +547,52 @@ export default function FeedView({
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                                   {check.eventDateLabel && (
                                     <span style={{
-                                      display: "inline-block",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
                                       padding: "3px 8px",
-                                      background: check.dateFlexible ? "transparent" : "rgba(232,255,90,0.1)",
-                                      border: check.dateFlexible ? "1px dashed rgba(232,255,90,0.3)" : "none",
+                                      background: "rgba(232,255,90,0.08)",
+                                      border: "1px solid rgba(232,255,90,0.2)",
                                       borderRadius: 6,
                                       fontFamily: font.mono,
                                       fontSize: 10,
                                       color: color.accent,
                                       fontWeight: 600,
                                     }}>
-                                      📅 {check.eventDateLabel}
+                                      {check.eventDateLabel}
+                                      {check.dateFlexible && (
+                                        <span style={{
+                                          padding: "0px 4px",
+                                          background: "rgba(232,255,90,0.15)",
+                                          borderRadius: 3,
+                                          fontSize: 8,
+                                        }}>flexible</span>
+                                      )}
                                     </span>
                                   )}
                                   {check.eventTime && (
                                     <span style={{
-                                      display: "inline-block",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
                                       padding: "3px 8px",
-                                      background: check.timeFlexible ? "transparent" : "rgba(232,255,90,0.1)",
-                                      border: check.timeFlexible ? "1px dashed rgba(232,255,90,0.3)" : "none",
+                                      background: "rgba(232,255,90,0.08)",
+                                      border: "1px solid rgba(232,255,90,0.2)",
                                       borderRadius: 6,
                                       fontFamily: font.mono,
                                       fontSize: 10,
                                       color: color.accent,
                                       fontWeight: 600,
                                     }}>
-                                      🕐 {check.eventTime}
+                                      {check.eventTime}
+                                      {check.timeFlexible && (
+                                        <span style={{
+                                          padding: "0px 4px",
+                                          background: "rgba(232,255,90,0.15)",
+                                          borderRadius: 3,
+                                          fontSize: 8,
+                                        }}>flexible</span>
+                                      )}
                                     </span>
                                   )}
                                 </div>
@@ -596,7 +616,7 @@ export default function FeedView({
                               >
                                 <span style={{ fontSize: 12 }}>💬</span>
                                 <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", fontWeight: 600 }}>
-                                  Squad chat{check.squadMemberCount ? ` · ${check.squadMemberCount}/${check.maxSquadSize ?? "?"}` : ""}
+                                  Squad chat{check.squadMemberCount ? ` · ${check.squadMemberCount}${check.maxSquadSize && check.maxSquadSize < 999 ? `/${check.maxSquadSize}` : ""}` : ""}
                                 </span>
                                 <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", marginLeft: "auto" }}>→</span>
                               </div>
@@ -803,8 +823,9 @@ export default function FeedView({
                               {myCheckResponses[check.id] === "down" && (() => {
                                 const memberCount = check.squadMemberCount ?? 0;
                                 const maxSize = check.maxSquadSize ?? 5;
-                                const isFull = memberCount >= maxSize;
-                                const capacityLabel = `${memberCount}/${maxSize}`;
+                                const isUnlimited = maxSize >= 999;
+                                const isFull = !isUnlimited && memberCount >= maxSize;
+                                const capacityLabel = isUnlimited ? `${memberCount}` : `${memberCount}/${maxSize}`;
                                 return (
                                 check.inSquad ? (
                                   <button

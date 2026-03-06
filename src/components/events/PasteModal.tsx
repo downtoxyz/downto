@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
 import type { ScrapedEvent } from "@/lib/ui-types";
-import { parseNaturalDate, parseNaturalTime, sanitize } from "@/lib/utils";
+import { parseNaturalDate, parseNaturalTime, parseNaturalLocation, parseDateToISO, sanitize } from "@/lib/utils";
 import { logWarn } from "@/lib/logger";
 import * as db from "@/lib/db";
 
@@ -37,13 +37,39 @@ const AddModal = ({
   const [checkTimer, setCheckTimer] = useState<number | null>(24);
   const [squadSize, setSquadSize] = useState(5);
 
+  // Count tagged co-authors from @mentions in idea text
+  const taggedCoAuthorCount = (() => {
+    const mentionNames = [...idea.matchAll(/@(\S+)/g)].map(m => m[1].toLowerCase());
+    if (mentionNames.length === 0) return 0;
+    return (friends ?? []).filter(f => mentionNames.some(m =>
+      m === (f as { username?: string }).username?.toLowerCase() ||
+      m === f.name.toLowerCase() ||
+      m === f.name.split(' ')[0]?.toLowerCase()
+    )).length;
+  })();
+  const minSquadSize = 1 + taggedCoAuthorCount; // author + co-authors
+
+  // Auto-bump squad size if current selection is impossible
+  useEffect(() => {
+    if (squadSize !== 0 && squadSize < minSquadSize) {
+      const options = [3, 4, 5, 6, 8];
+      const nextValid = options.find(n => n >= minSquadSize);
+      setSquadSize(nextValid ?? 0);
+    }
+  }, [minSquadSize, squadSize]);
+
   const detectedDate = idea ? parseNaturalDate(idea) : null;
   const detectedTime = idea ? parseNaturalTime(idea) : null;
-  const [dateDismissed, setDateDismissed] = useState(false);
-  const [timeDismissed, setTimeDismissed] = useState(false);
+  const detectedLocation = idea ? parseNaturalLocation(idea) : null;
+
+  // Chip state: null = use auto-detected, string = manual override, "" = cleared
+  const [manualDate, setManualDate] = useState<string | null>(null);
+  const [manualTime, setManualTime] = useState<string | null>(null);
+  const [manualLocation, setManualLocation] = useState<string | null>(null);
   const [dateLocked, setDateLocked] = useState(false);
   const [timeLocked, setTimeLocked] = useState(false);
-  const [hasToggledLock, setHasToggledLock] = useState(false);
+  const [locationLocked, setLocationLocked] = useState(false);
+  const [editingChip, setEditingChip] = useState<"date" | "time" | "location" | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIdx, setMentionIdx] = useState(-1); // cursor position of @
   const [loading, setLoading] = useState(false);
@@ -734,8 +760,10 @@ const AddModal = ({
                 onChange={(e) => {
                   const val = e.target.value.slice(0, 280);
                   setIdea(val);
-                  setDateDismissed(false);
-                  setTimeDismissed(false);
+                  // Reset dismissed chips so auto-detection re-evaluates
+                  setManualDate(null);
+                  setManualTime(null);
+                  setManualLocation(null);
                   // Detect @mention
                   const cursor = e.target.selectionStart ?? val.length;
                   const before = val.slice(0, cursor);
@@ -850,91 +878,177 @@ const AddModal = ({
                 );
               })()}
             </div>
-            {/* Auto-detected date/time chips */}
-            {((detectedDate && !dateDismissed) || (detectedTime && !timeDismissed)) && (
-              <div style={{
-                display: "flex",
-                gap: 6,
-                flexWrap: "wrap",
-                marginBottom: 12,
-              }}>
-                {detectedDate && !dateDismissed && (
-                  <div
-                    onClick={() => { setDateLocked((v) => !v); setHasToggledLock(true); }}
-                    style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 10px",
-                    background: dateLocked ? "rgba(232,255,90,0.08)" : "transparent",
-                    borderRadius: 8,
-                    border: dateLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
-                    cursor: "pointer",
-                  }}>
-                    <span
-                      style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}
-                    >
-                      📅 {detectedDate.label}
-                    </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDateDismissed(true); }}
+            {/* Date / Time / Location chips — always visible */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              {([
+                {
+                  key: "date" as const,
+                  placeholder: "date?",
+                  detected: detectedDate?.label ?? null,
+                  manual: manualDate,
+                  setManual: setManualDate,
+                  locked: dateLocked,
+                  setLocked: setDateLocked,
+                },
+                {
+                  key: "time" as const,
+                  placeholder: "time?",
+                  detected: detectedTime ?? null,
+                  manual: manualTime,
+                  setManual: setManualTime,
+                  locked: timeLocked,
+                  setLocked: setTimeLocked,
+                },
+                {
+                  key: "location" as const,
+                  placeholder: "location?",
+                  detected: detectedLocation ?? null,
+                  manual: manualLocation,
+                  setManual: setManualLocation,
+                  locked: locationLocked,
+                  setLocked: setLocationLocked,
+                },
+              ] as const).map((chip) => {
+                const value = chip.manual !== null ? chip.manual : chip.detected;
+                const hasValue = !!value;
+                const isEditing = editingChip === chip.key;
+
+                if (isEditing) {
+                  const validate = (v: string): string | null => {
+                    if (!v) return "";
+                    if (chip.key === "date") {
+                      const parsed = parseNaturalDate(v);
+                      if (parsed) return parsed.label;
+                      if (parseDateToISO(v)) return v;
+                      return null; // invalid
+                    }
+                    if (chip.key === "time") {
+                      const parsed = parseNaturalTime(v);
+                      if (parsed) return parsed;
+                      return null; // invalid
+                    }
+                    return v; // location: accept anything
+                  };
+                  return (
+                    <input
+                      key={chip.key}
+                      autoFocus
+                      placeholder={chip.key === "date" ? "e.g. friday, mar 7" : chip.key === "time" ? "e.g. 7pm, noon" : "e.g. Jollibee"}
+                      defaultValue={value ?? ""}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        const result = validate(v);
+                        if (result !== null) {
+                          chip.setManual(result);
+                          setEditingChip(null);
+                        } else {
+                          // Invalid — flash red then refocus
+                          e.target.style.borderColor = "#ff4444";
+                          setTimeout(() => {
+                            e.target.style.borderColor = color.accent;
+                          }, 800);
+                          e.target.focus();
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        }
+                        if (e.key === "Escape") {
+                          setEditingChip(null);
+                        }
+                      }}
                       style={{
-                        background: "none",
-                        border: "none",
-                        color: color.dim,
+                        padding: "6px 10px",
+                        background: "rgba(232,255,90,0.08)",
+                        border: `1px solid ${color.accent}`,
+                        borderRadius: 8,
                         fontFamily: font.mono,
-                        fontSize: 13,
+                        fontSize: 11,
+                        color: color.accent,
+                        fontWeight: 600,
+                        outline: "none",
+                        width: 120,
+                        transition: "border-color 0.2s",
+                      }}
+                    />
+                  );
+                }
+
+                return (
+                  <div
+                    key={chip.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "6px 10px",
+                      background: "rgba(232,255,90,0.08)",
+                      borderRadius: 8,
+                      border: "1px solid rgba(232,255,90,0.2)",
+                    }}
+                  >
+                    <span
+                      onClick={() => {
+                        if (!hasValue) setEditingChip(chip.key);
+                        else if (chip.locked) chip.setLocked(false);
+                        else setEditingChip(chip.key);
+                      }}
+                      style={{
+                        fontFamily: font.mono,
+                        fontSize: 11,
+                        color: hasValue ? color.accent : color.dim,
+                        fontWeight: 600,
                         cursor: "pointer",
-                        padding: "0 2px",
-                        lineHeight: 1,
                       }}
                     >
-                      ×
-                    </button>
-                  </div>
-                )}
-                {detectedTime && !timeDismissed && (
-                  <div
-                    onClick={() => { setTimeLocked((v) => !v); setHasToggledLock(true); }}
-                    style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 10px",
-                    background: timeLocked ? "rgba(232,255,90,0.08)" : "transparent",
-                    borderRadius: 8,
-                    border: timeLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
-                    cursor: "pointer",
-                  }}>
-                    <span
-                      style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}
-                    >
-                      🕐 {detectedTime}
+                      {hasValue ? value : chip.placeholder}
                     </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setTimeDismissed(true); }}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: color.dim,
-                        fontFamily: font.mono,
-                        fontSize: 13,
-                        cursor: "pointer",
-                        padding: "0 2px",
-                        lineHeight: 1,
-                      }}
-                    >
-                      ×
-                    </button>
+                    {!chip.locked && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          chip.setLocked(true);
+                        }}
+                        style={{
+                          padding: "1px 6px",
+                          background: "rgba(232,255,90,0.15)",
+                          borderRadius: 4,
+                          fontFamily: font.mono,
+                          fontSize: 9,
+                          color: color.accent,
+                          cursor: "pointer",
+                        }}
+                      >
+                        flexible
+                      </span>
+                    )}
+                    {hasValue && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          chip.setManual("");
+                          chip.setLocked(false);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: color.dim,
+                          fontFamily: font.mono,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          padding: "0 2px",
+                          lineHeight: 1,
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
-                )}
-                {!hasToggledLock && (
-                  <div style={{ width: "100%", fontFamily: font.mono, fontSize: 9, color: color.faint, marginTop: 2 }}>
-                    tap to lock in · dashed = flexible
-                  </div>
-                )}
-              </div>
-            )}
+                );
+              })}
+            </div>
             {/* Movie preview from detected Letterboxd link */}
             {checkMovieLoading && (
               <div style={{
@@ -1083,47 +1197,70 @@ const AddModal = ({
             {/* Squad size picker */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                Starting squad size
+                Squad size
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                {[3, 4, 5, 6, 8].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setSquadSize(n)}
-                    style={{
-                      flex: 1,
-                      padding: "10px 0",
-                      background: squadSize === n ? color.accent : "transparent",
-                      color: squadSize === n ? "#000" : color.muted,
-                      border: `1px solid ${squadSize === n ? color.accent : color.borderMid}`,
-                      borderRadius: 10,
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      fontWeight: squadSize === n ? 700 : 400,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {n}
-                  </button>
-                ))}
+                {[
+                  { label: "3", value: 3 },
+                  { label: "4", value: 4 },
+                  { label: "5", value: 5 },
+                  { label: "6", value: 6 },
+                  { label: "8", value: 8 },
+                  { label: "\u221e", value: 0 },
+                ].map((opt) => {
+                  const disabled = opt.value !== 0 && opt.value < minSquadSize;
+                  const selected = squadSize === opt.value;
+                  return (
+                    <button
+                      key={opt.label}
+                      onClick={() => !disabled && setSquadSize(opt.value)}
+                      style={{
+                        flex: 1,
+                        padding: "10px 0",
+                        background: selected ? color.accent : "transparent",
+                        color: disabled ? color.faint : selected ? "#000" : color.muted,
+                        border: `1px solid ${selected ? color.accent : disabled ? color.border : color.borderMid}`,
+                        borderRadius: 10,
+                        fontFamily: font.mono,
+                        fontSize: 12,
+                        fontWeight: selected ? 700 : 400,
+                        cursor: disabled ? "default" : "pointer",
+                        opacity: disabled ? 0.4 : 1,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
+              {taggedCoAuthorCount > 0 && (() => {
+                const openSlots = squadSize === 0 ? "unlimited" : Math.max(0, squadSize - minSquadSize);
+                return (
+                  <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, marginTop: 6 }}>
+                    {`you + ${taggedCoAuthorCount} tagged · ${openSlots} open slot${openSlots !== 1 && openSlots !== "unlimited" ? "s" : openSlots === "unlimited" ? "s" : ""}`}
+                  </div>
+                );
+              })()}
             </div>
             <button
               onClick={() => {
                 if (idea.trim()) {
-                  const eventDate = (!dateDismissed && detectedDate) ? detectedDate.iso : null;
-                  const eventTime = (!timeDismissed && detectedTime) ? detectedTime : null;
+                  // Resolve chip values: manual override > auto-detected > null
+                  const eventDate = manualDate !== null
+                    ? (manualDate ? parseDateToISO(manualDate) : null)
+                    : (detectedDate?.iso ?? null);
+                  const eventTime = manualTime !== null ? (manualTime || null) : (detectedTime ?? null);
                   // Extract @mentions → friend IDs (match against username or display name)
                   const mentionNames = [...idea.matchAll(/@(\S+)/g)].map(m => m[1].toLowerCase());
                   const taggedIds = (friends ?? [])
                     .filter(f => mentionNames.some(m =>
-                      m === f.username?.toLowerCase() ||
+                      m === (f as { username?: string }).username?.toLowerCase() ||
                       m === f.name.toLowerCase() ||
                       m === f.name.split(' ')[0]?.toLowerCase()
                     ))
                     .map(f => f.id);
-                  onInterestCheck(sanitize(idea, 280), checkTimer, eventDate, squadSize, checkMovie ?? undefined, eventTime, !dateLocked, !timeLocked, taggedIds.length > 0 ? taggedIds : undefined);
+                  onInterestCheck(sanitize(idea, 280), checkTimer, eventDate, squadSize === 0 ? 999 : squadSize, checkMovie ?? undefined, eventTime, !dateLocked, !timeLocked, taggedIds.length > 0 ? taggedIds : undefined);
                   onClose();
                 }
               }}

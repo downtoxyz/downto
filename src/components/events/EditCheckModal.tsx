@@ -103,7 +103,7 @@ const EditCheckModal = ({
     const mentionNames = [...trimmed.matchAll(/@(\S+)/g)].map(m => m[1].toLowerCase());
     const taggedIds = (friends ?? [])
       .filter(f => mentionNames.some(m =>
-        m === f.username?.toLowerCase() ||
+        m === (f as { username?: string }).username?.toLowerCase() ||
         m === f.name.toLowerCase() ||
         m === f.name.split(' ')[0]?.toLowerCase()
       ))
