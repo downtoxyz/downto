@@ -261,7 +261,7 @@ const AddModal = ({
           maxHeight: "85dvh",
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
-          padding: "0 24px calc(40px + env(safe-area-inset-bottom, 0px))",
+          padding: "0 24px calc(24px + env(safe-area-inset-bottom, 0px))",
           animation: "slideUp 0.3s ease-out",
           touchAction: "none",
           transition: dragging.current ? "none" : "transform 0.2s ease-out",
@@ -1195,7 +1195,7 @@ const AddModal = ({
               </div>
             </div>
             {/* Squad size picker */}
-            <div style={{ marginBottom: 80 }}>
+            <div style={{ marginBottom: 16 }}>
               <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.15em" }}>
                 Squad size
               </div>
@@ -1278,9 +1278,6 @@ const AddModal = ({
                 cursor: idea.trim() ? "pointer" : "not-allowed",
                 textTransform: "uppercase",
                 letterSpacing: "0.1em",
-                position: "sticky",
-                bottom: 0,
-                zIndex: 1,
               }}
             >
               {checkMovie ? "Send Movie Check →" : "Send Interest Check →"}
