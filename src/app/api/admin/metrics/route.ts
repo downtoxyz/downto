@@ -16,9 +16,10 @@ export async function GET(request: NextRequest) {
 
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   // Run queries in parallel
-  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes] = await Promise.all([
+  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauPingsRes] = await Promise.all([
     admin.from('profiles').select('*', { count: 'exact', head: true }),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', true),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', false),
@@ -42,7 +43,24 @@ export async function GET(request: NextRequest) {
       .select('user_id, build_id, created_at')
       .gte('created_at', since7d)
       .order('created_at', { ascending: false }),
+    admin.from('version_pings')
+      .select('user_id, created_at')
+      .gte('created_at', since30d),
   ]);
+
+  // Compute DAU from version_pings (30 days)
+  const dauSets: Record<string, Set<string>> = {};
+  if (dauPingsRes.data) {
+    for (const row of dauPingsRes.data) {
+      const date = row.created_at.slice(0, 10);
+      if (!dauSets[date]) dauSets[date] = new Set();
+      dauSets[date].add(row.user_id);
+    }
+  }
+  const dauByDate: Record<string, number> = {};
+  for (const [date, users] of Object.entries(dauSets)) {
+    dauByDate[date] = users.size;
+  }
 
   // Group signups by date
   const signupsByDate: Record<string, number> = {};
@@ -135,6 +153,7 @@ export async function GET(request: NextRequest) {
     totalUsers: totalRes.count ?? 0,
     onboarded: onboardedRes.count ?? 0,
     notOnboarded: notOnboardedRes.count ?? 0,
+    dauByDate,
     signupsByDate,
     recentSignups: recentRes.data ?? [],
     push: {

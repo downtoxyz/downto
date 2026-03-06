@@ -20,6 +20,7 @@ interface Metrics {
   totalUsers: number;
   onboarded: number;
   notOnboarded: number;
+  dauByDate: Record<string, number>;
   signupsByDate: Record<string, number>;
   recentSignups: {
     username: string;
@@ -107,13 +108,16 @@ export default function AdminPage() {
 
   const maxSignups = Math.max(...Object.values(metrics.signupsByDate), 1);
 
-  // Fill in all 30 days for the chart
-  const days: { date: string; count: number }[] = [];
+  // Fill in all 30 days for both charts
+  const days: { date: string; signups: number; dau: number }[] = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
     const key = d.toISOString().slice(0, 10);
-    days.push({ date: key, count: metrics.signupsByDate[key] || 0 });
+    days.push({ date: key, signups: metrics.signupsByDate[key] || 0, dau: metrics.dauByDate[key] || 0 });
   }
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const dauToday = metrics.dauByDate[todayKey] || 0;
+  const maxDau = Math.max(...days.map((d) => d.dau), 1);
 
   const tabs: { key: AdminTab; label: string }[] = [
     { key: "users", label: "Users" },
@@ -156,14 +160,14 @@ export default function AdminPage() {
       {tab === "users" && (
         <>
           <div style={{ display: "flex", gap: 12, marginBottom: 32 }}>
+            <SummaryCard label="DAU Today" value={dauToday} />
             <SummaryCard label="Total Users" value={metrics.totalUsers} />
             <SummaryCard label="Onboarded" value={metrics.onboarded} />
-            <SummaryCard label="Not Onboarded" value={metrics.notOnboarded} />
           </div>
 
-          <h2 style={sectionHeader}>Signups (last 30 days)</h2>
+          <h2 style={sectionHeader}>Active Users (last 30 days)</h2>
           <div style={{ marginBottom: 32 }}>
-            {days.map(({ date, count }) => (
+            {days.map(({ date, dau }) => (
               <div key={date} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                 <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 72, flexShrink: 0 }}>
                   {date.slice(5)}
@@ -171,15 +175,40 @@ export default function AdminPage() {
                 <div
                   style={{
                     height: 14,
-                    width: count > 0 ? `${(count / maxSignups) * 100}%` : 0,
+                    width: dau > 0 ? `${(dau / maxDau) * 100}%` : 0,
                     backgroundColor: color.accent,
                     borderRadius: 2,
-                    minWidth: count > 0 ? 4 : 0,
+                    minWidth: dau > 0 ? 4 : 0,
                   }}
                 />
-                {count > 0 && (
+                {dau > 0 && (
                   <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
-                    {count}
+                    {dau}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <h2 style={sectionHeader}>Signups (last 30 days)</h2>
+          <div style={{ marginBottom: 32 }}>
+            {days.map(({ date, signups }) => (
+              <div key={`s-${date}`} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 72, flexShrink: 0 }}>
+                  {date.slice(5)}
+                </span>
+                <div
+                  style={{
+                    height: 14,
+                    width: signups > 0 ? `${(signups / maxSignups) * 100}%` : 0,
+                    backgroundColor: color.accent,
+                    borderRadius: 2,
+                    minWidth: signups > 0 ? 4 : 0,
+                  }}
+                />
+                {signups > 0 && (
+                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
+                    {signups}
                   </span>
                 )}
               </div>
