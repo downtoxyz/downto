@@ -990,17 +990,12 @@ const AddModal = ({
                     }}
                   >
                     <span
-                      onClick={() => {
-                        if (!hasValue) setEditingChip(chip.key);
-                        else if (chip.locked) chip.setLocked(false);
-                        else setEditingChip(chip.key);
-                      }}
                       style={{
                         fontFamily: font.mono,
                         fontSize: 11,
                         color: hasValue ? color.accent : color.dim,
                         fontWeight: 600,
-                        cursor: "pointer",
+                        userSelect: "none",
                       }}
                     >
                       {hasValue ? value : chip.placeholder}
@@ -1023,27 +1018,6 @@ const AddModal = ({
                       >
                         flexible
                       </span>
-                    )}
-                    {hasValue && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          chip.setManual("");
-                          chip.setLocked(false);
-                        }}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: color.dim,
-                          fontFamily: font.mono,
-                          fontSize: 13,
-                          cursor: "pointer",
-                          padding: "0 2px",
-                          lineHeight: 1,
-                        }}
-                      >
-                        ×
-                      </button>
                     )}
                   </div>
                 );
