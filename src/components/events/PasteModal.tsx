@@ -1195,7 +1195,7 @@ const AddModal = ({
               </div>
             </div>
             {/* Squad size picker */}
-            <div style={{ marginBottom: 60 }}>
+            <div style={{ marginBottom: 80 }}>
               <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.15em" }}>
                 Squad size
               </div>
