@@ -769,7 +769,6 @@ const GroupsView = ({
                   <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 12 }}>
                     {hasDate && (
                       <div
-                        onClick={() => setDateLocked((v) => !v)}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -778,20 +777,31 @@ const GroupsView = ({
                           background: dateLocked ? "rgba(232,255,90,0.08)" : "transparent",
                           borderRadius: 8,
                           border: dateLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
-                          cursor: "pointer",
+                          userSelect: "none",
                         }}
                       >
                         <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}>
                           📅 {parsedLabel}
                         </span>
-                        <span style={{ fontFamily: font.mono, fontSize: 9, color: dateLocked ? color.accent : color.dim, fontWeight: 600 }}>
+                        <button
+                          onClick={() => setDateLocked((v) => !v)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            fontFamily: font.mono,
+                            fontSize: 9,
+                            color: dateLocked ? color.accent : color.dim,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
                           {dateLocked ? "locked" : "flexible"}
-                        </span>
+                        </button>
                       </div>
                     )}
                     {hasTime && (
                       <div
-                        onClick={() => setTimeLocked((v) => !v)}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -800,15 +810,27 @@ const GroupsView = ({
                           background: timeLocked ? "rgba(232,255,90,0.08)" : "transparent",
                           borderRadius: 8,
                           border: timeLocked ? "1px solid rgba(232,255,90,0.2)" : "1px dashed rgba(232,255,90,0.35)",
-                          cursor: "pointer",
+                          userSelect: "none",
                         }}
                       >
                         <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, fontWeight: 600 }}>
                           🕐 {detectedTime}
                         </span>
-                        <span style={{ fontFamily: font.mono, fontSize: 9, color: timeLocked ? color.accent : color.dim, fontWeight: 600 }}>
+                        <button
+                          onClick={() => setTimeLocked((v) => !v)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            fontFamily: font.mono,
+                            fontSize: 9,
+                            color: timeLocked ? color.accent : color.dim,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
                           {timeLocked ? "locked" : "flexible"}
-                        </span>
+                        </button>
                       </div>
                     )}
                   </div>
