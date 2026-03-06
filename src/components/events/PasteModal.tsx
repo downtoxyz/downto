@@ -959,6 +959,7 @@ const AddModal = ({
                     <span
                       onClick={() => {
                         if (!hasValue) setEditingChip(chip.key);
+                        else if (chip.locked) chip.setLocked(false);
                         else setEditingChip(chip.key);
                       }}
                       style={{

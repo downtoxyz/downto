@@ -151,7 +151,11 @@ const FirstCheckScreen = ({
               }}
             >
               <span
-                onClick={() => setEditingChip(chip.key)}
+                onClick={() => {
+                  if (!hasValue) setEditingChip(chip.key);
+                  else if (chip.locked) chip.setLocked(false);
+                  else setEditingChip(chip.key);
+                }}
                 style={{
                   fontFamily: font.mono,
                   fontSize: 11,
