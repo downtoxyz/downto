@@ -946,13 +946,6 @@ const AddModal = ({
                 return (
                   <div
                     key={chip.key}
-                    onClick={() => {
-                      if (!hasValue) {
-                        setEditingChip(chip.key);
-                      } else {
-                        chip.setLocked((v: boolean) => !v);
-                      }
-                    }}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -960,19 +953,43 @@ const AddModal = ({
                       padding: "6px 10px",
                       background: "rgba(232,255,90,0.08)",
                       borderRadius: 8,
-                      border: `1px solid rgba(232,255,90,0.2)`,
-                      cursor: "pointer",
+                      border: "1px solid rgba(232,255,90,0.2)",
                     }}
                   >
-                    <span style={{
-                      fontFamily: font.mono,
-                      fontSize: 11,
-                      color: hasValue ? color.accent : color.dim,
-                      fontWeight: 600,
-                    }}>
+                    <span
+                      onClick={() => {
+                        if (!hasValue) setEditingChip(chip.key);
+                        else setEditingChip(chip.key);
+                      }}
+                      style={{
+                        fontFamily: font.mono,
+                        fontSize: 11,
+                        color: hasValue ? color.accent : color.dim,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
                       {hasValue ? value : chip.placeholder}
-                      {!chip.locked && " (flexible)"}
                     </span>
+                    {!chip.locked && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          chip.setLocked(true);
+                        }}
+                        style={{
+                          padding: "1px 6px",
+                          background: "rgba(232,255,90,0.15)",
+                          borderRadius: 4,
+                          fontFamily: font.mono,
+                          fontSize: 9,
+                          color: color.accent,
+                          cursor: "pointer",
+                        }}
+                      >
+                        flexible
+                      </span>
+                    )}
                     {hasValue && (
                       <button
                         onClick={(e) => {

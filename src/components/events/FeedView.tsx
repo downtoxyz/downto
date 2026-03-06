@@ -547,7 +547,9 @@ export default function FeedView({
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                                   {check.eventDateLabel && (
                                     <span style={{
-                                      display: "inline-block",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
                                       padding: "3px 8px",
                                       background: "rgba(232,255,90,0.08)",
                                       border: "1px solid rgba(232,255,90,0.2)",
@@ -557,12 +559,22 @@ export default function FeedView({
                                       color: color.accent,
                                       fontWeight: 600,
                                     }}>
-                                      {check.eventDateLabel}{check.dateFlexible ? " (flexible)" : ""}
+                                      {check.eventDateLabel}
+                                      {check.dateFlexible && (
+                                        <span style={{
+                                          padding: "0px 4px",
+                                          background: "rgba(232,255,90,0.15)",
+                                          borderRadius: 3,
+                                          fontSize: 8,
+                                        }}>flexible</span>
+                                      )}
                                     </span>
                                   )}
                                   {check.eventTime && (
                                     <span style={{
-                                      display: "inline-block",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
                                       padding: "3px 8px",
                                       background: "rgba(232,255,90,0.08)",
                                       border: "1px solid rgba(232,255,90,0.2)",
@@ -572,7 +584,15 @@ export default function FeedView({
                                       color: color.accent,
                                       fontWeight: 600,
                                     }}>
-                                      {check.eventTime}{check.timeFlexible ? " (flexible)" : ""}
+                                      {check.eventTime}
+                                      {check.timeFlexible && (
+                                        <span style={{
+                                          padding: "0px 4px",
+                                          background: "rgba(232,255,90,0.15)",
+                                          borderRadius: 3,
+                                          fontSize: 8,
+                                        }}>flexible</span>
+                                      )}
                                     </span>
                                   )}
                                 </div>
