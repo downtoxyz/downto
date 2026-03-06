@@ -72,7 +72,7 @@ const FirstCheckScreen = ({
         value={idea}
         onChange={(e) => { setIdea(e.target.value.slice(0, 280)); setDateDismissed(false); setTimeDismissed(false); }}
         maxLength={280}
-        placeholder="e.g., dinner at 7 tomorrow? rooftop picnic saturday? movie night?"
+        placeholder="e.g., park hang w me and @kat ^.^ dinner at 7 tomorrow? need to touch grass asap"
         style={{
           width: "100%",
           background: color.card,

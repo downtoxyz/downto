@@ -790,7 +790,7 @@ const AddModal = ({
                   }
                 }}
                 maxLength={280}
-                placeholder="e.g., dinner at 7 tomorrow? @sara wanna come?"
+                placeholder="e.g., park hang w me and @kat ^.^ dinner at 7 tomorrow? need to touch grass asap"
                 style={{
                   width: "100%",
                   background: color.deep,
