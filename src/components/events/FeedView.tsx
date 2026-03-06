@@ -825,7 +825,7 @@ export default function FeedView({
                                 const maxSize = check.maxSquadSize ?? 5;
                                 const isUnlimited = maxSize >= 999;
                                 const isFull = !isUnlimited && memberCount >= maxSize;
-                                const capacityLabel = isUnlimited ? `${memberCount}` : `${memberCount}/${maxSize}`;
+                                const capacityLabel = isUnlimited ? `${memberCount}/∞` : `${memberCount}/${maxSize}`;
                                 return (
                                 check.inSquad ? (
                                   <button
