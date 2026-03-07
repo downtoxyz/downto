@@ -50,6 +50,18 @@
     border-color: #e8ff5a !important;
   }
 
+  * {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
   button {
     transition: all 0.15s ease;
   }

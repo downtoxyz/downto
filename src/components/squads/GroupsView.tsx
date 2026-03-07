@@ -1226,6 +1226,7 @@ const GroupsView = ({
                   </span>
                 )}
                 <div
+                  className="select-text"
                   style={{
                     background: msg.isYou ? color.accent : color.card,
                     color: msg.isYou ? "#000" : color.text,
