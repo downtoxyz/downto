@@ -796,6 +796,28 @@ export default function FeedView({
                               >
                                 {myCheckResponses[check.id] === "maybe" ? "✓ Maybe" : "Maybe"}
                               </button>
+                              {(check.isYours || check.isCoAuthor) && check.squadId && myCheckResponses[check.id] !== "down" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNavigateToGroups(check.squadId!);
+                                  }}
+                                  style={{
+                                    background: "rgba(175, 82, 222, 0.1)",
+                                    color: "#AF52DE",
+                                    border: "none",
+                                    borderRadius: 8,
+                                    padding: "6px 8px",
+                                    fontFamily: font.mono,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap" as const,
+                                  }}
+                                >
+                                  💬 Squad →<span style={{ color: "rgba(175, 82, 222, 0.6)", marginLeft: 4, fontWeight: 400 }}>{check.squadMemberCount ?? 0}{check.maxSquadSize && check.maxSquadSize < 999 ? `/${check.maxSquadSize}` : `/∞`}</span>
+                                </button>
+                              )}
                               {myCheckResponses[check.id] === "down" && (() => {
                                 const memberCount = check.squadMemberCount ?? 0;
                                 const maxSize = check.maxSquadSize ?? 5;
