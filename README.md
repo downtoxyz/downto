@@ -19,6 +19,36 @@ Save events from Instagram to your calendar, see who else is going, form small s
 - **Vercel** — deployment
 - No CSS framework — inline styles, Space Mono + Instrument Serif fonts, dark theme with #E8FF5A accent
 
+## Architecture
+
+```
+                         ┌─────────────────────────────────┐
+                         │           Supabase              │
+                         │  ┌───────────┐  ┌────────────┐  │
+                         │  │ Postgres  │  │  Realtime  │  │
+                         │  │ + RLS     │  │  (pub/sub) │  │
+                         │  │ + Triggers│  └────────────┘  │
+                         │  └───────────┘                  │
+                         └──────▲──────────────────▲───────┘
+                                │                  │
+              Supabase JS SDK   │                  │  Admin client
+              (direct, RLS)     │                  │  (bypasses RLS)
+                                │                  │
+┌───────────────────────────────┴───┐    ┌─────────┴───────────┐
+│            Browser (PWA)          │    │  Next.js API Routes │
+│                                   │    │  (Vercel serverless)│
+│  Feed · Calendar · Squads · You   │───▶│                     │
+│                                   │    │  /api/scrape        │
+│  Realtime subscriptions for live  │    │  /api/push/*        │
+│  updates on checks, messages,     │    │  /api/squads/*      │
+│  friendships, notifications       │    │  /api/search-*      │
+└───────────────────────────────────┘    └─────────────────────┘
+         fetch() only when server
+         secrets or CORS bypass needed
+```
+
+Most data flows directly from the browser to Supabase via the JS SDK, protected by Row Level Security. The API routes are serverless functions used only when server secrets or CORS bypass are needed (scraping, push notifications, admin operations).
+
 ## Running locally
 
 ```bash
