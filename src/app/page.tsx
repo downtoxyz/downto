@@ -719,10 +719,12 @@ export default function Home() {
 
   return (
     <div>
-      {/* Fixed background behind header — covers Dynamic Island / notch area */}
+      {/* Fixed background behind header — covers Dynamic Island / notch gap.
+         top: -119 (not -120) so 1px peeks into the viewport — browsers cull
+         elements fully offscreen, which prevents the div from rendering. */}
       <div style={{
         position: "fixed",
-        top: -120,
+        top: -119,
         left: 0,
         right: 0,
         height: 120,
