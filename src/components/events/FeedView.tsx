@@ -597,30 +597,6 @@ export default function FeedView({
                                   )}
                                 </div>
                               )}
-                            {(check.isYours || check.isCoAuthor) && check.squadId && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  marginTop: 6,
-                                  padding: "5px 10px",
-                                  background: "rgba(175, 82, 222, 0.1)",
-                                  borderRadius: 8,
-                                  cursor: "pointer",
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onNavigateToGroups(check.squadId ?? undefined);
-                                }}
-                              >
-                                <span style={{ fontSize: 12 }}>💬</span>
-                                <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", fontWeight: 600 }}>
-                                  Squad chat{check.squadMemberCount ? ` · ${check.squadMemberCount}${check.maxSquadSize && check.maxSquadSize < 999 ? `/${check.maxSquadSize}` : ""}` : ""}
-                                </span>
-                                <span style={{ fontFamily: font.mono, fontSize: 10, color: "#AF52DE", marginLeft: "auto" }}>→</span>
-                              </div>
-                            )}
                             {(check.isYours || check.isCoAuthor) && !check.squadId && check.responses.some((r) => r.status === "down") && (
                               <button
                                 onClick={(e) => {
@@ -969,6 +945,30 @@ export default function FeedView({
                                   </button>
                                 )
                                 ); })()}
+                            </div>
+                          )}
+                          {(check.isYours || check.isCoAuthor) && check.squadId && (
+                            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onNavigateToGroups(check.squadId!);
+                                }}
+                                style={{
+                                  background: "rgba(175, 82, 222, 0.1)",
+                                  color: "#AF52DE",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  padding: "6px 8px",
+                                  fontFamily: font.mono,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap" as const,
+                                }}
+                              >
+                                💬 Squad →<span style={{ color: "rgba(175, 82, 222, 0.6)", marginLeft: 4, fontWeight: 400 }}>{check.squadMemberCount ?? 0}{check.maxSquadSize && check.maxSquadSize < 999 ? `/${check.maxSquadSize}` : `/∞`}</span>
+                              </button>
                             </div>
                           )}
                           </div>
