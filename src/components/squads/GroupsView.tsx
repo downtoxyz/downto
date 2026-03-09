@@ -85,20 +85,26 @@ const GroupsView = ({
   const [confirmLoading, setConfirmLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [chatHeight, setChatHeight] = useState<string>("100dvh");
+  const [chatTop, setChatTop] = useState(0);
 
-  // Track visual viewport height so the chat shrinks when the mobile keyboard opens
+  // Track visual viewport so the chat stays visible when the iOS keyboard opens
   useEffect(() => {
     if (!selectedSquad) return;
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
       setChatHeight(`${vv.height}px`);
+      setChatTop(vv.offsetTop);
       // Scroll messages into view after keyboard resize
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "instant" }), 50);
     };
     update();
     vv.addEventListener("resize", update);
-    return () => vv.removeEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
   }, [selectedSquad?.id]);
 
   useEffect(() => {
@@ -258,7 +264,7 @@ const GroupsView = ({
           flexDirection: "column",
           height: chatHeight,
           position: "fixed",
-          top: 0,
+          top: chatTop,
           left: 0,
           right: 0,
           background: color.bg,
