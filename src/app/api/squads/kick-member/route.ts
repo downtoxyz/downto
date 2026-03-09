@@ -66,24 +66,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
-  // Get target user's display name
-  const { data: targetProfile } = await adminClient
-    .from('profiles')
-    .select('display_name')
-    .eq('id', targetUserId)
-    .single();
+  // Get target user's display name + squad name
+  const [{ data: targetProfile }, { data: squad }] = await Promise.all([
+    adminClient.from('profiles').select('display_name').eq('id', targetUserId).single(),
+    adminClient.from('squads').select('name').eq('id', squadId).single(),
+  ]);
 
   const targetName = targetProfile?.display_name ?? 'Someone';
+  const squadName = squad?.name ?? 'a squad';
   const msg = KICK_MESSAGES[Math.floor(Math.random() * KICK_MESSAGES.length)].replace('{name}', targetName);
 
-  await adminClient
-    .from('messages')
-    .insert({
+  // System message in chat + notification to kicked user
+  await Promise.all([
+    adminClient.from('messages').insert({
       squad_id: squadId,
       sender_id: null,
       text: msg,
       is_system: true,
-    });
+    }),
+    adminClient.from('notifications').insert({
+      user_id: targetUserId,
+      type: 'squad_invite',
+      title: squadName,
+      body: `You were removed from this squad`,
+      related_squad_id: squadId,
+    }),
+  ]);
 
   return NextResponse.json({ ok: true });
 }
