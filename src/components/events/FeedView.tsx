@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import { font, color } from "@/lib/styles";
@@ -9,6 +9,8 @@ import EventCard from "@/components/events/EventCard";
 import EditCheckModal from "@/components/events/EditCheckModal";
 import CheckActionsSheet from "@/components/events/CheckActionsSheet";
 import { logError } from "@/lib/logger";
+import { formatTimeAgo } from "@/lib/utils";
+import type { CommentUI } from "@/hooks/useCheckComments";
 
 /** Render @mentions highlighted + inline URLs as clickable links */
 function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: boolean; coAuthors?: { name: string }[] }) {
@@ -69,6 +71,104 @@ function prettifyUrl(url: string): string {
   }
 }
 
+function CheckCommentsSection({ checkId, comments, userId, onPostComment }: {
+  checkId: string;
+  comments: CommentUI[];
+  userId: string | null;
+  onPostComment: (checkId: string, text: string) => void;
+}) {
+  const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onPostComment(checkId, trimmed);
+    setText("");
+  };
+
+  return (
+    <div style={{ marginTop: 10, borderTop: `1px solid ${color.border}`, paddingTop: 10 }}>
+      {comments.length === 0 ? (
+        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>no comments yet</span>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+          {comments.map((c) => (
+            <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                background: c.isYours ? color.accent : color.borderLight,
+                color: c.isYours ? "#000" : color.dim,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: font.mono, fontSize: 9, fontWeight: 700,
+              }}>
+                {c.userAvatar}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{
+                    fontFamily: font.mono, fontSize: 11,
+                    color: c.isYours ? color.accent : color.muted,
+                    fontWeight: 600,
+                  }}>{c.userName}</span>
+                  <span style={{ fontFamily: font.mono, fontSize: 9, color: color.faint }}>
+                    {formatTimeAgo(new Date(c.createdAt))}
+                  </span>
+                </div>
+                <p style={{ fontFamily: font.mono, fontSize: 12, color: color.text, margin: "2px 0 0", lineHeight: 1.4, wordBreak: "break-word" }}>
+                  {c.text}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {userId && (
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, 280))}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Add a comment..."
+            style={{
+              flex: 1,
+              background: color.deep,
+              border: `1px solid ${color.borderLight}`,
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontFamily: font.mono,
+              fontSize: 12,
+              color: color.text,
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); handleSubmit(); }}
+            disabled={!text.trim()}
+            style={{
+              background: text.trim() ? color.accent : color.faint,
+              color: text.trim() ? "#000" : color.dim,
+              border: "none",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontFamily: font.mono,
+              fontSize: 10,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              cursor: text.trim() ? "pointer" : "default",
+            }}
+          >
+            Send
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface FeedViewProps {
   feedMode: "foryou" | "tonight";
   setFeedMode: (mode: "foryou" | "tonight") => void;
@@ -107,6 +207,11 @@ export interface FeedViewProps {
   acceptCoAuthorTag: (checkId: string) => Promise<void>;
   declineCoAuthorTag: (checkId: string) => Promise<void>;
   onViewProfile?: (userId: string) => void;
+  commentCounts: Record<string, number>;
+  commentsByCheck: Record<string, CommentUI[]>;
+  expandedCommentCheckId: string | null;
+  onToggleComments: (checkId: string) => void;
+  onPostComment: (checkId: string, text: string) => void;
 }
 
 export default function FeedView({
@@ -146,6 +251,11 @@ export default function FeedView({
   acceptCoAuthorTag,
   declineCoAuthorTag,
   onViewProfile,
+  commentCounts,
+  commentsByCheck,
+  expandedCommentCheckId,
+  onToggleComments,
+  onPostComment,
 }: FeedViewProps) {
   const [showHidden, setShowHidden] = useState(false);
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
@@ -698,6 +808,26 @@ export default function FeedView({
                               no responses yet
                             </span>
                           )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleComments(check.id);
+                            }}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: expandedCommentCheckId === check.id ? color.accent : color.faint,
+                              fontFamily: font.mono,
+                              fontSize: 10,
+                              cursor: "pointer",
+                              padding: "4px 6px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <span>{(commentCounts[check.id] ?? 0) > 0 ? `💬 ${commentCounts[check.id]}` : "💬"}</span>
+                          </button>
                           {!check.isYours && (
                             <div style={{ display: "flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
                               <button
@@ -984,6 +1114,14 @@ export default function FeedView({
                                 </div>
                               )}
                             </div>
+                          )}
+                          {expandedCommentCheckId === check.id && (
+                            <CheckCommentsSection
+                              checkId={check.id}
+                              comments={commentsByCheck[check.id] ?? []}
+                              userId={userId}
+                              onPostComment={onPostComment}
+                            />
                           )}
                         </div>
                         </div>

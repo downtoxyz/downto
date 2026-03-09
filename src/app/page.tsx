@@ -36,6 +36,7 @@ import { useChecks } from "@/hooks/useChecks";
 import { useSquads } from "@/hooks/useSquads";
 import { useFriends } from "@/hooks/useFriends";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useCheckComments } from "@/hooks/useCheckComments";
 import { logError, logWarn } from "@/lib/logger";
 
 
@@ -139,6 +140,8 @@ export default function Home() {
       showToast("You're down! \u{1F919}");
     },
   });
+
+  const commentsHook = useCheckComments({ userId, profile, isDemoMode });
 
   const notificationsHook = useNotifications({
     userId,
@@ -293,6 +296,14 @@ export default function Home() {
       checksHook.hydrateChecks(activeChecks, hiddenIds, fofAnnotations);
       squadsHook.hydrateSquads(squadsList);
       setArchivedChecks(archivedChecksList);
+
+      // Hydrate comment counts
+      const activeCheckIds = activeChecks.map(c => c.id);
+      if (activeCheckIds.length > 0) {
+        db.getCheckCommentCounts(activeCheckIds)
+          .then(counts => commentsHook.hydrateCommentCounts(counts))
+          .catch(() => {});
+      }
 
       setFeedLoaded(true);
 
@@ -864,6 +875,11 @@ export default function Home() {
             acceptCoAuthorTag={checksHook.acceptCoAuthorTag}
             declineCoAuthorTag={checksHook.declineCoAuthorTag}
             onViewProfile={(uid) => setViewingUserId(uid)}
+            commentCounts={commentsHook.commentCounts}
+            commentsByCheck={commentsHook.commentsByCheck}
+            expandedCommentCheckId={commentsHook.expandedCommentCheckId}
+            onToggleComments={commentsHook.toggleComments}
+            onPostComment={commentsHook.postComment}
           />
         )}
         {feedLoaded && tab === "calendar" && (
