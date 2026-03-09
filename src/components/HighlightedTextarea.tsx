@@ -72,10 +72,16 @@ const HighlightedTextarea = ({
     return parts;
   };
 
-  // These must be identical on both backdrop and textarea
+  // Identical on both layers — any mismatch causes highlight drift
   const sharedStyle: CSSProperties = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     fontFamily: style.fontFamily,
     fontSize: style.fontSize ?? 13,
+    fontWeight: style.fontWeight ?? "normal",
     lineHeight: style.lineHeight ?? 1.5,
     padding: style.padding ?? "14px 16px",
     letterSpacing: style.letterSpacing ?? "normal",
@@ -86,6 +92,8 @@ const HighlightedTextarea = ({
     boxSizing: "border-box",
     margin: 0,
     border: "none",
+    borderWidth: 0,
+    overflow: "hidden",
   };
 
   return (
@@ -100,27 +108,19 @@ const HighlightedTextarea = ({
         overflow: "hidden",
       }}
     >
-      {/* Backdrop with highlights — same size/font as textarea */}
+      {/* Backdrop — renders highlight marks behind the text */}
       <div
         ref={backdropRef}
         style={{
           ...sharedStyle,
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: "100%",
-          height: "100%",
           color: "transparent",
           pointerEvents: "none",
-          overflow: "hidden",
         }}
         aria-hidden
       >
         {buildHighlightedText()}
       </div>
-      {/* Actual textarea — transparent bg so highlights show through */}
+      {/* Textarea — transparent bg so highlights show through */}
       <textarea
         ref={textareaRef}
         value={value}
@@ -131,17 +131,13 @@ const HighlightedTextarea = ({
         placeholder={placeholder}
         style={{
           ...sharedStyle,
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
           zIndex: 1,
           background: "transparent",
           color: style.color ?? "#fff",
           outline: "none",
           resize: "none",
           WebkitAppearance: "none",
+          MozAppearance: "none",
         }}
       />
     </div>

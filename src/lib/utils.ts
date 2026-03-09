@@ -237,8 +237,8 @@ export const parseNaturalLocation = (text: string): string | null => {
     const candidate = atMatch[1].trim();
     if (timeWords.test(candidate)) return null;
     if (candidate.length < 2 || candidate.length > 50) return null;
-    // Capitalize first letter of each word
-    return candidate.replace(/\b\w/g, c => c.toUpperCase());
+    // Capitalize first letter of each space-separated word (avoid apostrophe boundaries)
+    return candidate.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   }
 
   return null;
