@@ -115,17 +115,6 @@ const GroupsView = ({
     }
   }, [autoSelectSquadId]);
 
-  // Block vertical scroll while swiping to dismiss (needs non-passive listener)
-  useEffect(() => {
-    const el = chatContainerRef.current;
-    if (!el || !selectedSquad) return;
-    const onNativeTouchMove = (e: TouchEvent) => {
-      if (isDragging.current) e.preventDefault();
-    };
-    el.addEventListener("touchmove", onNativeTouchMove, { passive: false });
-    return () => el.removeEventListener("touchmove", onNativeTouchMove);
-  }, [selectedSquad?.id]);
-
   // Scroll to bottom when chat opens or messages change
   useEffect(() => {
     if (selectedSquad) {
@@ -927,7 +916,7 @@ const GroupsView = ({
         <div
           style={{
             flex: 1,
-            overflowY: "auto",
+            overflowY: dragX > 0 ? "hidden" : "auto",
             padding: "12px 20px",
             display: "flex",
             flexDirection: "column",
