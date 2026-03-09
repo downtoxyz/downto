@@ -231,8 +231,8 @@ export const parseNaturalLocation = (text: string): string | null => {
   // Skip "at" followed by time-like words
   const timeWords = /^(noon|midnight|night|\d{1,2}(:\d{2})?\s*(am|pm)?)\b/;
 
-  // Match "at {location}" — capture everything after "at" until end or common stop words
-  const atMatch = lower.match(/\bat\s+(.+?)(?:\s*[·|,]|\s+(?:on|at|around|from|with)\s|\s*$)/);
+  // Match "at {location}" — capture everything after "at" until end or temporal/stop words
+  const atMatch = lower.match(/\bat\s+(.+?)(?:\s*[·|,]|\s+(?:on|at|around|from|with|tonight|today|tomorrow|tmrw|tmr|tn|this|next|in|mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\s*$)/);
   if (atMatch) {
     const candidate = atMatch[1].trim();
     if (timeWords.test(candidate)) return null;
