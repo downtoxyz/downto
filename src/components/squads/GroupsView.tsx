@@ -48,6 +48,8 @@ const GroupsView = ({
   onViewProfile,
   onChatOpen,
   onBack,
+  onUpdateSquadSize,
+  onAddMember,
 }: {
   squads: Squad[];
   onSquadUpdate: (squadsOrUpdater: Squad[] | ((prev: Squad[]) => Squad[])) => void;
@@ -62,6 +64,8 @@ const GroupsView = ({
   onViewProfile?: (userId: string) => void;
   onChatOpen?: (open: boolean) => void;
   onBack?: () => void;
+  onUpdateSquadSize?: (checkId: string, newSize: number) => Promise<void>;
+  onAddMember?: (squadId: string, userId: string) => Promise<void>;
 }) => {
   const onSquadUpdateRef = useRef(onSquadUpdate);
   onSquadUpdateRef.current = onSquadUpdate;
@@ -1273,6 +1277,83 @@ const GroupsView = ({
                     >
                       See members
                     </button>
+                    {selectedSquad.checkId && onUpdateSquadSize && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 12,
+                          padding: "12px 0",
+                          borderBottom: `1px solid ${color.border}`,
+                        }}
+                      >
+                        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>
+                          Squad size
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            onClick={() => {
+                              const newSize = (selectedSquad.maxSquadSize ?? 5) - 1;
+                              if (newSize >= selectedSquad.members.length) {
+                                onUpdateSquadSize(selectedSquad.checkId!, newSize);
+                                setSelectedSquad({ ...selectedSquad, maxSquadSize: newSize });
+                                onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === selectedSquad.id ? { ...s, maxSquadSize: newSize } : s));
+                              }
+                            }}
+                            disabled={(selectedSquad.maxSquadSize ?? 5) <= selectedSquad.members.length}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 6,
+                              border: `1px solid ${color.borderMid}`,
+                              background: "none",
+                              color: (selectedSquad.maxSquadSize ?? 5) <= selectedSquad.members.length ? color.faint : color.text,
+                              fontFamily: font.mono,
+                              fontSize: 14,
+                              cursor: (selectedSquad.maxSquadSize ?? 5) <= selectedSquad.members.length ? "default" : "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: 0,
+                            }}
+                          >
+                            −
+                          </button>
+                          <span style={{ fontFamily: font.mono, fontSize: 13, color: color.accent, fontWeight: 700, minWidth: 20, textAlign: "center" }}>
+                            {selectedSquad.maxSquadSize ?? 5}
+                          </span>
+                          <button
+                            onClick={() => {
+                              const newSize = (selectedSquad.maxSquadSize ?? 5) + 1;
+                              if (newSize <= 20) {
+                                onUpdateSquadSize(selectedSquad.checkId!, newSize);
+                                setSelectedSquad({ ...selectedSquad, maxSquadSize: newSize });
+                                onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === selectedSquad.id ? { ...s, maxSquadSize: newSize } : s));
+                              }
+                            }}
+                            disabled={(selectedSquad.maxSquadSize ?? 5) >= 20}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 6,
+                              border: `1px solid ${color.borderMid}`,
+                              background: "none",
+                              color: (selectedSquad.maxSquadSize ?? 5) >= 20 ? color.faint : color.text,
+                              fontFamily: font.mono,
+                              fontSize: 14,
+                              cursor: (selectedSquad.maxSquadSize ?? 5) >= 20 ? "default" : "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: 0,
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     {onSetSquadDate && (
                       <button
                         onClick={() => {
@@ -1403,6 +1484,85 @@ const GroupsView = ({
                       );
                     })}
                   </div>
+
+                  {/* Down on check — people who can be added */}
+                  {selectedSquad.downResponders && selectedSquad.downResponders.length > 0 &&
+                    selectedSquad.members.length < (selectedSquad.maxSquadSize ?? 999) && (
+                    <div style={{ marginTop: 16 }}>
+                      <span style={{
+                        fontFamily: font.mono,
+                        fontSize: 10,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                        color: color.dim,
+                      }}>
+                        Down on check
+                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
+                        {selectedSquad.downResponders.map((p) => (
+                          <div
+                            key={p.userId}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                background: color.borderLight,
+                                color: color.dim,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontFamily: font.mono,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {p.avatar}
+                            </div>
+                            <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text, flex: 1 }}>
+                              {p.name}
+                            </span>
+                            {onAddMember && (
+                              <button
+                                onClick={async () => {
+                                  await onAddMember(selectedSquad.id, p.userId);
+                                  // Optimistic update: move from downResponders to members
+                                  const newMember = { name: p.name, avatar: p.avatar, userId: p.userId };
+                                  const updated = {
+                                    ...selectedSquad,
+                                    members: [...selectedSquad.members, newMember],
+                                    downResponders: selectedSquad.downResponders?.filter((d) => d.userId !== p.userId),
+                                  };
+                                  setSelectedSquad(updated);
+                                  onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === selectedSquad.id ? updated : s));
+                                }}
+                                style={{
+                                  background: "none",
+                                  border: `1px solid ${color.borderMid}`,
+                                  borderRadius: 8,
+                                  color: color.accent,
+                                  fontFamily: font.mono,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: "4px 10px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Add
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

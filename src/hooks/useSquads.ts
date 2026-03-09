@@ -102,6 +102,14 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
         userId: m.user_id,
       }));
+      const memberIds = new Set(members.map((m) => m.userId));
+      const downResponders = ((s.check as unknown as Record<string, unknown>)?.responses as Array<{ user_id: string; response: string; user?: { display_name?: string; avatar_letter?: string } }> ?? [])
+        .filter((r) => r.response === 'down' && !memberIds.has(r.user_id))
+        .map((r) => ({
+          name: r.user?.display_name ?? 'Unknown',
+          avatar: r.user?.avatar_letter ?? r.user?.display_name?.charAt(0)?.toUpperCase() ?? '?',
+          userId: r.user_id,
+        }));
       const sortedRawMessages = (s.messages ?? [])
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       const lastRawMessage = sortedRawMessages.length > 0 ? sortedRawMessages[sortedRawMessages.length - 1] : null;
@@ -125,6 +133,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         maxSquadSize: s.check?.max_squad_size ?? undefined,
         dateStatus: (s.date_status === 'proposed' || s.date_status === 'locked') ? s.date_status : undefined,
         members,
+        downResponders: downResponders.length > 0 ? downResponders : undefined,
         messages,
         lastMsg: lastMessage ? (lastMessage.sender === "system" ? lastMessage.text : `${lastMessage.sender}: ${lastMessage.text}`) : "",
         time: lastMessage ? lastMessage.time : formatTimeAgo(new Date(s.created_at)),

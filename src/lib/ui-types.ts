@@ -96,6 +96,7 @@ export interface Squad {
   timeFlexible?: boolean;
   maxSquadSize?: number;
   members: { name: string; avatar: string; userId?: string }[];
+  downResponders?: { name: string; avatar: string; userId: string }[];
   dateStatus?: 'proposed' | 'locked';
   messages: { sender: string; text: string; time: string; isYou?: boolean; messageType?: 'date_confirm'; messageId?: string }[];
   lastMsg: string;

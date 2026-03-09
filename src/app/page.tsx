@@ -929,6 +929,29 @@ export default function Home() {
             onConfirmDate={async (squadDbId, response) => {
               await db.respondToDateConfirm(squadDbId, response);
             }}
+            onUpdateSquadSize={async (checkId, newSize) => {
+              await db.updateInterestCheck(checkId, { max_squad_size: newSize });
+            }}
+            onAddMember={async (squadId, targetUserId) => {
+              const token = (await supabase.auth.getSession()).data.session?.access_token;
+              if (!token) return;
+              const res = await fetch('/api/squads/add-member', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ squadId, userId: targetUserId }),
+              });
+              if (!res.ok) {
+                const data = await res.json();
+                showToast(data.error ?? 'Failed to add member');
+                return;
+              }
+              // Reload squads to get fresh state
+              const freshSquads = await db.getSquads();
+              squadsHook.hydrateSquads(freshSquads);
+            }}
             userId={userId}
             onViewProfile={(uid) => setViewingUserId(uid)}
             onChatOpen={setChatOpen}
