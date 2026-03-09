@@ -50,6 +50,8 @@ const GroupsView = ({
   onBack,
   onUpdateSquadSize,
   onAddMember,
+  onSetMemberRole,
+  onKickMember,
 }: {
   squads: Squad[];
   onSquadUpdate: (squadsOrUpdater: Squad[] | ((prev: Squad[]) => Squad[])) => void;
@@ -66,6 +68,8 @@ const GroupsView = ({
   onBack?: () => void;
   onUpdateSquadSize?: (checkId: string, newSize: number) => Promise<void>;
   onAddMember?: (squadId: string, userId: string) => Promise<void>;
+  onSetMemberRole?: (squadId: string, userId: string, role: 'member' | 'waitlist') => Promise<void>;
+  onKickMember?: (squadId: string, userId: string) => Promise<void>;
 }) => {
   const onSquadUpdateRef = useRef(onSquadUpdate);
   onSquadUpdateRef.current = onSquadUpdate;
@@ -75,6 +79,7 @@ const GroupsView = ({
   const msgInputRef = useRef<HTMLTextAreaElement>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showImOutConfirm, setShowImOutConfirm] = useState(false);
+  const [kickTarget, setKickTarget] = useState<{ name: string; userId: string } | null>(null);
   const [showSquadPopup, setShowSquadPopup] = useState(false);
   const [squadPopupView, setSquadPopupView] = useState<'menu' | 'members'>('menu');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -704,6 +709,94 @@ const GroupsView = ({
                   }}
                 >
                   I&apos;m out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Kick member confirmation */}
+        {kickTarget && selectedSquad && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+            }}
+            onClick={() => setKickTarget(null)}
+          >
+            <div
+              style={{
+                background: color.deep,
+                border: `1px solid ${color.border}`,
+                borderRadius: 16,
+                padding: "24px 20px",
+                maxWidth: 300,
+                width: "90%",
+                textAlign: "center",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 6 }}>
+                Kick {kickTarget.name}?
+              </p>
+              <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 20 }}>
+                they&apos;ll be removed from the squad. no take-backs (jk you can re-add them)
+              </p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => setKickTarget(null)}
+                  style={{
+                    flex: 1,
+                    padding: "10px 0",
+                    background: "none",
+                    border: `1px solid ${color.border}`,
+                    borderRadius: 10,
+                    color: color.text,
+                    fontFamily: font.mono,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  Nah
+                </button>
+                <button
+                  onClick={async () => {
+                    if (onKickMember) {
+                      try {
+                        await onKickMember(selectedSquad.id, kickTarget.userId);
+                        // Optimistic: remove from both members and waitlistedMembers
+                        const updated = {
+                          ...selectedSquad,
+                          members: selectedSquad.members.filter((x) => x.userId !== kickTarget.userId),
+                          waitlistedMembers: (selectedSquad.waitlistedMembers ?? []).filter((x) => x.userId !== kickTarget.userId),
+                        };
+                        setSelectedSquad(updated);
+                        onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === selectedSquad.id ? updated : s));
+                      } catch (err) {
+                        logError("kickMember", err, { squadId: selectedSquad.id });
+                      }
+                    }
+                    setKickTarget(null);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "10px 0",
+                    background: "#ff4444",
+                    border: "none",
+                    borderRadius: 10,
+                    color: "#fff",
+                    fontFamily: font.mono,
+                    fontSize: 12,
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
+                >
+                  Yeet 🥾
                 </button>
               </div>
             </div>
@@ -1491,10 +1584,147 @@ const GroupsView = ({
                             {isConfirmed ? "down" : confirmResponse === 'no' ? "out" : "pending"}
                           </span>
                         )}
+                        {m.name !== "You" && m.userId && (onSetMemberRole || onKickMember) && !(isLocked || (isProposed && dateConfirms.size > 0)) && (
+                          <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                            {onSetMemberRole && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await onSetMemberRole(selectedSquad.id, m.userId!, 'waitlist');
+                                  const updated = {
+                                    ...selectedSquad,
+                                    members: selectedSquad.members.filter((x) => x.userId !== m.userId),
+                                    waitlistedMembers: [...(selectedSquad.waitlistedMembers ?? []), { name: m.name, avatar: m.avatar, userId: m.userId! }],
+                                  };
+                                  setSelectedSquad(updated);
+                                  onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === selectedSquad.id ? updated : s));
+                                }}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: color.faint,
+                                  fontFamily: font.mono,
+                                  fontSize: 10,
+                                  cursor: "pointer",
+                                  padding: "2px 0",
+                                }}
+                              >
+                                waitlist
+                              </button>
+                            )}
+                            {onKickMember && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setKickTarget({ name: m.name, userId: m.userId! });
+                                }}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: color.faint,
+                                  fontFamily: font.mono,
+                                  fontSize: 10,
+                                  cursor: "pointer",
+                                  padding: "2px 0",
+                                }}
+                              >
+                                kick
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                       );
                     })}
                   </div>
+
+                  {/* Waitlisted members */}
+                  {selectedSquad.waitlistedMembers && selectedSquad.waitlistedMembers.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <span style={{
+                        fontFamily: font.mono,
+                        fontSize: 10,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                        color: color.dim,
+                      }}>
+                        Waitlist
+                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
+                        {selectedSquad.waitlistedMembers.map((m) => (
+                          <div
+                            key={m.userId}
+                            onClick={() => {
+                              if (m.userId) {
+                                setShowSquadPopup(false);
+                                setSquadPopupView('menu');
+                                onViewProfile?.(m.userId);
+                              }
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              cursor: m.userId ? "pointer" : "default",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                background: color.borderLight,
+                                color: color.dim,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontFamily: font.mono,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {m.avatar}
+                            </div>
+                            <span style={{ fontFamily: font.mono, fontSize: 12, color: color.muted, flex: 1 }}>
+                              {m.name}
+                            </span>
+                            {onSetMemberRole && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const isFull = selectedSquad.members.length >= (selectedSquad.maxSquadSize ?? 999);
+                                  if (isFull) return;
+                                  await onSetMemberRole(selectedSquad.id, m.userId, 'member');
+                                  const updated = {
+                                    ...selectedSquad,
+                                    members: [...selectedSquad.members, { name: m.name, avatar: m.avatar, userId: m.userId }],
+                                    waitlistedMembers: (selectedSquad.waitlistedMembers ?? []).filter((x) => x.userId !== m.userId),
+                                  };
+                                  setSelectedSquad(updated);
+                                  onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === selectedSquad.id ? updated : s));
+                                }}
+                                disabled={selectedSquad.members.length >= (selectedSquad.maxSquadSize ?? 999)}
+                                style={{
+                                  background: "none",
+                                  border: `1px solid ${color.borderMid}`,
+                                  borderRadius: 8,
+                                  color: selectedSquad.members.length >= (selectedSquad.maxSquadSize ?? 999) ? color.faint : color.accent,
+                                  fontFamily: font.mono,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: "4px 10px",
+                                  cursor: selectedSquad.members.length >= (selectedSquad.maxSquadSize ?? 999) ? "default" : "pointer",
+                                }}
+                              >
+                                Promote
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Down on check — people who can be added */}
                   {selectedSquad.downResponders && selectedSquad.downResponders.length > 0 &&

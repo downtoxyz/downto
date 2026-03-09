@@ -102,6 +102,11 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
         userId: m.user_id,
       }));
+      const waitlistedMembers = (s.members ?? []).filter((m) => m.role === 'waitlist' && m.user_id !== userId).map((m) => ({
+        name: m.user?.display_name ?? "Unknown",
+        avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
+        userId: m.user_id,
+      }));
       const memberIds = new Set(members.map((m) => m.userId));
       const downResponders = ((s.check as unknown as Record<string, unknown>)?.responses as Array<{ user_id: string; response: string; user?: { display_name?: string; avatar_letter?: string } }> ?? [])
         .filter((r) => r.response === 'down' && !memberIds.has(r.user_id))
@@ -133,6 +138,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         maxSquadSize: s.check?.max_squad_size ?? undefined,
         dateStatus: (s.date_status === 'proposed' || s.date_status === 'locked') ? s.date_status : undefined,
         members,
+        waitlistedMembers: waitlistedMembers.length > 0 ? waitlistedMembers : undefined,
         downResponders: downResponders.length > 0 ? downResponders : undefined,
         messages,
         lastMsg: lastMessage ? (lastMessage.sender === "system" ? lastMessage.text : `${lastMessage.sender}: ${lastMessage.text}`) : "",

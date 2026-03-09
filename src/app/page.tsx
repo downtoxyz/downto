@@ -930,7 +930,62 @@ export default function Home() {
               await db.respondToDateConfirm(squadDbId, response);
             }}
             onUpdateSquadSize={async (checkId, newSize) => {
-              await db.updateInterestCheck(checkId, { max_squad_size: newSize });
+              const token = (await supabase.auth.getSession()).data.session?.access_token;
+              if (!token) return;
+              const res = await fetch('/api/squads/update-size', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ checkId, maxSquadSize: newSize }),
+              });
+              if (!res.ok) {
+                const data = await res.json();
+                showToast(data.error ?? 'Failed to update squad size');
+                return;
+              }
+              // Reload squads to reflect any promoted waitlist members
+              const freshSquads = await db.getSquads();
+              squadsHook.hydrateSquads(freshSquads);
+            }}
+            onSetMemberRole={async (squadId, targetUserId, role) => {
+              const token = (await supabase.auth.getSession()).data.session?.access_token;
+              if (!token) return;
+              const res = await fetch('/api/squads/set-member-role', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ squadId, userId: targetUserId, role }),
+              });
+              if (!res.ok) {
+                const data = await res.json();
+                showToast(data.error ?? 'Failed to update role');
+                return;
+              }
+              const freshSquads = await db.getSquads();
+              squadsHook.hydrateSquads(freshSquads);
+            }}
+            onKickMember={async (squadId, targetUserId) => {
+              const token = (await supabase.auth.getSession()).data.session?.access_token;
+              if (!token) return;
+              const res = await fetch('/api/squads/kick-member', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ squadId, userId: targetUserId }),
+              });
+              if (!res.ok) {
+                const data = await res.json();
+                showToast(data.error ?? 'Failed to kick member');
+                return;
+              }
+              const freshSquads = await db.getSquads();
+              squadsHook.hydrateSquads(freshSquads);
             }}
             onAddMember={async (squadId, targetUserId) => {
               const token = (await supabase.auth.getSession()).data.session?.access_token;
