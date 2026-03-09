@@ -1626,6 +1626,8 @@ const GroupsView = ({
                             <button
                               onClick={async () => {
                                 setMemberMenu(null);
+                                setShowSquadPopup(false);
+                                setSquadPopupView('menu');
                                 await onSetMemberRole(selectedSquad.id, m.userId!, 'waitlist');
                                 const updated = {
                                   ...selectedSquad,
@@ -1655,6 +1657,8 @@ const GroupsView = ({
                             <button
                               onClick={() => {
                                 setMemberMenu(null);
+                                setShowSquadPopup(false);
+                                setSquadPopupView('menu');
                                 setKickTarget({ name: m.name, userId: m.userId! });
                               }}
                               style={{
