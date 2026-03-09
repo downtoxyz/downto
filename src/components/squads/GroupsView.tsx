@@ -1579,13 +1579,18 @@ const GroupsView = ({
                         {m.name === "You" && (
                           <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>you</span>
                         )}
-                        {(isLocked || (isProposed && dateConfirms.size > 0)) && (
+                        {(m.name === "You" || !(onSetMemberRole || onKickMember)) && (isLocked || (isProposed && dateConfirms.size > 0)) && (
                           <span style={{ fontFamily: font.mono, fontSize: 10, color: isConfirmed ? color.accent : color.faint, marginLeft: "auto" }}>
                             {isConfirmed ? "down" : confirmResponse === 'no' ? "out" : "pending"}
                           </span>
                         )}
-                        {m.name !== "You" && m.userId && (onSetMemberRole || onKickMember) && !(isLocked || (isProposed && dateConfirms.size > 0)) && (
-                          <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                        {m.name !== "You" && m.userId && (onSetMemberRole || onKickMember) && (
+                          <div style={{ display: "flex", gap: 8, marginLeft: "auto", alignItems: "center" }}>
+                            {(isLocked || (isProposed && dateConfirms.size > 0)) && (
+                              <span style={{ fontFamily: font.mono, fontSize: 10, color: isConfirmed ? color.accent : color.faint }}>
+                                {isConfirmed ? "down" : confirmResponse === 'no' ? "out" : "pending"}
+                              </span>
+                            )}
                             {onSetMemberRole && (
                               <button
                                 onClick={async (e) => {
