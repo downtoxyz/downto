@@ -30,7 +30,7 @@ const Input: React.FC<InputProps> = forwardRef<HTMLInputElement, InputProps>(
         type={type}
         placeholder={placeholder}
         className={cn(
-          'focus:border-dt mb-4 rounded-xl border border-solid border-neutral-800 bg-neutral-900 p-4 font-(family-name:--font-space-mono) text-lg text-white outline-0 placeholder:text-neutral-700',
+          'focus:border-dt mb-4 rounded-xl border border-solid border-neutral-800 bg-neutral-900 p-4 font-mono text-lg text-white outline-0 placeholder:text-neutral-700',
           className
         )}
         {...rest}

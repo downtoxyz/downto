@@ -1,4 +1,4 @@
-import DownToLogo from '@/components/ui/DownToLogo';
+import DownToLogo from '@/shared/components/DownToLogo';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

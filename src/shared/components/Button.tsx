@@ -1,11 +1,9 @@
 'use client';
 
 import cn from '@/lib/tailwindMerge';
-import React from 'react';
+import React, { ButtonHTMLAttributes } from 'react';
 
-interface ButtonProps {
-  disabled?: boolean;
-  onClick?: () => void;
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   type?: 'button' | 'submit' | 'reset';
   variant?: 'primary' | 'outline' | 'highlight';
   size?: 'small' | 'medium' | 'large';
@@ -14,17 +12,19 @@ interface ButtonProps {
 }
 
 const Button: React.FC<ButtonProps> = ({
-  onClick,
   variant = 'primary',
   type = 'button',
   size = 'small',
   children,
-  disabled = false,
+  disabled,
   fullWidth = false,
+  className,
+  ...props
 }) => {
   const variants = {
     primary: 'bg-(--color-dt)',
-    outline: 'text-neutral-500 font-normal transparent',
+    outline:
+      'text-neutral-500 font-normal transparent border border-solid border-neutral-700',
     highlight: 'text-dt bg-transparent border border-solid border-dt',
   };
 
@@ -44,10 +44,11 @@ const Button: React.FC<ButtonProps> = ({
         {
           'cursor-not-allowed bg-neutral-800 text-neutral-500': disabled,
           'w-full': fullWidth,
-        }
+        },
+        className
       )}
-      onClick={onClick}
       disabled={disabled}
+      {...props}
     >
       {children}
     </button>

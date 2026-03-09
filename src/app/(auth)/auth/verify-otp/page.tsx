@@ -1,14 +1,14 @@
 'use client';
 
-import Button from '@/components/ui/Button';
-import FormInput from '@/components/ui/Form/FormInput';
-import { verifyOtp } from '@/lib/auth';
 import Form from 'next/form';
 import { startTransition, Suspense, useActionState, useState } from 'react';
 
 import Link from 'next/link';
-import { resendOtp } from '@/lib/auth';
 import { redirect, useSearchParams } from 'next/navigation';
+
+import { verifyOtp, resendOtp } from '@/features/auth/services/auth';
+import Button from '@/shared/components/Button';
+import FormInput from '@/shared/components/Form/FormInput';
 
 function VerifyOtp() {
   const [verifyError, verifyAction, verifyPending] = useActionState(
@@ -74,7 +74,7 @@ function VerifyOtp() {
         <Button
           type="submit"
           size="large"
-          disabled={otp.length !== 8 || verifyPending}
+          disabled={!otp || verifyPending}
           fullWidth
         >
           {verifyPending ? 'Verifying...' : 'Verify'}

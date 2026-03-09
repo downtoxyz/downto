@@ -1,31 +1,33 @@
-"use client";
+'use client';
 
-import Form from "next/form";
-import { useEffect, useActionState, useState } from "react";
-import FormInput from "@/components/ui/Form/FormInput";
-import Button from "@/components/ui/Button";
-import { sendOtp } from "@/lib/auth";
+import Form from 'next/form';
+import { useEffect, useActionState, useState } from 'react';
+import FormInput from '@/shared/components/Form/FormInput';
+import Button from '@/shared/components/Button';
+import { sendOtp } from '@/features/auth/services/auth';
 
 export default function LoginPage() {
   const [pendingAddUser, setPendingAddUser] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [error, sendCodeAction, pending] = useActionState(sendOtp, null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("pendingAddUsername");
+    const stored = localStorage.getItem('pendingAddUsername');
     if (stored) setPendingAddUser(stored);
   }, []);
 
   return (
     <div>
       {pendingAddUser && (
-        <div className='mb-4'>
-          <p className='text-dt'>log in or create a profile to add @{pendingAddUser}</p>
+        <div className="mb-4">
+          <p className="text-dt">
+            log in or create a profile to add @{pendingAddUser}
+          </p>
         </div>
       )}
 
       {error && (
-        <div className='mb-4'>
+        <div className="mb-4">
           <p className="text-red-500">{error}</p>
         </div>
       )}
@@ -40,11 +42,11 @@ export default function LoginPage() {
         />
         <Button
           type="submit"
-          disabled={!email.includes("@") || pending}
+          disabled={!email.includes('@') || pending}
           size="large"
           fullWidth
         >
-          {pending ? "Sending..." : "Send Code"}
+          {pending ? 'Sending...' : 'Send Code'}
         </Button>
       </Form>
     </div>
