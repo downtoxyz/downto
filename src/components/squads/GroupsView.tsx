@@ -1404,7 +1404,7 @@ const GroupsView = ({
   ) : null;
 
   const squadList = (
-    <div style={{ padding: "0 20px", animation: selectedSquad ? "none" : "fadeIn 0.3s ease" }}>
+    <div style={{ padding: "0 20px" }}>
       <h2
         style={{
           fontFamily: font.serif,
