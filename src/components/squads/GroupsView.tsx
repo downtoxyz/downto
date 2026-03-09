@@ -1351,7 +1351,12 @@ const GroupsView = ({
 
                   {/* Member list */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {selectedSquad.members.map((m) => (
+                    {selectedSquad.members.map((m) => {
+                      const hasConfirmFlow = selectedSquad.dateStatus === 'proposed' || selectedSquad.dateStatus === 'locked';
+                      const confirmResponse = m.userId ? dateConfirms.get(m.userId) : undefined;
+                      const isConfirmed = hasConfirmFlow && dateConfirms.size > 0 && confirmResponse === 'yes';
+                      const isGrayed = hasConfirmFlow && dateConfirms.size > 0 && !isConfirmed;
+                      return (
                       <div
                         key={m.name}
                         onClick={() => {
@@ -1366,6 +1371,7 @@ const GroupsView = ({
                           alignItems: "center",
                           gap: 10,
                           cursor: m.name !== "You" && m.userId ? "pointer" : "default",
+                          opacity: isGrayed ? 0.35 : 1,
                         }}
                       >
                         <div
@@ -1373,8 +1379,8 @@ const GroupsView = ({
                             width: 28,
                             height: 28,
                             borderRadius: "50%",
-                            background: m.name === "You" ? color.accent : color.borderLight,
-                            color: m.name === "You" ? "#000" : color.dim,
+                            background: isConfirmed ? color.accent : (m.name === "You" && !isGrayed) ? color.accent : color.borderLight,
+                            color: isConfirmed || (m.name === "You" && !isGrayed) ? "#000" : color.dim,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1386,14 +1392,20 @@ const GroupsView = ({
                         >
                           {m.avatar}
                         </div>
-                        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>
+                        <span style={{ fontFamily: font.mono, fontSize: 12, color: isGrayed ? color.faint : color.text }}>
                           {m.name}
                         </span>
                         {m.name === "You" && (
                           <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>you</span>
                         )}
+                        {hasConfirmFlow && dateConfirms.size > 0 && (
+                          <span style={{ fontFamily: font.mono, fontSize: 10, color: isConfirmed ? color.accent : color.faint, marginLeft: "auto" }}>
+                            {isConfirmed ? "down" : confirmResponse === 'no' ? "out" : "pending"}
+                          </span>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}
