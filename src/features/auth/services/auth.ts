@@ -3,6 +3,21 @@
 import { redirect } from 'next/navigation'; // For redirection after successful verification
 import { createClient } from '@/lib/supabase/server';
 
+export async function getUser() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    throw new Error('Not authenticated');
+  }
+
+  return user;
+}
+
 export async function sendOtp(_prevState: any, formData: FormData) {
   const supabase = await createClient();
 
