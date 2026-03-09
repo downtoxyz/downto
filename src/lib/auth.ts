@@ -8,6 +8,33 @@ export async function sendOtp(_prevState: any, formData: FormData) {
 
   const email = formData.get('email') as string;
 
+  // Local dev: skip OTP email and sign in directly
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('127.0.0.1')) {
+    const { createClient: createSupabaseClient } = await import(
+      '@supabase/supabase-js'
+    );
+    const admin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data, error: genError } = await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+    });
+    if (genError || !data?.properties?.email_otp) {
+      return genError?.message || 'Failed to generate dev login';
+    }
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token: data.properties.email_otp,
+      type: 'email',
+    });
+    if (verifyError) {
+      return verifyError.message;
+    }
+    redirect('/');
+  }
+
   const { error } = await supabase.auth.signInWithOtp({ email });
 
   if (error) {

@@ -33,8 +33,8 @@ const FriendsModal = ({
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"friends" | "add">(initialTab ?? "friends");
   useEffect(() => {
-    if (initialTab) setTab(initialTab);
-  }, [initialTab]);
+    if (open && initialTab) setTab(initialTab);
+  }, [initialTab, open]);
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [searching, setSearching] = useState(false);
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,6 +98,7 @@ const FriendsModal = ({
   const filteredSuggestions = suggestions.filter(
     (s) =>
       s.status !== "incoming" &&
+      s.status !== "pending" &&
       (s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.username.toLowerCase().includes(search.toLowerCase()))
   );
