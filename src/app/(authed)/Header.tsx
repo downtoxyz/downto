@@ -1,6 +1,6 @@
 'use client';
 
-import DownToLogo from '../../components/ui/DownToLogo';
+import DownToLogo from '@/shared/components/DownToLogo';
 import IconButton from '../../components/ui/IconButton';
 
 const BellSvgIcon = (
