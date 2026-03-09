@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest, isAuthError } from '@/lib/api-auth';
 
 const KICK_MESSAGES = [
-  "{name} has been voted off the island",
-  "{name} got the boot 🥾",
-  "{name} has left the chat (involuntarily)",
-  "{name} was yeeted from the squad",
-  "{name} didn't survive the rose ceremony 🌹",
-  "{name} has been benched",
-  "{name} got hit with the 'we need to talk'",
-  "{name} was ghosted irl",
-  "{name} just got unfriended in 4k",
-  "{name} was eliminated. 9 players remain.",
+  "{name} got the boot",
+  "{name} was eliminated. ratio'd.",
+  "{name} is no longer canon",
+  "{name} just got sent to the shadow realm",
+  "{name} was not the imposter. or were they.",
+  "{name} disconnected (cap)",
+  "{name} took an L today",
+  "pov: {name} just got kicked",
+  "{name} left the party (they didn't choose to)",
+  "it's giving… not {name}",
 ];
 
 export async function POST(req: NextRequest) {
