@@ -43,6 +43,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_ID:
       process.env.VERCEL_GIT_COMMIT_SHA ?? new Date().toISOString(),
     NEXT_PUBLIC_SKIP_UPDATE_NOTIFY: detectSkipNotify(),
+    NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV ?? "",
   },
   async headers() {
     return [
