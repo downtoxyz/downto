@@ -19,10 +19,13 @@ const notificationTypeMap = {
 
 export default function NotificationItem({
   notification,
+  onItemClick,
 }: {
   notification: Notification;
+  onItemClick: () => void;
 }) {
   const handleClick = () => {
+    onItemClick();
     switch (notification.type) {
       case NotificationTypes.CHECK_RESPONSE:
       case NotificationTypes.CHECK_TAG:
