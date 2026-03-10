@@ -157,7 +157,8 @@ export const parseNaturalDate = (text: string): { label: string; iso: string } |
     }
   }
   // Bare day name — "friday", "sat", etc. (next occurrence)
-  const bareDayMatch = lower.match(/\b(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
+  // Note: "sun" omitted — too ambiguous ("the sun"), use "sunday" or "this/next sun"
+  const bareDayMatch = lower.match(/\b(mon|tue|wed|thu|fri|sat|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
   if (bareDayMatch) {
     const key = bareDayMatch[1].slice(0, 3);
     const targetDay = DAY_NAMES.findIndex(d => d.startsWith(key));
@@ -265,7 +266,7 @@ export const findDateSpan = (text: string): TextSpan | null => {
     /\bin (\d+|two|three) months?\b/,
     /\bnext (mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
     /\bthis (mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
-    /\b(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
+    /\b(mon|tue|wed|thu|fri|sat|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
     /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b/,
     /\b\d{1,2}\/\d{1,2}\b/,
   ];

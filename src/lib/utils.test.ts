@@ -200,6 +200,16 @@ describe("parseNaturalDate", () => {
   it("returns null when no date found", () => {
     expect(parseNaturalDate("just vibing")).toBeNull();
   });
+
+  it('does not parse "sun" as Sunday in natural text', () => {
+    expect(parseNaturalDate("bask in the sun and play mahjong in prospect park")).toBeNull();
+  });
+
+  it('still parses "sunday" and "this sun" / "next sun"', () => {
+    expect(parseNaturalDate("let's go sunday")?.iso).toBe("2026-03-01");
+    expect(parseNaturalDate("this sun works")?.iso).toBe("2026-03-01");
+    expect(parseNaturalDate("next sun")?.iso).toBe("2026-03-08");
+  });
 });
 
 // ─── parseNaturalTime ────────────────────────────────────────────────────────
