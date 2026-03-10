@@ -60,7 +60,6 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
         <meta name="theme-color" content="#0a0a0a" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <style>{`
           input, textarea, select { font-size: 16px !important; }
         `}</style>
