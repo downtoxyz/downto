@@ -93,5 +93,8 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
+  // Auto-promote first waitlisted member if there's now room
+  await adminClient.rpc('promote_waitlisted_member', { p_squad_id: squadId });
+
   return NextResponse.json({ ok: true });
 }

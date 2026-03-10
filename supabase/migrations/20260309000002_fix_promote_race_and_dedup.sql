@@ -1,6 +1,6 @@
--- Auto-promote the first waitlisted member when a spot opens in a squad.
--- Unlike promote_from_waitlist (date_confirm_flow), this does NOT require
--- a confirm_message_id or create a date_confirms row — it just promotes.
+-- 1. Replace promote_waitlisted_member with race-safe version
+--    FOR UPDATE SKIP LOCKED prevents concurrent callers from picking the same row.
+--    The role = 'waitlist' guard on UPDATE ensures only one caller actually promotes.
 
 CREATE OR REPLACE FUNCTION public.promote_waitlisted_member(p_squad_id UUID)
 RETURNS UUID
@@ -78,3 +78,31 @@ BEGIN
   RETURN v_user_id;
 END;
 $$;
+
+-- 2. Remove duplicate "promoted from the waitlist" system messages.
+--    Keep the earliest message per (squad_id, text) combination.
+DELETE FROM messages
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id,
+           ROW_NUMBER() OVER (PARTITION BY squad_id, text ORDER BY created_at ASC) AS rn
+    FROM messages
+    WHERE is_system = TRUE
+      AND text LIKE '% was promoted from the waitlist'
+  ) dupes
+  WHERE rn > 1
+);
+
+-- 3. Remove duplicate "spot opened up" notifications.
+--    Keep the earliest notification per (user_id, related_squad_id, body) combination.
+DELETE FROM notifications
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id,
+           ROW_NUMBER() OVER (PARTITION BY user_id, related_squad_id, body ORDER BY created_at ASC) AS rn
+    FROM notifications
+    WHERE type = 'squad_invite'
+      AND body = 'A spot opened up — you''re in!'
+  ) dupes
+  WHERE rn > 1
+);
