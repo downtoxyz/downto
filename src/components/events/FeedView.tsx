@@ -7,6 +7,7 @@ import { font, color } from "@/lib/styles";
 import type { Event, InterestCheck, Friend } from "@/lib/ui-types";
 import EventCard from "@/components/events/EventCard";
 import EditCheckModal from "@/components/events/EditCheckModal";
+import CheckActionsSheet from "@/components/events/CheckActionsSheet";
 import { logError } from "@/lib/logger";
 
 /** Render @mentions highlighted + inline URLs as clickable links */
@@ -147,6 +148,7 @@ export default function FeedView({
   const [showHidden, setShowHidden] = useState(false);
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
   const [editModalCheck, setEditModalCheck] = useState<InterestCheck | null>(null);
+  const [actionsSheetCheck, setActionsSheetCheck] = useState<InterestCheck | null>(null);
 
   const visibleChecks = checks
     .filter((c) => !hiddenCheckIds.has(c.id) && c.expiresIn !== "expired")
@@ -491,56 +493,27 @@ export default function FeedView({
                                   <Linkify coAuthors={check.coAuthors}>{check.text}</Linkify>
                                 </p>
                                 {(check.isYours || check.isCoAuthor) && (
-                                  <div style={{ display: "flex", gap: 4, flexShrink: 0, marginTop: 2 }}>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditModalCheck(check);
-                                      }}
-                                      style={{
-                                        background: "transparent",
-                                        border: `1px solid ${color.border}`,
-                                        borderRadius: 8,
-                                        color: color.dim,
-                                        padding: "6px 10px",
-                                        fontFamily: font.mono,
-                                        fontSize: 13,
-                                        cursor: "pointer",
-                                        lineHeight: 1,
-                                      }}
-                                    >
-                                      &#9998;
-                                    </button>
-                                    {!check.squadId && (
-                                      <button
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          setChecks((prev) => prev.filter((c) => c.id !== check.id));
-                                          if (!isDemoMode) {
-                                            try {
-                                              await db.deleteInterestCheck(check.id);
-                                            } catch (err) {
-                                              logError("deleteCheck", err, { checkId: check.id });
-                                            }
-                                          }
-                                          showToast("Check removed");
-                                        }}
-                                        style={{
-                                          background: "transparent",
-                                          border: `1px solid ${color.border}`,
-                                          borderRadius: 8,
-                                          color: color.dim,
-                                          padding: "6px 10px",
-                                          fontFamily: font.mono,
-                                          fontSize: 13,
-                                          cursor: "pointer",
-                                          lineHeight: 1,
-                                        }}
-                                      >
-                                        &#10005;
-                                      </button>
-                                    )}
-                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActionsSheetCheck(check);
+                                    }}
+                                    style={{
+                                      background: "transparent",
+                                      border: `1px solid ${color.border}`,
+                                      borderRadius: 8,
+                                      color: color.dim,
+                                      padding: "6px 10px",
+                                      fontFamily: font.mono,
+                                      fontSize: 13,
+                                      cursor: "pointer",
+                                      lineHeight: 1,
+                                      flexShrink: 0,
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    ⚙
+                                  </button>
                                 )}
                               </div>
                               {(check.eventDateLabel || check.eventTime) && (
@@ -1518,6 +1491,44 @@ export default function FeedView({
               </>
             )}
           </div>
+
+      <CheckActionsSheet
+        open={!!actionsSheetCheck}
+        onClose={() => setActionsSheetCheck(null)}
+        hasSquad={!!actionsSheetCheck?.squadId}
+        onEdit={() => {
+          if (actionsSheetCheck) setEditModalCheck(actionsSheetCheck);
+          setActionsSheetCheck(null);
+        }}
+        onArchive={async () => {
+          if (!actionsSheetCheck) return;
+          const checkId = actionsSheetCheck.id;
+          setActionsSheetCheck(null);
+          setChecks((prev) => prev.filter((c) => c.id !== checkId));
+          if (!isDemoMode) {
+            try {
+              await db.archiveInterestCheck(checkId);
+            } catch (err) {
+              logError("archiveCheck", err, { checkId });
+            }
+          }
+          showToast("Check archived");
+        }}
+        onDelete={async () => {
+          if (!actionsSheetCheck) return;
+          const checkId = actionsSheetCheck.id;
+          setActionsSheetCheck(null);
+          setChecks((prev) => prev.filter((c) => c.id !== checkId));
+          if (!isDemoMode) {
+            try {
+              await db.deleteInterestCheck(checkId);
+            } catch (err) {
+              logError("deleteCheck", err, { checkId });
+            }
+          }
+          showToast("Check removed");
+        }}
+      />
 
       <EditCheckModal
         check={editModalCheck}

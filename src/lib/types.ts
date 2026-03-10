@@ -83,6 +83,7 @@ export interface InterestCheck {
     thumbnail?: string;
     vibes?: string[];
   } | null;
+  archived_at: string | null;
   created_at: string;
   // Joined data
   author?: Profile;

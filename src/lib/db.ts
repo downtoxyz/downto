@@ -584,6 +584,7 @@ export async function getActiveChecks(): Promise<(InterestCheck & { author: Prof
     `)
     .or(`expires_at.gt.${new Date().toISOString()},expires_at.is.null,event_date.gte.${new Date().toISOString().slice(0, 10)}`)
     .or(`event_date.gte.${new Date().toISOString().slice(0, 10)},event_date.is.null`)
+    .is('archived_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -648,6 +649,15 @@ export async function deleteInterestCheck(checkId: string): Promise<void> {
     .delete()
     .eq('id', checkId);
   // RLS policy allows author and accepted co-authors
+
+  if (error) throw error;
+}
+
+export async function archiveInterestCheck(checkId: string): Promise<void> {
+  const { error } = await supabase
+    .from('interest_checks')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', checkId);
 
   if (error) throw error;
 }
