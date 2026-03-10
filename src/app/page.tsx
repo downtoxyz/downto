@@ -64,6 +64,7 @@ export default function Home() {
   const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addModalDefaultMode, setAddModalDefaultMode] = useState<"paste" | "idea" | "manual" | null>(null);
+  const [archivedChecks, setArchivedChecks] = useState<{ id: string; text: string; archived_at: string }[]>([]);
 
   // ─── PWA install gate (iOS Safari, pre-auth) ───────────────────────────
   const [installDismissed, setInstallDismissed] = useState(true); // default true to avoid flash
@@ -170,6 +171,7 @@ export default function Home() {
         squadsList,
         hiddenIds,
         fofAnnotations,
+        archivedChecksList,
       ] = await Promise.all([
         db.getSavedEvents(),
         db.getPublicEvents(),
@@ -182,6 +184,7 @@ export default function Home() {
         db.getSquads().catch((err) => { logWarn("loadSquads", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getSquads>>; }),
         db.getHiddenCheckIds().catch((err) => { logWarn("loadHiddenChecks", "Failed", { error: err }); return [] as string[]; }),
         db.getFofAnnotations().catch((err) => { logWarn("loadFofAnnotations", "Failed", { error: err }); return [] as { check_id: string; via_friend_name: string }[]; }),
+        db.getArchivedChecks().catch((err) => { logWarn("loadArchivedChecks", "Failed", { error: err }); return [] as { id: string; text: string; archived_at: string }[]; }),
       ]);
 
       // Phase 2: Transform events (stays in page.tsx)
@@ -287,6 +290,7 @@ export default function Home() {
       friendsHook.hydrateFriends(friendsList, pendingRequests, suggestedUsers, outgoingRequests);
       checksHook.hydrateChecks(activeChecks, hiddenIds, fofAnnotations);
       squadsHook.hydrateSquads(squadsList);
+      setArchivedChecks(archivedChecksList);
 
       setFeedLoaded(true);
 
@@ -1047,6 +1051,19 @@ export default function Home() {
                   logError("updateAvailability", err, { status });
                 }
               }
+            }}
+            archivedChecks={archivedChecks}
+            onRestoreCheck={async (checkId) => {
+              setArchivedChecks((prev) => prev.filter((c) => c.id !== checkId));
+              if (!isDemoMode) {
+                try {
+                  await db.unarchiveInterestCheck(checkId);
+                  loadRealDataRef.current();
+                } catch (err) {
+                  logError("unarchiveCheck", err, { checkId });
+                }
+              }
+              showToast("Check restored");
             }}
           />
         )}

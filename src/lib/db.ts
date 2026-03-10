@@ -662,6 +662,30 @@ export async function archiveInterestCheck(checkId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function unarchiveInterestCheck(checkId: string): Promise<void> {
+  const { error } = await supabase
+    .from('interest_checks')
+    .update({ archived_at: null })
+    .eq('id', checkId);
+
+  if (error) throw error;
+}
+
+export async function getArchivedChecks(): Promise<{ id: string; text: string; archived_at: string }[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('interest_checks')
+    .select('id, text, archived_at')
+    .eq('author_id', user.id)
+    .not('archived_at', 'is', null)
+    .order('archived_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function updateInterestCheck(
   checkId: string,
   updates: { text?: string; max_squad_size?: number; event_date?: string | null; event_time?: string | null; date_flexible?: boolean; time_flexible?: boolean }

@@ -17,6 +17,8 @@ const ProfileView = ({
   onAvailabilityChange,
   onUpdateProfile,
   showToast,
+  archivedChecks,
+  onRestoreCheck,
 }: {
   friends: Friend[];
   onOpenFriends: () => void;
@@ -28,6 +30,8 @@ const ProfileView = ({
   onAvailabilityChange?: (status: AvailabilityStatus) => void;
   onUpdateProfile?: (updates: Partial<Profile>) => Promise<void>;
   showToast?: (msg: string) => void;
+  archivedChecks?: { id: string; text: string; archived_at: string }[];
+  onRestoreCheck?: (checkId: string) => void;
 }) => {
   const [availability, setAvailability] = useState<AvailabilityStatus>(
     profile?.availability ?? "open"
@@ -41,6 +45,7 @@ const ProfileView = ({
   const [nameInput, setNameInput] = useState("");
   const [editingIg, setEditingIg] = useState(false);
   const [igInput, setIgInput] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
   const handleStatusSelect = (status: AvailabilityStatus) => {
     if (status === "open") {
@@ -515,6 +520,81 @@ const ProfileView = ({
         </span>
       ))}
     </div>
+
+    {archivedChecks && archivedChecks.length > 0 && (
+      <div style={{ marginTop: 24 }}>
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            fontFamily: font.mono,
+            fontSize: 10,
+            textTransform: "uppercase",
+            letterSpacing: "0.15em",
+            color: color.faint,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: showArchived ? 12 : 0,
+          }}
+        >
+          Archived checks ({archivedChecks.length})
+          <span style={{ fontSize: 8 }}>{showArchived ? "▼" : "→"}</span>
+        </button>
+        {showArchived && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {archivedChecks.map((check) => (
+              <div
+                key={check.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "10px 14px",
+                  background: color.card,
+                  border: `1px solid ${color.border}`,
+                  borderRadius: 12,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: 12,
+                    color: color.muted,
+                    flex: 1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {check.text}
+                </span>
+                <button
+                  onClick={() => onRestoreCheck?.(check.id)}
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${color.borderMid}`,
+                    borderRadius: 12,
+                    padding: "6px 12px",
+                    fontFamily: font.mono,
+                    fontSize: 11,
+                    color: color.text,
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                >
+                  Restore
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
 
     <div style={{ marginTop: 32 }}>
       <div
