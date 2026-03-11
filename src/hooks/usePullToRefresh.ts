@@ -108,10 +108,13 @@ export function usePullToRefresh({
         spinnerRef.current.style.transform = "";
         spinnerRef.current.style.animation = "spin 0.8s linear infinite";
       }
-      await onRefresh();
-      if (spinnerRef.current) spinnerRef.current.style.animation = "none";
-      isAnimatingRef.current = false;
-      snapBack();
+      try {
+        await onRefresh();
+      } finally {
+        if (spinnerRef.current) spinnerRef.current.style.animation = "none";
+        isAnimatingRef.current = false;
+        snapBack();
+      }
     } else {
       snapBack();
     }

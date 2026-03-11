@@ -47,6 +47,13 @@ const NotificationsPanel = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
+  // Lock body scroll when panel is open
+  useEffect(() => {
+    if (!visible) return;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [visible]);
+
   const handleSwipeStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     isDragging.current = false;

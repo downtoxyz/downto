@@ -51,14 +51,15 @@ const BottomNav = ({
     el.style.width = cellWExpanded;
 
     // Settle: shrink back to normal at final position
+    let innerTimer: ReturnType<typeof setTimeout>;
     const timer = setTimeout(() => {
       el.style.transition = "left 0.12s ease-out, width 0.12s ease-out";
       el.style.left = cell(to);
       el.style.width = cellW;
-      setTimeout(() => setSettled(true), 120);
+      innerTimer = setTimeout(() => setSettled(true), 120);
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); clearTimeout(innerTimer); };
   }, [tab]);
 
   const idx = TABS.indexOf(tab);
