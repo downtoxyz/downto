@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
+import { useModalTransition } from "@/hooks/useModalTransition";
 import type { ScrapedEvent } from "@/lib/ui-types";
 import { parseNaturalDate, parseNaturalTime, parseNaturalLocation, parseDateToISO, sanitize, stripDateTimeText } from "@/lib/utils";
 import { logWarn } from "@/lib/logger";
@@ -31,6 +32,7 @@ const AddModal = ({
   defaultMode?: "paste" | "idea" | "manual" | null;
   friends?: { id: string; name: string; avatar: string }[];
 }) => {
+  const { visible, entering, closing, close } = useModalTransition(open, onClose);
   const [mode, setMode] = useState<"paste" | "idea" | "manual">("idea");
   const [url, setUrl] = useState("");
   const [idea, setIdea] = useState("");
@@ -134,11 +136,11 @@ const AddModal = ({
   }, [open, mode, defaultMode]);
 
   useEffect(() => {
-    if (open) {
+    if (visible) {
       document.body.style.overflow = "hidden";
       return () => { document.body.style.overflow = ""; };
     }
-  }, [open]);
+  }, [visible]);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -200,7 +202,7 @@ const AddModal = ({
     setLoading(false);
   };
 
-  if (!open) return null;
+  if (!visible) return null;
 
   return (
     <div
@@ -214,13 +216,15 @@ const AddModal = ({
       }}
     >
       <div
-        onClick={onClose}
+        onClick={close}
         style={{
           position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
+          backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          opacity: (entering || closing) ? 0 : 1,
+          transition: "opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       />
       <div
@@ -236,8 +240,9 @@ const AddModal = ({
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
           padding: "0 24px calc(24px + env(safe-area-inset-bottom, 0px))",
-          animation: "slideUp 0.3s ease-out",
-          transition: dragging.current ? "none" : "transform 0.2s ease-out",
+          animation: closing ? "none" : "slideUp 0.3s ease-out",
+          transform: closing ? "translateY(100%)" : undefined,
+          transition: closing ? "transform 0.2s ease-in" : (dragging.current ? "none" : "transform 0.2s ease-out"),
         }}
       >
         <div
@@ -259,9 +264,7 @@ const AddModal = ({
             const deltaY = e.changedTouches[0].clientY - touchStartY.current;
             if (modalRef.current) {
               if (deltaY > 80) {
-                modalRef.current.style.transition = "transform 0.2s ease-out";
-                modalRef.current.style.transform = `translateY(100%)`;
-                setTimeout(onClose, 200);
+                close();
               } else {
                 modalRef.current.style.transition = "transform 0.2s ease-out";
                 modalRef.current.style.transform = "translateY(0)";
@@ -673,7 +676,7 @@ const AddModal = ({
             <button
               onClick={async () => {
                 await onSubmit(scraped, sharePublicly);
-                onClose();
+                close();
               }}
               style={{
                 width: "100%",
@@ -706,7 +709,7 @@ const AddModal = ({
                   undefined,
                   timeStr,
                 );
-                onClose();
+                close();
               }}
               style={{
                 width: "100%",
@@ -1243,7 +1246,7 @@ const AddModal = ({
                     .map(f => f.id);
                   const title = sanitize(stripDateTimeText(idea), 280);
                   onInterestCheck(title, checkTimer, eventDate, squadSize === 0 ? 999 : squadSize, checkMovie ?? undefined, eventTime, !dateLocked, !timeLocked, taggedIds.length > 0 ? taggedIds : undefined);
-                  onClose();
+                  close();
                 }
               }}
               disabled={!idea.trim()}
@@ -1594,7 +1597,7 @@ const AddModal = ({
                       letterboxdUrl: manualMovie.url,
                     } : {}),
                   }, false);
-                  onClose();
+                  close();
                 }
               }}
               disabled={!manual.title.trim()}

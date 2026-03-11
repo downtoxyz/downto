@@ -38,6 +38,12 @@
 }
 
 @layer base {
+  html, body {
+    overflow: hidden;
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
   ::-webkit-scrollbar {
     width: 0;
   }
@@ -48,6 +54,22 @@
 
   input:focus {
     border-color: #e8ff5a !important;
+  }
+
+  * {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  img {
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   button {

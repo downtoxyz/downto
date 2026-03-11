@@ -1,4 +1,4 @@
-import { useRef, useCallback, useLayoutEffect } from "react";
+import { useRef, useCallback } from "react";
 
 export function usePullToRefresh({
   onRefresh,
@@ -19,14 +19,17 @@ export function usePullToRefresh({
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
   const isAnimatingRef = useRef(false);
-  const contentRef = useRef<HTMLDivElement>(null);
+  // The scroll container (has overflowY: auto)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Inner wrapper that gets translated for pull effect
+  const innerRef = useRef<HTMLDivElement>(null);
   const spinnerWrapRef = useRef<HTMLDivElement>(null);
   const spinnerRef = useRef<HTMLDivElement>(null);
 
   const applyPullOffset = useCallback((offset: number) => {
     pullOffsetRef.current = offset;
-    if (contentRef.current) {
-      contentRef.current.style.transform = offset > 0 ? `translateY(${offset}px)` : "none";
+    if (innerRef.current) {
+      innerRef.current.style.transform = offset > 0 ? `translateY(${offset}px)` : "none";
     }
     if (spinnerWrapRef.current) {
       spinnerWrapRef.current.style.opacity = String(Math.min(offset / 60, 1));
@@ -39,18 +42,18 @@ export function usePullToRefresh({
 
   const snapBack = useCallback(() => {
     isAnimatingRef.current = true;
-    const content = contentRef.current;
+    const inner = innerRef.current;
     const wrap = spinnerWrapRef.current;
-    if (content) {
-      content.style.transition = "transform 0.25s ease";
-      content.style.transform = "none";
+    if (inner) {
+      inner.style.transition = "transform 0.25s ease";
+      inner.style.transform = "none";
     }
     if (wrap) {
       wrap.style.transition = "opacity 0.25s ease";
       wrap.style.opacity = "0";
     }
     setTimeout(() => {
-      if (content) content.style.transition = "none";
+      if (inner) inner.style.transition = "none";
       if (wrap) wrap.style.transition = "none";
       pullOffsetRef.current = 0;
       isAnimatingRef.current = false;
@@ -63,14 +66,15 @@ export function usePullToRefresh({
     if (chatOpenRef.current) return;
     touchStartY.current = e.touches[0].clientY;
     isPulling.current = false;
-    if (contentRef.current) contentRef.current.style.transition = "none";
+    if (innerRef.current) innerRef.current.style.transition = "none";
     if (spinnerWrapRef.current) spinnerWrapRef.current.style.transition = "none";
   }, [enabledTabs]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (isAnimatingRef.current) return;
+    if (!enabledTabs.includes(tabRef.current)) return;
     if (chatOpenRef.current) return;
-    if (window.scrollY > 0) {
+    if ((scrollRef.current?.scrollTop ?? 0) > 0) {
       isPulling.current = false;
       if (pullOffsetRef.current > 0) applyPullOffset(0);
       return;
@@ -83,9 +87,10 @@ export function usePullToRefresh({
       isPulling.current = false;
       if (pullOffsetRef.current > 0) applyPullOffset(0);
     }
-  }, [applyPullOffset]);
+  }, [enabledTabs, applyPullOffset]);
 
   const handleTouchEnd = useCallback(async () => {
+    if (!enabledTabs.includes(tabRef.current)) return;
     if (!isPulling.current) {
       if (pullOffsetRef.current > 0) snapBack();
       return;
@@ -93,27 +98,31 @@ export function usePullToRefresh({
     isPulling.current = false;
     if (pullOffsetRef.current > 60) {
       isAnimatingRef.current = true;
-      applyPullOffset(60);
+      // Smooth spring to spinner position
+      if (innerRef.current) {
+        innerRef.current.style.transition = "transform 0.3s ease-out";
+        innerRef.current.style.transform = "translateY(60px)";
+      }
+      pullOffsetRef.current = 60;
       if (spinnerRef.current) {
         spinnerRef.current.style.transform = "";
         spinnerRef.current.style.animation = "spin 0.8s linear infinite";
       }
-      await onRefresh();
-      if (spinnerRef.current) spinnerRef.current.style.animation = "none";
-      isAnimatingRef.current = false;
-      snapBack();
+      try {
+        await onRefresh();
+      } finally {
+        if (spinnerRef.current) spinnerRef.current.style.animation = "none";
+        isAnimatingRef.current = false;
+        snapBack();
+      }
     } else {
       snapBack();
     }
-  }, [applyPullOffset, snapBack, onRefresh]);
-
-  useLayoutEffect(() => {
-    if (isAnimatingRef.current) return;
-    applyPullOffset(pullOffsetRef.current);
-  });
+  }, [enabledTabs, applyPullOffset, snapBack, onRefresh]);
 
   return {
-    contentRef,
+    scrollRef,
+    innerRef,
     spinnerWrapRef,
     spinnerRef,
     handleTouchStart,

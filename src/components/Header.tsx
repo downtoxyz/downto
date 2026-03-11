@@ -15,14 +15,12 @@ const Header = ({
 }) => (
   <div
     style={{
-      padding: "20px 20px 16px",
+      padding: "16px 20px 4px",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      position: "sticky",
-      top: 0,
-      zIndex: 50,
-      background: `linear-gradient(${color.bg} 80%, transparent)`,
+      flexShrink: 0,
+      background: color.bg,
     }}
   >
     <h1

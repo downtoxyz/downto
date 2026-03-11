@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
 import { parseNaturalDate, parseNaturalTime } from "@/lib/utils";
 import type { InterestCheck } from "@/lib/ui-types";
+import { useModalTransition } from "@/hooks/useModalTransition";
 
 const EditCheckModal = ({
   check,
@@ -38,9 +39,9 @@ const EditCheckModal = ({
   const [hasToggledLock, setHasToggledLock] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIdx, setMentionIdx] = useState(-1);
+  const { visible, entering, closing, close } = useModalTransition(open, onClose);
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
-  const [closing, setClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isDragging = useRef(false);
@@ -59,15 +60,15 @@ const EditCheckModal = ({
   }, [check, open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  }, [visible]);
 
   const finishSwipe = () => {
     if (dragOffset > 60) {
-      setClosing(true);
-      setTimeout(() => { setClosing(false); setDragOffset(0); onClose(); }, 250);
+      setDragOffset(0);
+      close();
     } else {
       setDragOffset(0);
     }
@@ -84,7 +85,7 @@ const EditCheckModal = ({
   };
   const handleScrollTouchEnd = () => { if (isDragging.current) finishSwipe(); };
 
-  if (!open || !check) return null;
+  if (!visible || !check) return null;
 
   const detectedDate = text ? parseNaturalDate(text) : null;
   const detectedTime = text ? parseNaturalTime(text) : null;
@@ -135,13 +136,15 @@ const EditCheckModal = ({
       }}
     >
       <div
-        onClick={onClose}
+        onClick={close}
         style={{
           position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
+          backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          opacity: (entering || closing) ? 0 : 1,
+          transition: "opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       />
       <div
@@ -157,7 +160,7 @@ const EditCheckModal = ({
           flexDirection: "column",
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
-          transition: closing ? "transform 0.25s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
+          transition: closing ? "transform 0.2s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
         }}
       >
         {/* Drag handle */}

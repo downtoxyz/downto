@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
+import { useModalTransition } from "@/hooks/useModalTransition";
 import type { Event, Person } from "@/lib/ui-types";
 
 const EventLobby = ({
@@ -29,9 +30,9 @@ const EventLobby = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
-  const [closing, setClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const { visible, entering, closing, close } = useModalTransition(open, onClose);
 
   // Reset selection state when drawer opens/closes
   useEffect(() => {
@@ -43,15 +44,15 @@ const EventLobby = ({
 
   // Lock body scroll when open
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  }, [visible]);
 
   const finishSwipe = () => {
     if (dragOffset > 60) {
-      setClosing(true);
-      setTimeout(() => { setClosing(false); setDragOffset(0); onClose(); }, 250);
+      setDragOffset(0);
+      close();
     } else {
       setDragOffset(0);
     }
@@ -68,7 +69,7 @@ const EventLobby = ({
   };
   const handleScrollTouchEnd = () => { if (isDragging.current) finishSwipe(); };
 
-  if (!open || !event) return null;
+  if (!visible || !event) return null;
   const friends = event.peopleDown.filter((p) => p.mutual);
   const others = event.peopleDown.filter((p) => !p.mutual);
   const poolCount = event.poolCount ?? squadPoolMembers.length + (inSquadPool ? 1 : 0);
@@ -160,13 +161,15 @@ const EventLobby = ({
       }}
     >
       <div
-        onClick={onClose}
+        onClick={close}
         style={{
           position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
+          backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          opacity: (entering || closing) ? 0 : 1,
+          transition: "opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       />
       <div

@@ -114,7 +114,7 @@ const ProfileView = ({
   const avatarLetter = profile?.avatar_letter ?? displayName.charAt(0).toUpperCase();
 
   return (
-  <div style={{ padding: "0 20px", animation: "fadeIn 0.3s ease" }}>
+  <div style={{ padding: "0 20px 100px", animation: "fadeIn 0.3s ease" }}>
     <div style={{ textAlign: "center", paddingTop: 20 }}>
       <div
         style={{

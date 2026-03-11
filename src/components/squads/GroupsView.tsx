@@ -125,7 +125,6 @@ const GroupsView = ({
   const [confirmLoading, setConfirmLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [chatHeight, setChatHeight] = useState<string>("100dvh");
-  const [chatTop, setChatTop] = useState(0);
 
   // Track visual viewport so the chat stays visible when the iOS keyboard opens
   useEffect(() => {
@@ -134,7 +133,8 @@ const GroupsView = ({
     if (!vv) return;
     const update = () => {
       setChatHeight(`${vv.height}px`);
-      setChatTop(vv.offsetTop);
+      // Prevent iOS from scrolling the page when focusing input — keeps fixed positioning correct
+      window.scrollTo(0, 0);
       // Scroll messages into view after keyboard resize
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "instant" }), 50);
     };
@@ -333,7 +333,7 @@ const GroupsView = ({
           flexDirection: "column",
           height: chatHeight,
           position: "fixed",
-          top: chatTop,
+          top: 0,
           left: 0,
           right: 0,
           background: color.bg,
@@ -1226,6 +1226,7 @@ const GroupsView = ({
                   </span>
                 )}
                 <div
+                  className="select-text"
                   style={{
                     background: msg.isYou ? color.accent : color.card,
                     color: msg.isYou ? "#000" : color.text,
@@ -1316,6 +1317,7 @@ const GroupsView = ({
             }}
           />
           <button
+            onMouseDown={(e) => e.preventDefault()}
             onClick={handleSend}
             disabled={!newMsg.trim()}
             style={{

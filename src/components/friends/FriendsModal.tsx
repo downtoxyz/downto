@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
 import type { Friend } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
+import { useModalTransition } from "@/hooks/useModalTransition";
 
 const FriendsModal = ({
   open,
@@ -44,16 +45,16 @@ const FriendsModal = ({
   const [requestedState, setRequestedState] = useState<"preview" | "expanded" | "collapsed">("preview");
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
-  const [closing, setClosing] = useState(false);
+  const { visible, entering, closing, close } = useModalTransition(open, onClose);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
   // Lock body scroll when open
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  }, [visible]);
 
   const handleSwipeStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -65,8 +66,8 @@ const FriendsModal = ({
   };
   const finishSwipe = () => {
     if (dragOffset > 60 && !preventClose) {
-      setClosing(true);
-      setTimeout(() => { setClosing(false); setDragOffset(0); onClose(); }, 250);
+      setDragOffset(0);
+      close();
     } else {
       setDragOffset(0);
     }
@@ -141,7 +142,7 @@ const FriendsModal = ({
     }
   }, [open]);
 
-  if (!open) return null;
+  if (!visible) return null;
 
   return (
     <div
@@ -155,13 +156,15 @@ const FriendsModal = ({
       }}
     >
       <div
-        onClick={preventClose ? undefined : onClose}
+        onClick={preventClose ? undefined : close}
         style={{
           position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
+          backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
+          opacity: (entering || closing) ? 0 : 1,
+          transition: "opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       />
       <div
@@ -177,7 +180,7 @@ const FriendsModal = ({
           flexDirection: "column",
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
-          transition: closing ? "transform 0.25s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
+          transition: closing ? "transform 0.2s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
         }}
       >
         <div
