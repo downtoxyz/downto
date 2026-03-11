@@ -870,19 +870,8 @@ export async function joinSquadIfRoom(squadId: string): Promise<'joined' | 'wait
 }
 
 export async function leaveSquad(squadId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { error } = await supabase
-    .from('squad_members')
-    .delete()
-    .eq('squad_id', squadId)
-    .eq('user_id', user.id);
-
+  const { error } = await supabase.rpc('leave_squad', { p_squad_id: squadId });
   if (error) throw error;
-
-  // Auto-promote first waitlisted member if there's now room
-  await supabase.rpc('promote_waitlisted_member', { p_squad_id: squadId });
 }
 
 export async function createSquad(

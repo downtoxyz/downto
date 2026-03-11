@@ -14,28 +14,32 @@ const ProfileSetupScreen = ({
   profile: Profile;
   onComplete: (updated: Profile) => void;
 }) => {
-  const [displayName, setDisplayName] = useState(profile.display_name || "");
+  const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [igHandle, setIgHandle] = useState(profile.ig_handle || "");
   const [saving, setSaving] = useState(false);
 
   const usernameValid = /^[a-z0-9_]{3,20}$/.test(username);
+  const displayNameValid = displayName.trim().length >= 1;
+  const formValid = usernameValid && displayNameValid;
 
   const handleSave = async () => {
-    if (!username || !usernameValid) return;
+    if (!formValid) return;
     setSaving(true);
     setUsernameError(null);
     try {
-      const updates: Partial<Profile> = { username };
-      if (displayName.trim()) updates.display_name = displayName.trim();
+      const updates: Partial<Profile> = {
+        username,
+        display_name: displayName.trim(),
+      };
       if (igHandle.trim()) updates.ig_handle = igHandle.trim().replace(/^@/, "");
       const updated = await db.updateProfile(updates);
       onComplete(updated);
     } catch (err: unknown) {
       const code = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : '';
       if (code === '23505') {
-        setUsernameError("Username taken");
+        setUsernameError("that one's taken");
       } else {
         logError("saveProfile", err, { username });
       }
@@ -43,16 +47,9 @@ const ProfileSetupScreen = ({
     }
   };
 
-  const handleSkip = async () => {
-    setSaving(true);
-    try {
-      const updated = await db.updateProfile({ onboarded: true } as Partial<Profile>);
-      onComplete(updated);
-    } catch (err) {
-      logError("skipSetup", err);
-      setSaving(false);
-    }
-  };
+  const previewName = displayName.trim() || "your name";
+  const previewAvatar = displayName.trim() ? displayName.trim().charAt(0).toUpperCase() : "?";
+  const previewUsername = username || "username";
 
   return (
     <div
@@ -87,7 +84,7 @@ const ProfileSetupScreen = ({
           marginBottom: 40,
         }}
       >
-        how should people know you?
+        pick a name and username — this is how you&apos;ll show up
       </p>
 
       {/* Display name */}
@@ -107,6 +104,7 @@ const ProfileSetupScreen = ({
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         placeholder="your name"
+        maxLength={30}
         style={{
           width: "100%",
           padding: "14px 16px",
@@ -180,7 +178,7 @@ const ProfileSetupScreen = ({
       >
         instagram handle (optional)
       </label>
-      <div style={{ position: "relative", marginBottom: 40 }}>
+      <div style={{ position: "relative", marginBottom: 32 }}>
         <span
           style={{
             position: "absolute",
@@ -214,44 +212,77 @@ const ProfileSetupScreen = ({
         />
       </div>
 
+      {/* Feed preview */}
+      <div
+        style={{
+          fontFamily: font.mono,
+          fontSize: 10,
+          textTransform: "uppercase",
+          letterSpacing: "0.15em",
+          color: color.dim,
+          marginBottom: 10,
+        }}
+      >
+        preview — how you&apos;ll look in the feed
+      </div>
+      <div
+        style={{
+          background: color.card,
+          border: `1px solid ${color.border}`,
+          borderRadius: 14,
+          padding: 14,
+          marginBottom: 32,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              background: color.accent,
+              color: "#000",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: font.mono,
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            {previewAvatar}
+          </div>
+          <span style={{ fontFamily: font.mono, fontSize: 13, color: color.text }}>
+            {previewName}
+          </span>
+          <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+            @{previewUsername}
+          </span>
+        </div>
+        <div style={{ fontFamily: font.serif, fontSize: 18, color: color.text }}>
+          who wants to grab dinner tonight?
+        </div>
+      </div>
+
       {/* Let's go button */}
       <button
         onClick={handleSave}
-        disabled={saving || !usernameValid}
+        disabled={saving || !formValid}
         style={{
           width: "100%",
           padding: "16px",
-          background: usernameValid ? color.accent : color.borderMid,
+          background: formValid ? color.accent : color.borderMid,
           border: "none",
           borderRadius: 12,
-          color: usernameValid ? color.bg : color.dim,
+          color: formValid ? color.bg : color.dim,
           fontFamily: font.mono,
           fontSize: 14,
           fontWeight: 700,
-          cursor: saving || !usernameValid ? "default" : "pointer",
+          cursor: saving || !formValid ? "default" : "pointer",
           opacity: saving ? 0.6 : 1,
-          marginBottom: 16,
         }}
       >
         {saving ? "saving..." : "let's go"}
-      </button>
-
-      {/* Skip link */}
-      <button
-        onClick={handleSkip}
-        disabled={saving}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: color.dim,
-          fontFamily: font.mono,
-          fontSize: 12,
-          cursor: "pointer",
-          textDecoration: "underline",
-          alignSelf: "center",
-        }}
-      >
-        skip for now
       </button>
     </div>
   );

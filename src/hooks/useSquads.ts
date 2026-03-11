@@ -7,6 +7,27 @@ import type { Person, Event, InterestCheck, Squad } from "@/lib/ui-types";
 import { logError, logWarn } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
 
+const SQUAD_FORMED_MESSAGES = [
+  '"{title}" squad just dropped',
+  '"{title}" squad is locked tf in',
+  'ok so "{title}" is actually happening',
+  '"{title}" squad activated. god help us all',
+  'the "{title}" era begins and no one is ready',
+  '"{title}" squad but like for real this time',
+  'new core memory unlocked: "{title}" squad',
+  '"{title}" squad assembled. society is healing',
+  'congrats you are now legally obligated to do "{title}"',
+  'the group chat for "{title}" just got real',
+];
+
+const SQUAD_CONTEXT_CHECK = [
+  '{author}\'s idea · you actually did something about it',
+  '{author} manifested this · you made it real',
+  'blame {author} for the idea · blame you for the squad',
+  '{author} tweeted into the void · you responded',
+  '{author} threw it out there · you chose violence',
+];
+
 const SQUAD_OPENERS = [
   // unhinged commitment
   "i cleared my schedule. i didn't have anything but still",
@@ -46,6 +67,14 @@ const SQUAD_OPENERS = [
   "this energy is immaculate",
   "i blacked out and now i'm in a squad",
 ];
+
+const pickRandom = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+const pickFormedMessage = (title: string) =>
+  pickRandom(SQUAD_FORMED_MESSAGES).replace("{title}", title);
+
+const pickContextCheck = (author: string) =>
+  pickRandom(SQUAD_CONTEXT_CHECK).replace("{author}", author);
 
 const pickOpener = (title?: string) => {
   // ~25% chance to use the title in an unhinged way
@@ -234,8 +263,8 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         ...(!check.isYours ? [{ name: check.author, avatar: check.author.charAt(0).toUpperCase() }] : []),
       ],
       messages: [
-        { sender: "system", text: `\u2728 Squad formed for "${check.text}"`, time: "now" },
-        { sender: "system", text: `\u{1F4A1} idea by ${check.author} \u00b7 \u{1F680} started by You`, time: "now" },
+        { sender: "system", text: pickFormedMessage(check.text), time: "now" },
+        { sender: "system", text: pickContextCheck(check.author), time: "now" },
         { sender: "You", text: opener, time: "now", isYou: true },
       ],
       lastMsg: `You: ${opener}`,
@@ -300,7 +329,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         ...selectedPeople.map((p) => ({ name: p.name, avatar: p.avatar })),
       ],
       messages: [
-        { sender: "system", text: `\u2728 Squad formed for "${event.title}"`, time: "now" },
+        { sender: "system", text: pickFormedMessage(event.title), time: "now" },
         { sender: "system", text: `\u{1F4CD} ${event.venue} \u00b7 ${event.date} ${event.time}`, time: "now" },
         { sender: "You", text: opener, time: "now", isYou: true },
       ],

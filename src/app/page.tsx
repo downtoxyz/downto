@@ -80,6 +80,7 @@ export default function Home() {
   const [scrolledDown, setScrolledDown] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [onboardingFriendGate, setOnboardingFriendGate] = useState(false);
+  const [profileSetupDone, setProfileSetupDone] = useState(false);
   const [showFirstCheck, setShowFirstCheck] = useState(false);
   const [showAddGlow, setShowAddGlow] = useState(() => {
     if (typeof window !== "undefined") {
@@ -668,12 +669,13 @@ export default function Home() {
     );
   }
 
-  if (profile && !profile.onboarded && !profile.username) {
+  if (profile && !profile.onboarded && !profileSetupDone) {
     return (
       <ProfileSetupScreen
         profile={profile}
         onComplete={(updated) => {
           setProfile(updated);
+          setProfileSetupDone(true);
         }}
       />
     );
@@ -1341,6 +1343,7 @@ export default function Home() {
         onAddFriend={friendsHook.addFriend}
         onAcceptRequest={friendsHook.acceptRequest}
         onRemoveFriend={friendsHook.removeFriend}
+        onCancelRequest={friendsHook.cancelRequest}
         onSearchUsers={friendsHook.searchUsers}
         onViewProfile={(uid) => setViewingUserId(uid)}
         preventClose={onboardingFriendGate}

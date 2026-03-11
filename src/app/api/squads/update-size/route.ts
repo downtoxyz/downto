@@ -67,20 +67,11 @@ export async function POST(req: NextRequest) {
       .limit(spotsAvailable);
 
     if (waitlisted && waitlisted.length > 0) {
-      const idsToPromote = waitlisted.map((w) => w.id);
-      await adminClient
-        .from('squad_members')
-        .update({ role: 'member' })
-        .in('id', idsToPromote);
-
-      // Send system messages for promoted members
-      const messages = waitlisted.map((w) => ({
-        squad_id: squad.id,
-        sender_id: null,
-        text: `${(w.user as { display_name?: string })?.display_name ?? 'Someone'} joined from waitlist`,
-        is_system: true,
-      }));
-      await adminClient.from('messages').insert(messages);
+      // Promote one at a time using the race-safe RPC (skips already-promoted)
+      for (const w of waitlisted) {
+        const { data: promoted } = await adminClient.rpc('promote_waitlisted_member', { p_squad_id: squad.id });
+        if (!promoted) break; // no more room or no more waitlisted
+      }
     }
   }
 

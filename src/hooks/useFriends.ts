@@ -133,6 +133,20 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
     }
   };
 
+  const cancelRequest = async (id: string) => {
+    const person = suggestions.find((f) => f.id === id && f.status === "pending");
+    if (!person?.friendshipId) return;
+
+    try {
+      await db.removeFriend(person.friendshipId);
+      setSuggestions((prev) => prev.map((f) => f.id === id ? { ...f, status: "none" as const, friendshipId: undefined } : f));
+      showToast(`Cancelled request to ${person.name}`);
+    } catch (err) {
+      logError("cancelRequest", err, { friendId: person.id });
+      showToast("Failed to cancel request");
+    }
+  };
+
   const searchUsers = !isDemoMode && userId ? async (query: string) => {
     // Fetch search results + outgoing pending requests in parallel
     const [results, outgoing] = await Promise.all([
@@ -230,6 +244,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
     addFriend,
     acceptRequest,
     removeFriend,
+    cancelRequest,
     searchUsers,
   };
 }
