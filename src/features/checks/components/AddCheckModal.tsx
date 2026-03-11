@@ -72,8 +72,9 @@ export default function AddCheckModal({
   );
 
   const handleSendCheck = () => {
-    startTransition(() => {
-      createInterestCheckAction({ text, expiry, squadSize });
+    startTransition(async () => {
+      await createInterestCheckAction({ text, expiry, squadSize });
+      closeModal();
     });
   };
 

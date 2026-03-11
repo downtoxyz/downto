@@ -58,3 +58,28 @@ export async function createInterestCheck(
   revalidatePath('/feed');
   redirect('/feed');
 }
+
+export async function getActiveChecks(): Promise<InterestCheck[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('interest_checks')
+    .select(
+      `
+          *,
+          author:profiles!author_id(*),
+          responses:check_responses(*, user:profiles!user_id(*)),
+          squads(id, archived_at, members:squad_members(id, role)),
+          co_authors:check_co_authors(*, user:profiles!user_id(*))
+        `
+    )
+    .or(`expires_at.gt.${new Date().toISOString()},expires_at.is.null`)
+    .or(
+      `event_date.gte.${new Date().toISOString().slice(0, 10)},event_date.is.null`
+    )
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data as InterestCheck[]) ?? [];
+}

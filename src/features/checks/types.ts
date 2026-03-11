@@ -13,6 +13,7 @@ const RESPONSE = ['down', 'maybe'] as const;
 export type ResponseType = (typeof RESPONSE)[number];
 
 export type CheckResponse = Tables<'check_responses'> & {
+  response: ResponseType;
   user: Tables<'profiles'>;
 };
 
