@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, CSSProperties } from "react";
 import { font, color } from "@/lib/styles";
+import { useModalTransition } from "@/hooks/useModalTransition";
 import type { Event } from "@/lib/ui-types";
 
 const EditEventModal = ({
@@ -20,9 +21,9 @@ const EditEventModal = ({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [vibeText, setVibeText] = useState("");
+  const { visible, closing, close } = useModalTransition(open, onClose);
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
-  const [closing, setClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
@@ -38,15 +39,15 @@ const EditEventModal = ({
 
   // Lock body scroll when open
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  }, [visible]);
 
   const finishSwipe = () => {
     if (dragOffset > 60) {
-      setClosing(true);
-      setTimeout(() => { setClosing(false); setDragOffset(0); onClose(); }, 250);
+      setDragOffset(0);
+      close();
     } else {
       setDragOffset(0);
     }
@@ -63,7 +64,7 @@ const EditEventModal = ({
   };
   const handleScrollTouchEnd = () => { if (isDragging.current) finishSwipe(); };
 
-  if (!open || !event) return null;
+  if (!visible || !event) return null;
 
   const inputStyle: CSSProperties = {
     background: color.deep,
@@ -99,13 +100,15 @@ const EditEventModal = ({
       }}
     >
       <div
-        onClick={onClose}
+        onClick={close}
         style={{
           position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
+          opacity: closing ? 0 : 1,
+          transition: "opacity 0.25s ease",
         }}
       />
       <div

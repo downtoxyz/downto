@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import * as db from "@/lib/db";
 import { font, color } from "@/lib/styles";
 import { formatTimeAgo } from "@/lib/utils";
+import { useModalTransition } from "@/hooks/useModalTransition";
 import type { Tab } from "@/lib/ui-types";
 
 interface Notification {
@@ -39,19 +40,12 @@ const NotificationsPanel = ({
   friends: { id: string }[];
   onNavigate: (action: { type: "friends"; tab: "friends" | "add" } | { type: "groups"; squadId?: string } | { type: "feed"; checkId?: string }) => void;
 }) => {
+  const { visible, closing, close } = useModalTransition(open, onClose);
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
-  const [closing, setClosing] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
-
-  // Lock body scroll when panel is open
-  useEffect(() => {
-    if (!open) return;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, [open]);
 
   const handleSwipeStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -66,12 +60,8 @@ const NotificationsPanel = ({
   };
   const handleSwipeEnd = () => {
     if (dragOffset > 60) {
-      setClosing(true);
-      setTimeout(() => {
-        setClosing(false);
-        setDragOffset(0);
-        onClose();
-      }, 250);
+      setDragOffset(0);
+      close();
     } else {
       setDragOffset(0);
     }
@@ -98,7 +88,7 @@ const NotificationsPanel = ({
     }
   };
 
-  if (!open) return null;
+  if (!visible) return null;
 
   return (
     <div
@@ -112,13 +102,15 @@ const NotificationsPanel = ({
       }}
     >
       <div
-        onClick={onClose}
+        onClick={close}
         style={{
           position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
+          opacity: closing ? 0 : 1,
+          transition: "opacity 0.25s ease",
         }}
       />
       <div
