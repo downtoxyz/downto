@@ -70,7 +70,7 @@ export function usePullToRefresh({
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (isAnimatingRef.current) return;
     if (chatOpenRef.current) return;
-    if (window.scrollY > 0) {
+    if ((contentRef.current?.scrollTop ?? 0) > 0) {
       isPulling.current = false;
       if (pullOffsetRef.current > 0) applyPullOffset(0);
       return;

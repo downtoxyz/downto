@@ -69,15 +69,9 @@ const BottomNav = ({
   return (
     <div
       style={{
-        position: "fixed",
-        bottom: 0,
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: "100%",
-        maxWidth: 420,
-        background: `linear-gradient(transparent, ${color.bg} 30%)`,
-        padding: "20px 16px 16px",
-        zIndex: 50,
+        flexShrink: 0,
+        padding: "8px 16px 16px",
+        background: color.bg,
       }}
     >
       <div

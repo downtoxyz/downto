@@ -718,19 +718,7 @@ export default function Home() {
   }
 
   return (
-    <div>
-      {/* Fixed background behind header — covers Dynamic Island / notch gap.
-         top: -119 (not -120) so 1px peeks into the viewport — browsers cull
-         elements fully offscreen, which prevents the div from rendering. */}
-      <div style={{
-        position: "fixed",
-        top: -119,
-        left: 0,
-        right: 0,
-        height: 120,
-        background: color.bg,
-        zIndex: 49,
-      }} />
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh" }}>
       <Header
         unreadCount={notificationsHook.unreadCount}
         onOpenNotifications={() => {
@@ -752,8 +740,9 @@ export default function Home() {
       <div
         ref={contentRef}
         style={{
+          flex: 1,
+          overflowY: "auto",
           position: "relative",
-          paddingBottom: 90,
         }}
         onTouchStart={handlePullStart}
         onTouchMove={handlePullMove}
@@ -1089,7 +1078,7 @@ export default function Home() {
           tab={tab}
           onTabChange={(t) => {
             setTab(t);
-            window.scrollTo(0, 0);
+            contentRef.current?.scrollTo(0, 0);
             if (t === "groups") {
               if (!isDemoMode && userId) loadRealData();
             }
