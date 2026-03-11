@@ -3,6 +3,8 @@
 import AddCheckModal from '@/features/checks/components/AddCheckModal';
 import IconButton from '@/shared/components/IconButton';
 import { useModal } from '../../providers/ModalProvider';
+import NotificationsModal from '@/features/notifications/components/NotificationsModal';
+import { Notification } from '@/features/notifications/types';
 
 const BellSvgIcon = (
   <svg
@@ -17,10 +19,21 @@ const BellSvgIcon = (
 
 export default function HeaderActions({
   unreadCount,
+  notifications,
 }: {
   unreadCount: number;
+  notifications: Notification[];
 }) {
   const { openModal, closeModal } = useModal();
+
+  const openNotificationsModal = () => {
+    openModal(
+      <NotificationsModal
+        notifications={notifications}
+        closeModal={closeModal}
+      />
+    );
+  };
 
   const openAddCheckModal = () => {
     openModal(<AddCheckModal closeModal={closeModal} />);
@@ -32,7 +45,7 @@ export default function HeaderActions({
         type="stroke"
         badge={!!unreadCount}
         badgeCount={unreadCount}
-        onClick={() => {}}
+        onClick={openNotificationsModal}
         icon={BellSvgIcon}
       />
       <IconButton type="fill" onClick={openAddCheckModal} icon="+" />

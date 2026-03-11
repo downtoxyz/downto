@@ -65,11 +65,11 @@ export default function RootLayout({
           input, textarea, select { font-size: 16px !important; }
         `}</style>
       </head>
-      <body className="flex min-h-screen justify-center bg-neutral-950 font-mono font-normal text-neutral-500 antialiased">
+      <body className="h-full bg-neutral-950 font-mono font-normal text-neutral-500 antialiased">
         <Grain />
         <DevProdBanner />
         <UpdateBanner />
-        <div className="container mx-auto flex max-w-105 flex-col">
+        <div className="mx-auto flex h-dvh w-full max-w-105 flex-col">
           {children}
         </div>
       </body>
