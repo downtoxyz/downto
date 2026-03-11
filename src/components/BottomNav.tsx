@@ -70,7 +70,7 @@ const BottomNav = ({
     <div
       style={{
         flexShrink: 0,
-        padding: "8px 16px 16px",
+        padding: "0px 16px 16px",
         background: color.bg,
       }}
     >

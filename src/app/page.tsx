@@ -77,6 +77,7 @@ export default function Home() {
   // ─── Misc page-level state ──────────────────────────────────────────────
   const [squadChatOrigin, setSquadChatOrigin] = useState<Tab | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [scrolledDown, setScrolledDown] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [onboardingFriendGate, setOnboardingFriendGate] = useState(false);
   const [showFirstCheck, setShowFirstCheck] = useState(false);
@@ -349,7 +350,7 @@ export default function Home() {
     handleTouchEnd: handlePullEnd,
   } = usePullToRefresh({
     onRefresh: loadRealData,
-    enabledTabs: ["feed", "calendar"],
+    enabledTabs: ["feed", "calendar", "groups"],
     chatOpen,
     tab,
   });
@@ -736,17 +737,37 @@ export default function Home() {
         glowAdd={showAddGlow}
       />
 
-      {/* Scroll container */}
-      <div
-        ref={scrollRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-        }}
-        onTouchStart={handlePullStart}
-        onTouchMove={handlePullMove}
-        onTouchEnd={handlePullEnd}
-      >
+      {/* Scroll area with fade edges */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        {/* Top fade — visible when scrolled */}
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, height: 15,
+          background: `linear-gradient(${color.bg}, transparent)`,
+          zIndex: 10, pointerEvents: "none",
+          opacity: scrolledDown ? 1 : 0,
+          transition: "opacity 0.5s ease",
+        }} />
+        {/* Bottom fade */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 15,
+          background: `linear-gradient(transparent, ${color.bg})`,
+          zIndex: 10, pointerEvents: "none",
+        }} />
+        {/* Scroll container */}
+        <div
+          ref={scrollRef}
+          style={{
+            height: "100%",
+            overflowY: "auto",
+          }}
+          onScroll={() => {
+            const scrolled = (scrollRef.current?.scrollTop ?? 0) > 0;
+            if (scrolled !== scrolledDown) setScrolledDown(scrolled);
+          }}
+          onTouchStart={handlePullStart}
+          onTouchMove={handlePullMove}
+          onTouchEnd={handlePullEnd}
+        >
         {/* Inner wrapper — translated by pull-to-refresh */}
         <div ref={innerRef} style={{ position: "relative" }}>
         {/* Pull-to-refresh spinner */}
@@ -1074,6 +1095,7 @@ export default function Home() {
         )}
         </div>{/* end inner wrapper */}
       </div>{/* end scroll container */}
+      </div>{/* end scroll area with fades */}
 
       {!chatOpen && (
         <BottomNav
