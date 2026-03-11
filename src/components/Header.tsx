@@ -15,7 +15,7 @@ const Header = ({
 }) => (
   <div
     style={{
-      padding: "8px 20px 2px",
+      padding: "16px 20px 4px",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",

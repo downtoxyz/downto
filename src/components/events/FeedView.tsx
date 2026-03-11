@@ -175,7 +175,7 @@ export default function FeedView({
               style={{
                 display: "flex",
                 gap: 8,
-                marginBottom: 16,
+                margin: "8px 0 16px",
                 padding: "0 4px",
               }}
             >
