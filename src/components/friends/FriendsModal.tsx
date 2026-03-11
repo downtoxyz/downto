@@ -13,6 +13,7 @@ const FriendsModal = ({
   onAddFriend,
   onAcceptRequest,
   onRemoveFriend,
+  onCancelRequest,
   onSearchUsers,
   initialTab,
   onViewProfile,
@@ -25,6 +26,7 @@ const FriendsModal = ({
   onAddFriend: (id: string) => void;
   onAcceptRequest: (id: string) => void;
   onRemoveFriend?: (id: string) => void;
+  onCancelRequest?: (id: string) => void;
   onSearchUsers?: (query: string) => Promise<Friend[]>;
   initialTab?: "friends" | "add";
   onViewProfile?: (userId: string) => void;
@@ -540,7 +542,10 @@ const FriendsModal = ({
                             @{f.username}
                           </div>
                         </div>
-                        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
+                        <span
+                          onClick={() => onCancelRequest?.(f.id)}
+                          style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, cursor: onCancelRequest ? "pointer" : undefined, padding: "4px 8px", borderRadius: 6, border: `1px solid ${color.border}` }}
+                        >
                           Pending
                         </span>
                       </div>
@@ -669,13 +674,19 @@ const FriendsModal = ({
                       ) : (
                         <button
                           onClick={() => {
+                            if (f.status === "pending") {
+                              onCancelRequest?.(f.id);
+                              setSearchResults((prev) =>
+                                prev.map((r) => r.id === f.id ? { ...r, status: "none" as const } : r)
+                              );
+                              return;
+                            }
                             if (f.status !== "none") return;
                             onAddFriend(f.id);
                             setSearchResults((prev) =>
                               prev.map((r) => r.id === f.id ? { ...r, status: "pending" as const } : r)
                             );
                           }}
-                          disabled={f.status === "pending"}
                           style={{
                             background: f.status === "pending" ? "transparent" : color.accent,
                             color: f.status === "pending" ? color.dim : "#000",
@@ -685,7 +696,7 @@ const FriendsModal = ({
                             fontFamily: font.mono,
                             fontSize: 11,
                             fontWeight: 700,
-                            cursor: f.status === "pending" ? "default" : "pointer",
+                            cursor: "pointer",
                           }}
                         >
                           {f.status === "pending" ? "Requested" : "Add"}

@@ -1316,6 +1316,7 @@ export default function Home() {
         onAddFriend={friendsHook.addFriend}
         onAcceptRequest={friendsHook.acceptRequest}
         onRemoveFriend={friendsHook.removeFriend}
+        onCancelRequest={friendsHook.cancelRequest}
         onSearchUsers={friendsHook.searchUsers}
         onViewProfile={(uid) => setViewingUserId(uid)}
         preventClose={onboardingFriendGate}
