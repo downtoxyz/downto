@@ -83,7 +83,7 @@ const FriendsModal = ({
   };
   const handleScrollTouchEnd = () => { if (isDragging.current) finishSwipe(); };
 
-  const hasAddedFriend = friends.length > 0 || suggestions.some((s) => s.status === "pending" || s.status === "incoming");
+  const hasAddedFriend = friends.length > 0 || suggestions.some((s) => s.status === "pending" || s.status === "incoming") || searchResults.some((s) => s.status === "pending");
 
   const incomingRequests = suggestions.filter((s) => s.status === "incoming");
   const outgoingRequests = suggestions.filter((s) => s.status === "pending");
