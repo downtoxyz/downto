@@ -26,7 +26,7 @@ export default async function ProtectedLayout({
   return (
     <AuthProvider initialUser={user}>
       <ModalProvider>
-        <header className="sticky top-0 z-50 flex items-center justify-between bg-linear-to-b from-neutral-950 from-80% px-4 pt-5 pb-4">
+        <header className="flex shrink-0 items-center justify-between bg-linear-to-b from-neutral-950 from-80% px-4 pt-5 pb-4">
           <DownToLogo />
           <HeaderActions
             unreadCount={unreadCount}
@@ -34,9 +34,9 @@ export default async function ProtectedLayout({
           />
         </header>
 
-        <main className="flex-1 px-4">{children}</main>
+        <main className="flex-1 overflow-y-scroll px-4">{children}</main>
 
-        <footer className="sticky bottom-0 bg-linear-to-t from-neutral-950 from-70% px-4 py-5">
+        <footer className="shrink-0 bg-linear-to-t from-neutral-950 from-70% px-4 py-5">
           <nav className="bg-neutral-925 flex justify-around rounded-[1.125rem] border border-neutral-900 py-3">
             <NavLinks />
           </nav>

@@ -87,7 +87,6 @@ export default function AddCheckModal({
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={3}
-          autoFocus
         />
 
         <div>

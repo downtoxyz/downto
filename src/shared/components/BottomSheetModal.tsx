@@ -10,7 +10,7 @@ export default function BottomSheetModal({
   header?: React.ReactElement;
 }) {
   return (
-    <div className="fixed top-[calc(env(safe-area-inset-top))] right-0 bottom-[calc(env(safe-area-inset-bottom))] left-0 z-50 flex h-screen w-full items-end justify-center">
+    <div className="fixed inset-0 z-50 flex h-dvh items-end pb-[env(safe-area-inset-bottom)]">
       <div
         onClick={onClose}
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
