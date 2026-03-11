@@ -38,7 +38,6 @@ const BottomNav = ({
     const cell = (i: number) => `calc(${i} * (100% - 8px) / 4 + 4px)`;
     const cellW = "calc((100% - 8px) / 4)";
     const cellWExpanded = "calc((100% - 8px) / 4 + 20px)";
-    const movingRight = to > from;
 
     // Start from current position
     el.style.transition = "none";
@@ -46,11 +45,9 @@ const BottomNav = ({
     el.style.width = cellW;
     void el.offsetWidth;
 
-    // Slide + expand (expand shifts left by 10px to stay centered)
+    // Slide + expand (shift left by 10px to stay centered during stretch)
     el.style.transition = "left 0.15s ease-out, width 0.15s ease-out";
-    el.style.left = movingRight
-      ? `calc(${to} * (100% - 8px) / 4 + 4px - 10px)`
-      : `calc(${to} * (100% - 8px) / 4 + 4px - 10px)`;
+    el.style.left = `calc(${to} * (100% - 8px) / 4 + 4px - 10px)`;
     el.style.width = cellWExpanded;
 
     // Settle: shrink back to normal at final position
