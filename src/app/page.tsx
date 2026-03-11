@@ -340,7 +340,8 @@ export default function Home() {
 
   // ─── Pull-to-refresh ──────────────────────────────────────────────────
   const {
-    contentRef,
+    scrollRef,
+    innerRef,
     spinnerWrapRef,
     spinnerRef,
     handleTouchStart: handlePullStart,
@@ -735,20 +736,20 @@ export default function Home() {
         glowAdd={showAddGlow}
       />
 
-      {/* Pull-to-refresh indicator — outer div handles translateY, inner handles rotation */}
-      {/* Content */}
+      {/* Scroll container */}
       <div
-        ref={contentRef}
+        ref={scrollRef}
         style={{
           flex: 1,
           overflowY: "auto",
-          position: "relative",
         }}
         onTouchStart={handlePullStart}
         onTouchMove={handlePullMove}
         onTouchEnd={handlePullEnd}
       >
-        {/* Pull-to-refresh spinner — sits above content, moves with it */}
+        {/* Inner wrapper — translated by pull-to-refresh */}
+        <div ref={innerRef} style={{ position: "relative" }}>
+        {/* Pull-to-refresh spinner */}
         <div
           ref={spinnerWrapRef}
           style={{
@@ -1071,14 +1072,15 @@ export default function Home() {
             }}
           />
         )}
-      </div>
+        </div>{/* end inner wrapper */}
+      </div>{/* end scroll container */}
 
       {!chatOpen && (
         <BottomNav
           tab={tab}
           onTabChange={(t) => {
             setTab(t);
-            contentRef.current?.scrollTo(0, 0);
+            scrollRef.current?.scrollTo(0, 0);
             if (t === "groups") {
               if (!isDemoMode && userId) loadRealData();
             }
