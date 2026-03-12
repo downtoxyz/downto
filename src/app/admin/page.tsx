@@ -159,7 +159,7 @@ export default function AdminPage() {
       {/* Users tab */}
       {tab === "users" && (
         <>
-          <div style={{ display: "flex", gap: 12, marginBottom: 32 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 32 }}>
             <SummaryCard label="DAU Today" value={dauToday} />
             <SummaryCard label="Total Users" value={metrics.totalUsers} />
             <SummaryCard label="Onboarded" value={metrics.onboarded} />
@@ -266,7 +266,7 @@ export default function AdminPage() {
       {tab === "push" && (
         <>
           <h2 style={sectionHeader}>Delivery (24h)</h2>
-          <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
             <SummaryCard label="Sent" value={metrics.push.sent24h} />
             <SummaryCard label="Failed" value={metrics.push.failed24h} accent="#ff4444" />
             <SummaryCard label="Stale" value={metrics.push.stale24h} accent={color.muted} />
@@ -435,7 +435,7 @@ function SummaryCard({ label, value, accent: accentOverride }: { label: string; 
   return (
     <div
       style={{
-        flex: 1,
+        flex: "1 1 120px",
         backgroundColor: color.card,
         border: `1px solid ${color.borderLight}`,
         borderRadius: 8,
@@ -453,12 +453,13 @@ function SummaryCard({ label, value, accent: accentOverride }: { label: string; 
 }
 
 const containerStyle: React.CSSProperties = {
-  minHeight: "100dvh",
+  flex: 1,
   backgroundColor: color.bg,
   padding: "24px 16px",
   display: "flex",
   flexDirection: "column",
   maxWidth: 640,
+  width: "100%",
   margin: "0 auto",
   overflowY: "auto",
 };

@@ -42,10 +42,12 @@ export async function GET(request: NextRequest) {
     admin.from('version_pings')
       .select('user_id, build_id, created_at')
       .gte('created_at', since7d)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(10000),
     admin.from('version_pings')
       .select('user_id, created_at')
-      .gte('created_at', since30d),
+      .gte('created_at', since30d)
+      .limit(50000),
   ]);
 
   // Compute DAU from version_pings (30 days)
