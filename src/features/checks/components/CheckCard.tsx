@@ -103,7 +103,7 @@ export default function CheckCard({
           </div>
         </div>
         <div className="mb-3 flex-col items-start gap-1.5">
-          <p className="flex-1 font-serif text-lg leading-[1.4] text-white">
+          <p className="flex-1 font-serif text-lg leading-[1.4] wrap-break-word text-white">
             {text}
           </p>
           <p className="pt-2 text-xs text-neutral-500">
