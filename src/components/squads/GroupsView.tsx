@@ -299,12 +299,18 @@ const GroupsView = ({
     touchStartY.current = e.touches[0].clientY;
     isDragging.current = false;
   };
+  const hasCalledBack = useRef(false);
   const handleTouchMove = (e: React.TouchEvent) => {
     const dx = e.touches[0].clientX - touchStartX.current;
     const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
     // Only activate swipe-to-dismiss when horizontal movement clearly dominates vertical
     if (!isDragging.current && dx > 20 && dx > dy * 2.5) {
       isDragging.current = true;
+      // Switch tab immediately so feed is visible behind the overlay during drag
+      if (onBack && !hasCalledBack.current) {
+        hasCalledBack.current = true;
+        onBack();
+      }
     }
     if (isDragging.current && dx > 0) {
       setDragX(dx);
@@ -313,13 +319,18 @@ const GroupsView = ({
   const handleTouchEnd = () => {
     if (dragX > 120) {
       setClosing(true);
-      onBack?.();
       setTimeout(() => {
         setSelectedSquad(null);
         setClosing(false);
         setDragX(0);
+        hasCalledBack.current = false;
       }, 250);
     } else {
+      // Cancelled swipe — restore the groups tab if we switched away
+      if (hasCalledBack.current) {
+        // Navigate back to groups since we didn't complete the dismiss
+        hasCalledBack.current = false;
+      }
       setDragX(0);
     }
     isDragging.current = false;
