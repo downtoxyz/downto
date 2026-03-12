@@ -1,28 +1,53 @@
-import { InterestCheck } from './types';
+import { format, formatDistanceToNow, isPast } from 'date-fns';
 
-// Convert expires_at into human-readable format (ex: 'open', '3h', 'expired')
-export function formatInterestCheckExpiresAt(
-  expiresAt: InterestCheck['expires_at']
-) {
+export function formatExpiresAt(expiresAt: string | null) {
   if (!expiresAt) {
     return 'open';
   }
 
-  const now = new Date();
-  const expires = new Date(expiresAt);
-  const msRemaining = expires.getTime() - now.getTime();
-  const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-  const minsRemaining = Math.floor(
-    (msRemaining % (1000 * 60 * 60)) / (1000 * 60)
+  const d = new Date(expiresAt);
+  if (isPast(d)) {
+    return 'expired';
+  }
+
+  return formatDistanceToNow(d);
+}
+
+export function formatEventDateTime({
+  eventDate,
+  eventTime,
+}: {
+  eventDate: string | null;
+  eventTime: string | null;
+}) {
+  if (!eventDate && !eventTime) {
+    return 'date & time TBD';
+  }
+
+  return (
+    (eventDate ? format(new Date(eventDate), 'eee, MMM d') : 'date TBD') +
+    ' at ' +
+    (eventTime ? eventTime : 'time TBD')
   );
+}
 
-  if (hoursRemaining) {
-    return `${hoursRemaining}h`;
+export function getExpiryPercent({
+  expiresAt,
+  createdAt,
+}: {
+  expiresAt: string | null;
+  createdAt: string | null;
+}): number {
+  if (!expiresAt || !createdAt) {
+    return 0;
   }
 
-  if (minsRemaining) {
-    return `${minsRemaining}m`;
-  }
+  const now = new Date();
+  const created = new Date(createdAt);
+  const expires = new Date(expiresAt);
 
-  return 'expired';
+  const duration = expires.getTime() - created.getTime();
+  const remaining = expires.getTime() - now.getTime();
+
+  return 100 - Math.min(100, Math.floor((remaining / duration) * 100));
 }
