@@ -165,7 +165,7 @@ export default function AdminPage() {
       </h1>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -202,20 +202,22 @@ export default function AdminPage() {
           <div style={{ marginBottom: 32 }}>
             {days.map(({ date, dau }) => (
               <div key={date} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 72, flexShrink: 0 }}>
+                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 40, flexShrink: 0 }}>
                   {date.slice(5)}
                 </span>
-                <div
-                  style={{
-                    height: 14,
-                    width: dau > 0 ? `${(dau / maxDau) * 100}%` : 0,
-                    backgroundColor: color.accent,
-                    borderRadius: 2,
-                    minWidth: dau > 0 ? 4 : 0,
-                  }}
-                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      height: 14,
+                      width: dau > 0 ? `${(dau / maxDau) * 100}%` : 0,
+                      backgroundColor: color.accent,
+                      borderRadius: 2,
+                      minWidth: dau > 0 ? 4 : 0,
+                    }}
+                  />
+                </div>
                 {dau > 0 && (
-                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
+                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted, flexShrink: 0 }}>
                     {dau}
                   </span>
                 )}
@@ -227,20 +229,22 @@ export default function AdminPage() {
           <div style={{ marginBottom: 32 }}>
             {days.map(({ date, signups }) => (
               <div key={`s-${date}`} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 72, flexShrink: 0 }}>
+                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 40, flexShrink: 0 }}>
                   {date.slice(5)}
                 </span>
-                <div
-                  style={{
-                    height: 14,
-                    width: signups > 0 ? `${(signups / maxSignups) * 100}%` : 0,
-                    backgroundColor: color.accent,
-                    borderRadius: 2,
-                    minWidth: signups > 0 ? 4 : 0,
-                  }}
-                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      height: 14,
+                      width: signups > 0 ? `${(signups / maxSignups) * 100}%` : 0,
+                      backgroundColor: color.accent,
+                      borderRadius: 2,
+                      minWidth: signups > 0 ? 4 : 0,
+                    }}
+                  />
+                </div>
                 {signups > 0 && (
-                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
+                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted, flexShrink: 0 }}>
                     {signups}
                   </span>
                 )}
@@ -256,15 +260,15 @@ export default function AdminPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {metrics.recentSignups.map((u) => (
-                <div key={u.username} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${color.border}` }}>
-                  <div>
-                    <div style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>{u.display_name || u.username}</div>
+                <div key={u.username} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: `1px solid ${color.border}` }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontFamily: font.mono, fontSize: 12, color: color.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.display_name || u.username}</div>
                     <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>
                       @{u.username}
                       {u.created_at && <> · {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>}
                     </div>
                   </div>
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: u.onboarded ? color.accent : color.dim }}>
+                  <span style={{ fontFamily: font.mono, fontSize: 10, color: u.onboarded ? color.accent : color.dim, flexShrink: 0 }}>
                     {u.onboarded ? "onboarded" : "not onboarded"}
                   </span>
                 </div>
@@ -290,9 +294,9 @@ export default function AdminPage() {
               const maxActivity = Math.max(...engagementDays.map(d => d.checks + d.responses + d.comments + d.messages), 1);
               return (
                 <div key={date} style={{ marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>{date.slice(5)}</span>
-                    <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 2 }}>
+                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, flexShrink: 0 }}>{date.slice(5)}</span>
+                    <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {total > 0 && `${checks}c · ${responses}r · ${comments}cm · ${messages}m`}
                     </span>
                   </div>
@@ -365,12 +369,12 @@ export default function AdminPage() {
               <h2 style={sectionHeader}>Recent Failures</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {metrics.push.recentFailures.map((f, i) => (
-                  <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${color.border}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                  <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${color.border}`, minWidth: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, flexShrink: 0 }}>
                         {new Date(f.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                       </span>
-                      <span style={{ fontFamily: font.mono, fontSize: 11, color: f.status === "failed" ? "#ff4444" : color.muted }}>
+                      <span style={{ fontFamily: font.mono, fontSize: 11, color: f.status === "failed" ? "#ff4444" : color.muted, flexShrink: 0 }}>
                         {f.status}
                       </span>
                     </div>
@@ -443,12 +447,12 @@ export default function AdminPage() {
                         cursor: "pointer",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: msg ? 4 : 0 }}>
-                        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: msg ? 4 : 0 }}>
+                        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text, flexShrink: 0 }}>
                           <span style={{ color: color.faint, marginRight: 6 }}>{isExpanded ? "▾" : "▸"}</span>
                           {v.build_id ? v.build_id.slice(0, 7) : "—"}
                         </span>
-                        <span style={{ fontFamily: font.mono, fontSize: 11 }}>
+                        <span style={{ fontFamily: font.mono, fontSize: 11, flexShrink: 0 }}>
                           <span style={{ color: color.accent, fontWeight: 700 }}>{v.users}</span>
                           <span style={{ color: color.dim }}> users</span>
                           <span style={{ color: color.faint, marginLeft: 8 }}>{v.pings24h} 24h</span>
@@ -514,6 +518,7 @@ const containerStyle: React.CSSProperties = {
   maxWidth: 640,
   width: "100%",
   margin: "0 auto",
+  overflowX: "hidden",
   overflowY: "auto",
 };
 
