@@ -56,7 +56,7 @@ function VerifyOtp() {
         </p>
       </div>
 
-      <Form action={verifyAction}>
+      <Form action={verifyAction} className="flex flex-col gap-4">
         <FormInput type="hidden" name="email" value={email} />
         <FormInput
           label="Code"
