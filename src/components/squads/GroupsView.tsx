@@ -1983,15 +1983,15 @@ const GroupsView = ({
                 marginBottom: 8,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                 <span style={{ fontFamily: font.serif, fontSize: 17, color: color.text, fontWeight: 400 }}>
                   {g.name}
+                  {g.hasUnread && (
+                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", marginLeft: 6, verticalAlign: "middle" }} />
+                  )}
                 </span>
                 {g.isWaitlisted && (
-                  <span style={{ fontFamily: font.mono, fontSize: 9, color: color.faint, border: `1px solid ${color.border}`, borderRadius: 4, padding: "1px 5px" }}>waitlist</span>
-                )}
-                {g.hasUnread && (
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", flexShrink: 0 }} />
+                  <span style={{ fontFamily: font.mono, fontSize: 9, color: color.faint, border: `1px solid ${color.border}`, borderRadius: 4, padding: "1px 5px", flexShrink: 0, marginTop: 5 }}>waitlist</span>
                 )}
               </div>
               <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, flexShrink: 0 }}>
