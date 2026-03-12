@@ -30,7 +30,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const sizeVariants = {
     small: 'text-tiny rounded-lg py-[0.4rem] px-[0.625rem]',
-    medium: 'text-xs rounded-lg py-1 px-[0.875rem]',
+    medium: 'text-xs rounded-lg p-2.5',
     large: 'text-sm rounded-xl p-4 uppercase tracking-widest',
   };
 

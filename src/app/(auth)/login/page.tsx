@@ -31,7 +31,11 @@ export default function LoginPage() {
           <p className="text-red-500">{error}</p>
         </div>
       )}
-      <Form action={sendCodeAction} autoComplete="off">
+      <Form
+        action={sendCodeAction}
+        autoComplete="off"
+        className="flex flex-col gap-4"
+      >
         <FormInput
           label="Email"
           name="email"
