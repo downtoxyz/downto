@@ -20,7 +20,7 @@ export default async function ProtectedLayout({
   if (!user) {
     // Proxy should automatically redirect unauthed user
     // But just in case, let's redirect here
-    redirect('/feed');
+    redirect('/login');
   }
 
   const unreadCountPromise = getUnreadCount({ userId: user?.id });
