@@ -63,6 +63,7 @@ export interface InterestCheck {
   coAuthors?: { userId: string; name: string; avatar: string; status: 'pending' | 'accepted' | 'declined' }[];
   isCoAuthor?: boolean;
   pendingTagForYou?: boolean;
+  commentCount?: number;
 }
 
 export interface ScrapedEvent {
