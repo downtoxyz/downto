@@ -113,6 +113,7 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
   const [hiddenCheckIds, setHiddenCheckIds] = useState<Set<string>>(new Set());
   const [pendingDownCheckIds, setPendingDownCheckIds] = useState<Set<string>>(new Set());
   const [newlyAddedCheckId, setNewlyAddedCheckId] = useState<string | null>(null);
+  const [leftChecks, setLeftChecks] = useState<InterestCheck[]>([]);
 
   const loadChecks = useCallback(async () => {
     if (isDemoMode || !userId) return;
@@ -368,6 +369,44 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     }
   };
 
+  const hydrateLeftChecks = useCallback((raw: Awaited<ReturnType<typeof db.getLeftChecks>>) => {
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const filtered = raw.filter((r) => {
+      if (!r.check) return false;
+      // Filter out expired checks
+      if (r.check.expires_at && new Date(r.check.expires_at) < now) return false;
+      // Filter out past-date checks
+      if (r.check.event_date && r.check.event_date < todayIso) return false;
+      return true;
+    });
+    setLeftChecks(filtered.map((r) => ({
+      id: r.check.id,
+      text: r.check.text,
+      author: r.check.author.display_name,
+      authorId: r.check.author_id,
+      timeAgo: '',
+      expiresIn: '',
+      expiryPercent: 0,
+      responses: [],
+      isYours: false,
+      eventDate: r.check.event_date ?? undefined,
+      eventDateLabel: r.check.event_date
+        ? new Date(r.check.event_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        : undefined,
+      eventTime: r.check.event_time ?? undefined,
+    })));
+  }, []);
+
+  const redownFromLeft = useCallback((checkId: string) => {
+    // Optimistically remove from leftChecks
+    setLeftChecks((prev) => prev.filter((c) => c.id !== checkId));
+    // Re-down via normal flow
+    respondToCheck(checkId, 'down');
+    // Backup: explicitly remove left_checks row (trigger should handle it, but be safe)
+    db.removeLeftCheck(checkId).catch((err) => logError('removeLeftCheck', err, { checkId }));
+  }, [respondToCheck]);
+
   const hideCheck = async (checkId: string) => {
     setHiddenCheckIds((prev) => new Set(prev).add(checkId));
     if (!isDemoMode) {
@@ -410,5 +449,8 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     declineCoAuthorTag,
     hideCheck,
     unhideCheck,
+    leftChecks,
+    hydrateLeftChecks,
+    redownFromLeft,
   };
 }

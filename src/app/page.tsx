@@ -177,6 +177,7 @@ export default function Home() {
         hiddenIds,
         fofAnnotations,
         archivedChecksList,
+        leftChecksList,
       ] = await Promise.all([
         db.getSavedEvents(),
         db.getPublicEvents(),
@@ -190,6 +191,7 @@ export default function Home() {
         db.getHiddenCheckIds().catch((err) => { logWarn("loadHiddenChecks", "Failed", { error: err }); return [] as string[]; }),
         db.getFofAnnotations().catch((err) => { logWarn("loadFofAnnotations", "Failed", { error: err }); return [] as { check_id: string; via_friend_name: string }[]; }),
         db.getArchivedChecks().catch((err) => { logWarn("loadArchivedChecks", "Failed", { error: err }); return [] as { id: string; text: string; archived_at: string }[]; }),
+        db.getLeftChecks().catch((err) => { logWarn("loadLeftChecks", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getLeftChecks>>; }),
       ]);
 
       // Phase 2: Transform events (stays in page.tsx)
@@ -296,6 +298,7 @@ export default function Home() {
       checksHook.hydrateChecks(activeChecks, hiddenIds, fofAnnotations);
       squadsHook.hydrateSquads(squadsList);
       setArchivedChecks(archivedChecksList);
+      checksHook.hydrateLeftChecks(leftChecksList);
 
       // Hydrate comment counts
       const activeCheckIds = activeChecks.map(c => c.id);
@@ -893,6 +896,8 @@ export default function Home() {
             onEditEvent={(e) => setEditingEvent(e)}
             userId={userId ?? undefined}
             isDemoMode={isDemoMode}
+            leftChecks={checksHook.leftChecks}
+            onRedownFromLeft={checksHook.redownFromLeft}
           />
         )}
         {feedLoaded && tab === "groups" && (
@@ -906,6 +911,7 @@ export default function Home() {
             }}
             onLeaveSquad={async (squadDbId) => {
               await db.leaveSquad(squadDbId);
+              await loadRealData();
             }}
             onSetSquadDate={async (squadDbId, date, time, locked) => {
               const token = (await supabase.auth.getSession()).data.session?.access_token;

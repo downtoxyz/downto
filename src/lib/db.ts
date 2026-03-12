@@ -765,6 +765,58 @@ export function subscribeToChecks(
 }
 
 // ============================================================================
+// LEFT CHECKS
+// ============================================================================
+
+export async function getLeftChecks() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('left_checks')
+    .select(`
+      check_id,
+      left_at,
+      check:interest_checks!check_id (
+        id,
+        text,
+        author_id,
+        event_date,
+        event_time,
+        expires_at,
+        author:profiles!author_id ( display_name, avatar_letter )
+      )
+    `)
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+  return (data ?? []) as unknown as {
+    check_id: string;
+    left_at: string;
+    check: {
+      id: string;
+      text: string;
+      author_id: string;
+      event_date: string | null;
+      event_time: string | null;
+      expires_at: string | null;
+      author: { display_name: string; avatar_letter: string };
+    };
+  }[];
+}
+
+export async function removeLeftCheck(checkId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from('left_checks')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('check_id', checkId);
+}
+
+// ============================================================================
 // CHECK CO-AUTHORS
 // ============================================================================
 

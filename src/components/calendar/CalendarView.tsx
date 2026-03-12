@@ -17,6 +17,8 @@ const CalendarView = ({
   onEditEvent,
   userId,
   isDemoMode,
+  leftChecks = [],
+  onRedownFromLeft,
 }: {
   events: Event[];
   checks?: InterestCheck[];
@@ -27,6 +29,8 @@ const CalendarView = ({
   onEditEvent?: (event: Event) => void;
   userId?: string;
   isDemoMode?: boolean;
+  leftChecks?: InterestCheck[];
+  onRedownFromLeft?: (checkId: string) => void;
 }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
@@ -402,6 +406,96 @@ const CalendarView = ({
                 </div>
               );
             }
+          })}
+        </>
+      )}
+
+      {leftChecks.length > 0 && !selectedDateKey && (
+        <>
+          <div
+            style={{
+              fontFamily: font.mono,
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: "0.15em",
+              color: color.dim,
+              marginTop: 24,
+              marginBottom: 12,
+            }}
+          >
+            Left ({leftChecks.length})
+          </div>
+          {leftChecks.map((c) => {
+            const cardDate = c.eventDate ? formatCheckCardDate(c.eventDate) : null;
+            return (
+              <div
+                key={`left-${c.id}`}
+                style={{
+                  background: color.card,
+                  borderRadius: 14,
+                  padding: 16,
+                  marginBottom: 8,
+                  border: `1px solid ${color.border}`,
+                  display: "flex",
+                  gap: 14,
+                  alignItems: "center",
+                  opacity: 0.6,
+                }}
+              >
+                {cardDate && (
+                  <div style={{ minWidth: 44, textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontFamily: font.mono,
+                        fontSize: 9,
+                        color: color.faint,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {cardDate.label}
+                    </div>
+                    <div style={{ fontFamily: font.serif, fontSize: 26, color: color.muted }}>
+                      {cardDate.day}
+                    </div>
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontFamily: font.serif,
+                      fontSize: 16,
+                      color: color.muted,
+                      marginBottom: 2,
+                      fontWeight: 400,
+                    }}
+                  >
+                    {c.text}
+                  </div>
+                  <div style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>
+                    {c.author}{c.eventTime ? ` · ${c.eventTime}` : ""}
+                  </div>
+                </div>
+                <button
+                  onClick={() => onRedownFromLeft?.(c.id)}
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: color.accent,
+                    background: "transparent",
+                    border: `1px solid ${color.borderMid}`,
+                    borderRadius: 12,
+                    padding: "8px 14px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Re-down
+                </button>
+              </div>
+            );
           })}
         </>
       )}
