@@ -8,6 +8,7 @@ import {
 import { AuthProvider } from '../providers/AuthProvider';
 import { getUser } from '@/features/auth/services/auth';
 import ModalProvider from '../providers/ModalProvider';
+import { redirect } from 'next/navigation';
 
 export default async function ProtectedLayout({
   children,
@@ -15,6 +16,13 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const user = await getUser();
+
+  if (!user) {
+    // Proxy should automatically redirect unauthed user
+    // But just in case, let's redirect here
+    redirect('/feed');
+  }
+
   const unreadCountPromise = getUnreadCount({ userId: user?.id });
   const notificationsPromise = getNotifications({ userId: user?.id });
 

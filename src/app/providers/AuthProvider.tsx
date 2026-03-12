@@ -11,25 +11,29 @@ import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 
 type AuthContextType = {
-  user: User | null;
+  user: User;
   isLoading: boolean;
 };
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isLoading: true,
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('Missing Auth context');
+  }
+
+  return context;
+};
 
 export function AuthProvider({
   children,
   initialUser,
 }: {
   children: ReactNode;
-  initialUser: User | null;
+  initialUser: User;
 }) {
-  const [user, setUser] = useState<User | null>(initialUser);
+  const [user, setUser] = useState<User>(initialUser);
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
 
@@ -42,7 +46,7 @@ export function AuthProvider({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
+      if (session) setUser(session.user);
     });
 
     return () => subscription.unsubscribe();

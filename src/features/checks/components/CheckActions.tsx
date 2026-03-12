@@ -21,26 +21,24 @@ export default function CheckActions({
 
   const handleCheckResponse = (res: ResponseType) => {
     const updatedResponse = res === response ? null : res;
-    if (user) {
-      startTransition(async () => {
-        setOptimisticResponse(updatedResponse);
+    startTransition(async () => {
+      setOptimisticResponse(updatedResponse);
 
-        if (updatedResponse) {
-          await updateCheckResponse({
-            userId: user.id,
-            checkId,
-            response: updatedResponse,
-          });
-        } else {
-          await removeCheckResponse({
-            userId: user.id,
-            checkId,
-          });
-        }
+      if (updatedResponse) {
+        await updateCheckResponse({
+          userId: user.id,
+          checkId,
+          response: updatedResponse,
+        });
+      } else {
+        await removeCheckResponse({
+          userId: user.id,
+          checkId,
+        });
+      }
 
-        setResponse(updatedResponse);
-      });
-    }
+      setResponse(updatedResponse);
+    });
   };
 
   return (
