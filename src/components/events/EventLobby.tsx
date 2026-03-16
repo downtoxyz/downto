@@ -428,7 +428,7 @@ const EventLobby = ({
           )}
 
           {/* Looking for a squad toggle — always visible when not selecting */}
-          {!isSelecting && !isDemoMode && (
+          {!isSelecting && !isDemoMode && !existingSquadId && (
             <button
               onClick={() => onJoinSquadPool(event)}
               style={{
