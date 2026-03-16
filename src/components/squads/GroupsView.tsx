@@ -1206,54 +1206,6 @@ const GroupsView = ({
                     >
                       {msg.text}
                     </span>
-                    {dateConfirmStatus === 'pending' && !confirmLoading && (
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
-                        <button
-                          onClick={async () => {
-                            if (!selectedSquad?.id || confirmLoading) return;
-                            setConfirmLoading(true);
-                            try {
-                              await onConfirmDate?.(selectedSquad.id, 'yes');
-                              setDateConfirmStatus('yes');
-                              if (userId) setDateConfirms((prev) => new Map(prev).set(userId, 'yes'));
-                            } catch (err) {
-                              logError('dateConfirm', err);
-                            } finally {
-                              setConfirmLoading(false);
-                            }
-                          }}
-                          style={{
-                            background: color.accent,
-                            color: '#000',
-                            border: 'none',
-                            borderRadius: 10,
-                            padding: '6px 16px',
-                            fontFamily: font.mono,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          STILL DOWN
-                        </button>
-                        <button
-                          onClick={() => setShowImOutConfirm(true)}
-                          style={{
-                            background: 'transparent',
-                            color: color.text,
-                            border: `1px solid ${color.borderMid}`,
-                            borderRadius: 10,
-                            padding: '6px 16px',
-                            fontFamily: font.mono,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          I'M OUT
-                        </button>
-                      </div>
-                    )}
                     {confirmLoading && (
                       <div style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, marginTop: 6 }}>...</div>
                     )}
@@ -1493,6 +1445,72 @@ const GroupsView = ({
         <div style={{
           borderTop: `1px solid ${color.border}`,
         }}>
+          {/* Sticky date confirm bar */}
+          {dateConfirmStatus === 'pending' && !confirmLoading && (
+            <div style={{
+              borderTop: `1px solid ${color.border}`,
+              padding: '12px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10,
+              background: color.card,
+            }}>
+              <span style={{
+                fontFamily: font.mono,
+                fontSize: 10,
+                color: color.dim,
+              }}>
+                are you still down?
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={async () => {
+                    if (!selectedSquad?.id || confirmLoading) return;
+                    setConfirmLoading(true);
+                    try {
+                      await onConfirmDate?.(selectedSquad.id, 'yes');
+                      setDateConfirmStatus('yes');
+                      if (userId) setDateConfirms((prev) => new Map(prev).set(userId, 'yes'));
+                    } catch (err) {
+                      logError('dateConfirm', err);
+                    } finally {
+                      setConfirmLoading(false);
+                    }
+                  }}
+                  style={{
+                    background: color.accent,
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '6px 16px',
+                    fontFamily: font.mono,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  STILL DOWN
+                </button>
+                <button
+                  onClick={() => setShowImOutConfirm(true)}
+                  style={{
+                    background: 'transparent',
+                    color: color.text,
+                    border: `1px solid ${color.borderMid}`,
+                    borderRadius: 10,
+                    padding: '6px 16px',
+                    fontFamily: font.mono,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  I&apos;M OUT
+                </button>
+              </div>
+            </div>
+          )}
           {/* Active poll chip */}
           {activePoll?.status === 'active' && (
             <div
