@@ -554,6 +554,9 @@ export default function Home() {
         } else if (nType === 'squad_message' || nType === 'squad_invite') {
           if (relatedId) squadsHook.setAutoSelectSquadId(relatedId);
           setTab('groups');
+        } else if (nType === 'date_confirm') {
+          if (relatedId) squadsHook.setAutoSelectSquadId(relatedId);
+          setTab('groups');
         } else if (nType === 'check_response' || nType === 'friend_check' || nType === 'check_tag') {
           setTab('feed');
           setFeedMode('foryou');
