@@ -1064,6 +1064,15 @@ export default function Home() {
             onViewProfile={(uid) => setViewingUserId(uid)}
             onChatOpen={setChatOpen}
             onSquadRead={() => notificationsHook.setUnreadSquadCount((prev) => Math.max(0, prev - 1))}
+            onCreatePoll={async (squadId, question, options) => {
+              await db.createPoll(squadId, question, options);
+            }}
+            onVotePoll={async (pollId, optionIndex) => {
+              await db.votePoll(pollId, optionIndex);
+            }}
+            onClosePoll={async (pollId) => {
+              await db.closePoll(pollId);
+            }}
             onBack={squadChatOrigin ? () => {
               setTab(squadChatOrigin);
               setSquadChatOrigin(null);

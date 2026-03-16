@@ -81,6 +81,9 @@ const GroupsView = ({
   onSetMemberRole,
   onKickMember,
   onSquadRead,
+  onCreatePoll,
+  onVotePoll,
+  onClosePoll,
 }: {
   squads: Squad[];
   onSquadUpdate: (squadsOrUpdater: Squad[] | ((prev: Squad[]) => Squad[])) => void;
@@ -100,6 +103,9 @@ const GroupsView = ({
   onSetMemberRole?: (squadId: string, userId: string, role: 'member' | 'waitlist') => Promise<void>;
   onKickMember?: (squadId: string, userId: string) => Promise<void>;
   onSquadRead?: () => void;
+  onCreatePoll?: (squadId: string, question: string, options: string[]) => Promise<void>;
+  onVotePoll?: (pollId: string, optionIndex: number) => Promise<void>;
+  onClosePoll?: (pollId: string) => Promise<void>;
 }) => {
   const onSquadUpdateRef = useRef(onSquadUpdate);
   onSquadUpdateRef.current = onSquadUpdate;
@@ -125,6 +131,18 @@ const GroupsView = ({
   const [confirmLoading, setConfirmLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [chatHeight, setChatHeight] = useState<string>("100dvh");
+
+  // Poll state
+  const [activePoll, setActivePoll] = useState<{
+    id: string; messageId: string; question: string;
+    options: string[]; status: string; createdBy: string;
+  } | null>(null);
+  const [pollVotes, setPollVotes] = useState<Map<string, { optionIndex: number; displayName: string }>>(new Map());
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [pollCreating, setPollCreating] = useState(false);
+  const pollMessageRef = useRef<HTMLDivElement>(null);
 
   // Track visual viewport so the chat stays visible when the iOS keyboard opens
   useEffect(() => {
@@ -194,6 +212,54 @@ const GroupsView = ({
     }).catch(() => {});
   }, [selectedSquad?.id, selectedSquad?.dateStatus, userId]);
 
+  // Load active poll when entering a squad
+  useEffect(() => {
+    if (!selectedSquad?.id) {
+      setActivePoll(null);
+      setPollVotes(new Map());
+      return;
+    }
+    let stale = false;
+    db.getSquadPolls(selectedSquad.id).then((polls) => {
+      if (stale) return;
+      const active = polls.find((p: { status: string }) => p.status === 'active');
+      if (active) {
+        setActivePoll({
+          id: active.id,
+          messageId: active.message_id,
+          question: active.question,
+          options: active.options as string[],
+          status: active.status,
+          createdBy: active.created_by,
+        });
+        db.getPollVotes(active.id).then((votes) => {
+          if (stale) return;
+          const map = new Map<string, { optionIndex: number; displayName: string }>();
+          for (const v of votes) map.set(v.userId, { optionIndex: v.optionIndex, displayName: v.displayName });
+          setPollVotes(map);
+        }).catch(() => {});
+      } else {
+        setActivePoll(null);
+        setPollVotes(new Map());
+      }
+    }).catch(() => {});
+    return () => { stale = true; };
+  }, [selectedSquad?.id]);
+
+  // Realtime subscription for poll votes
+  useEffect(() => {
+    if (!activePoll?.id || activePoll.status !== 'active') return;
+    const channel = db.subscribeToPollVotes(activePoll.id, (payload) => {
+      // Refetch all votes to get display names
+      db.getPollVotes(activePoll.id).then((votes) => {
+        const map = new Map<string, { optionIndex: number; displayName: string }>();
+        for (const v of votes) map.set(v.userId, { optionIndex: v.optionIndex, displayName: v.displayName });
+        setPollVotes(map);
+      }).catch(() => {});
+    });
+    return () => { channel.unsubscribe(); };
+  }, [activePoll?.id, activePoll?.status]);
+
   // Fetch fresh messages when chat opens (covers gap before realtime subscribes)
   useEffect(() => {
     if (!selectedSquad?.id) return;
@@ -206,6 +272,7 @@ const GroupsView = ({
         time: formatTimeAgo(new Date(msg.created_at)),
         isYou: msg.sender_id === userId,
         ...(msg.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: msg.id } : {}),
+        ...(msg.message_type === 'poll' ? { messageType: 'poll' as const, messageId: msg.id } : {}),
       }));
       const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
       setSelectedSquad((prev) => {
@@ -230,7 +297,25 @@ const GroupsView = ({
         time: "now",
         isYou: false,
         ...(newMessage.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: newMessage.id } : {}),
+        ...(newMessage.message_type === 'poll' ? { messageType: 'poll' as const, messageId: newMessage.id } : {}),
       };
+      // Refresh poll data when a poll message arrives
+      if (newMessage.message_type === 'poll' && selectedSquad?.id) {
+        db.getSquadPolls(selectedSquad.id).then((polls) => {
+          const active = polls.find((p: { status: string }) => p.status === 'active');
+          if (active) {
+            setActivePoll({
+              id: active.id, messageId: active.message_id, question: active.question,
+              options: active.options as string[], status: active.status, createdBy: active.created_by,
+            });
+            db.getPollVotes(active.id).then((votes) => {
+              const map = new Map<string, { optionIndex: number; displayName: string }>();
+              for (const v of votes) map.set(v.userId, { optionIndex: v.optionIndex, displayName: v.displayName });
+              setPollVotes(map);
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
       const lastMsgPreview = isSystem ? newMessage.text : `${senderName}: ${newMessage.text}`;
       setSelectedSquad((prev) => {
         if (!prev || prev.id !== newMessage.squad_id) return prev;
@@ -1186,6 +1271,131 @@ const GroupsView = ({
                 );
               }
 
+              // Poll message — render inline poll card
+              if (msg.messageType === 'poll' && activePoll && msg.messageId === activePoll.messageId) {
+                const totalVotes = pollVotes.size;
+                const myVote = userId ? pollVotes.get(userId) : undefined;
+                const isClosed = activePoll.status === 'closed';
+                const isCreator = userId === activePoll.createdBy;
+                return (
+                  <div key={i} ref={pollMessageRef} style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+                    <div style={{
+                      background: color.card,
+                      border: `1px solid ${color.borderMid}`,
+                      borderRadius: 14,
+                      padding: 16,
+                      maxWidth: 300,
+                      width: '100%',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                        <span style={{ fontSize: 16 }}>📊</span>
+                        <span style={{ fontFamily: font.serif, fontSize: 16, color: color.text }}>{activePoll.question}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {activePoll.options.map((opt, oi) => {
+                          const isMyVote = myVote?.optionIndex === oi;
+                          const votersForOption = Array.from(pollVotes.values()).filter((v) => v.optionIndex === oi);
+                          const count = votersForOption.length;
+                          const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                          const canVote = !isClosed && !selectedSquad.isWaitlisted;
+                          return (
+                            <div
+                              key={oi}
+                              onClick={canVote ? async () => {
+                                if (!activePoll?.id) return;
+                                // Optimistic update
+                                setPollVotes((prev) => {
+                                  const next = new Map(prev);
+                                  if (userId) next.set(userId, { optionIndex: oi, displayName: 'You' });
+                                  return next;
+                                });
+                                try { await onVotePoll?.(activePoll.id, oi); } catch {}
+                              } : undefined}
+                              style={{
+                                position: 'relative',
+                                border: isMyVote ? 'none' : `1px solid ${color.borderMid}`,
+                                background: isMyVote ? color.accent : 'transparent',
+                                borderRadius: 10,
+                                padding: '8px 12px',
+                                cursor: canVote ? 'pointer' : 'default',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {/* Percentage bar background */}
+                              {totalVotes > 0 && (
+                                <div style={{
+                                  position: 'absolute',
+                                  left: 0, top: 0, bottom: 0,
+                                  width: `${pct}%`,
+                                  background: isMyVote ? 'rgba(0,0,0,0.1)' : `${color.accent}15`,
+                                  borderRadius: 10,
+                                  transition: 'width 0.3s ease',
+                                }} />
+                              )}
+                              <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{
+                                  fontFamily: font.mono,
+                                  fontSize: 12,
+                                  color: isMyVote ? '#000' : color.text,
+                                  fontWeight: isMyVote ? 700 : 400,
+                                }}>{opt}</span>
+                                {totalVotes > 0 && (
+                                  <span style={{
+                                    fontFamily: font.mono,
+                                    fontSize: 10,
+                                    color: isMyVote ? '#000' : color.dim,
+                                    fontWeight: 700,
+                                  }}>{pct}%</span>
+                                )}
+                              </div>
+                              {count > 0 && (
+                                <div style={{
+                                  position: 'relative',
+                                  fontFamily: font.mono,
+                                  fontSize: 10,
+                                  color: isMyVote ? 'rgba(0,0,0,0.6)' : color.faint,
+                                  marginTop: 2,
+                                }}>
+                                  {votersForOption.map((v) => v.displayName === 'You' || v.displayName === (userId ? 'You' : '') ? 'You' : v.displayName).join(', ')}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
+                          {totalVotes} vote{totalVotes !== 1 ? 's' : ''}{isClosed ? ' · closed' : ''}
+                        </span>
+                        {isCreator && !isClosed && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await onClosePoll?.(activePoll.id);
+                                setActivePoll((prev) => prev ? { ...prev, status: 'closed' } : prev);
+                              } catch {}
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: `1px solid ${color.borderMid}`,
+                              borderRadius: 8,
+                              padding: '4px 10px',
+                              fontFamily: font.mono,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: color.dim,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            CLOSE POLL
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               // Regular system message
               return (
                 <div
@@ -1280,65 +1490,131 @@ const GroupsView = ({
             </span>
           </div>
         ) : (
-        <div
-          style={{
-            padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
-            borderTop: `1px solid ${color.border}`,
-            display: "flex",
-            gap: 8,
-          }}
-        >
-          <textarea
-            ref={msgInputRef}
-            value={newMsg}
-            onChange={(e) => {
-              setNewMsg(e.target.value);
-              e.target.style.height = "auto";
-              e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            enterKeyHint="send"
-            placeholder="Message..."
-            rows={1}
+        <div style={{
+          borderTop: `1px solid ${color.border}`,
+        }}>
+          {/* Active poll chip */}
+          {activePoll?.status === 'active' && (
+            <div
+              onClick={() => pollMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 20px',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: color.card,
+                border: `1px solid ${color.accent}`,
+                borderRadius: 20,
+                padding: '6px 12px',
+                flex: 1,
+                minWidth: 0,
+              }}>
+                <span style={{ fontSize: 12, flexShrink: 0 }}>📊</span>
+                <span style={{
+                  fontFamily: font.mono,
+                  fontSize: 11,
+                  color: color.text,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                }}>{activePoll.question}</span>
+                <span style={{
+                  fontFamily: font.mono,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: color.accent,
+                  flexShrink: 0,
+                }}>{pollVotes.size}</span>
+              </div>
+            </div>
+          )}
+          {/* Input row */}
+          <div
             style={{
-              flex: 1,
-              background: color.card,
-              border: `1px solid ${color.borderMid}`,
-              borderRadius: 20,
-              padding: "10px 16px",
-              color: color.text,
-              fontFamily: font.mono,
-              fontSize: 16,
-              outline: "none",
-              resize: "none",
-              maxHeight: 120,
-              lineHeight: 1.4,
-              overflowY: "auto",
-            }}
-          />
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={handleSend}
-            disabled={!newMsg.trim()}
-            style={{
-              background: newMsg.trim() ? color.accent : color.borderMid,
-              color: newMsg.trim() ? "#000" : color.dim,
-              border: "none",
-              borderRadius: "50%",
-              width: 40,
-              height: 40,
-              cursor: newMsg.trim() ? "pointer" : "default",
-              fontWeight: 700,
-              fontSize: 16,
+              padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
+              display: "flex",
+              gap: 8,
+              alignItems: "flex-end",
             }}
           >
-            ↑
-          </button>
+            {/* Poll create button — show when no active poll */}
+            {(!activePoll || activePoll.status === 'closed') && onCreatePoll && (
+              <button
+                onClick={() => setShowPollCreator(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: 20,
+                  opacity: 0.6,
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                  marginBottom: 8,
+                }}
+              >
+                📊
+              </button>
+            )}
+            <textarea
+              ref={msgInputRef}
+              value={newMsg}
+              onChange={(e) => {
+                setNewMsg(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              enterKeyHint="send"
+              placeholder="Message..."
+              rows={1}
+              style={{
+                flex: 1,
+                background: color.card,
+                border: `1px solid ${color.borderMid}`,
+                borderRadius: 20,
+                padding: "10px 16px",
+                color: color.text,
+                fontFamily: font.mono,
+                fontSize: 16,
+                outline: "none",
+                resize: "none",
+                maxHeight: 120,
+                lineHeight: 1.4,
+                overflowY: "auto",
+              }}
+            />
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleSend}
+              disabled={!newMsg.trim()}
+              style={{
+                background: newMsg.trim() ? color.accent : color.borderMid,
+                color: newMsg.trim() ? "#000" : color.dim,
+                border: "none",
+                borderRadius: "50%",
+                width: 40,
+                height: 40,
+                cursor: newMsg.trim() ? "pointer" : "default",
+                fontWeight: 700,
+                fontSize: 16,
+              }}
+            >
+              ↑
+            </button>
+          </div>
         </div>
         )}
         </div>{/* end blur wrapper */}
@@ -1919,6 +2195,173 @@ const GroupsView = ({
           </div>
         )}
       </div>
+
+      {/* Poll creation modal */}
+      {showPollCreator && (
+        <div
+          onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); }}
+          style={{
+            position: "fixed",
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: color.deep,
+              border: `1px solid ${color.border}`,
+              borderRadius: 16,
+              padding: "24px 20px",
+              maxWidth: 340,
+              width: "90%",
+            }}
+          >
+            <h3 style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 16, textAlign: 'center' }}>
+              Create a poll
+            </h3>
+            <input
+              value={pollQuestion}
+              onChange={(e) => setPollQuestion(e.target.value)}
+              placeholder="What's the question?"
+              style={{
+                width: '100%',
+                background: color.card,
+                border: `1px solid ${color.borderMid}`,
+                borderRadius: 10,
+                padding: '10px 12px',
+                color: color.text,
+                fontFamily: font.mono,
+                fontSize: 13,
+                outline: 'none',
+                marginBottom: 12,
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {pollOptions.map((opt, i) => (
+                <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    value={opt}
+                    onChange={(e) => {
+                      const next = [...pollOptions];
+                      next[i] = e.target.value;
+                      setPollOptions(next);
+                    }}
+                    placeholder={`Option ${i + 1}`}
+                    style={{
+                      flex: 1,
+                      background: color.card,
+                      border: `1px solid ${color.borderMid}`,
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      color: color.text,
+                      fontFamily: font.mono,
+                      fontSize: 12,
+                      outline: 'none',
+                    }}
+                  />
+                  {pollOptions.length > 2 && (
+                    <button
+                      onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: color.faint,
+                        fontFamily: font.mono,
+                        fontSize: 16,
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {pollOptions.length < 10 && (
+              <button
+                onClick={() => setPollOptions([...pollOptions, ""])}
+                style={{
+                  background: 'none',
+                  border: `1px solid ${color.borderMid}`,
+                  borderRadius: 10,
+                  padding: '6px 12px',
+                  color: color.dim,
+                  fontFamily: font.mono,
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  width: '100%',
+                  marginBottom: 16,
+                }}
+              >
+                + Add option
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); }}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  color: color.text,
+                  border: `1px solid ${color.borderMid}`,
+                  borderRadius: 12,
+                  padding: '12px',
+                  fontFamily: font.mono,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2 || pollCreating}
+                onClick={async () => {
+                  if (!selectedSquad?.id || !pollQuestion.trim() || pollCreating) return;
+                  const validOptions = pollOptions.filter((o) => o.trim());
+                  if (validOptions.length < 2) return;
+                  setPollCreating(true);
+                  try {
+                    await onCreatePoll?.(selectedSquad.id, pollQuestion.trim(), validOptions);
+                    setShowPollCreator(false);
+                    setPollQuestion("");
+                    setPollOptions(["", ""]);
+                  } catch (err) {
+                    logError('createPoll', err);
+                  } finally {
+                    setPollCreating(false);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  background: (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2) ? color.borderMid : color.accent,
+                  color: (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2) ? color.dim : '#000',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '12px',
+                  fontFamily: font.mono,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2) ? 'default' : 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                {pollCreating ? '...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   ) : null;
 

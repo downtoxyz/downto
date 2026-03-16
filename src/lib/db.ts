@@ -1340,6 +1340,117 @@ export async function respondToDateConfirm(
 }
 
 // ============================================================================
+// SQUAD POLLS
+// ============================================================================
+
+export async function getSquadPolls(squadId: string) {
+  const { data, error } = await supabase
+    .from('squad_polls')
+    .select('*')
+    .eq('squad_id', squadId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getPollVotes(pollId: string) {
+  const { data, error } = await supabase
+    .from('squad_poll_votes')
+    .select('*, user:profiles(display_name)')
+    .eq('poll_id', pollId);
+
+  if (error) throw error;
+  return (data ?? []).map((v: Record<string, unknown>) => ({
+    userId: v.user_id as string,
+    optionIndex: v.option_index as number,
+    displayName: (v.user as { display_name?: string } | null)?.display_name ?? 'Unknown',
+  }));
+}
+
+export async function createPoll(squadId: string, question: string, options: string[]) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch('/api/squads/create-poll', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ squadId, question, options }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to create poll');
+  }
+
+  return res.json();
+}
+
+export async function votePoll(pollId: string, optionIndex: number) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch('/api/squads/vote-poll', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ pollId, optionIndex }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to vote');
+  }
+
+  return res.json();
+}
+
+export async function closePoll(pollId: string) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch('/api/squads/close-poll', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ pollId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to close poll');
+  }
+
+  return res.json();
+}
+
+export function subscribeToPollVotes(
+  pollId: string,
+  callback: (payload: { user_id: string; option_index: number; poll_id: string }) => void
+) {
+  return supabase
+    .channel(`poll_votes:${pollId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'squad_poll_votes',
+        filter: `poll_id=eq.${pollId}`,
+      },
+      (payload) => callback(payload.new as { user_id: string; option_index: number; poll_id: string })
+    )
+    .subscribe();
+}
+
+// ============================================================================
 // CREW POOL
 // ============================================================================
 

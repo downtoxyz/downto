@@ -154,6 +154,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
           time: formatTimeAgo(new Date(msg.created_at)),
           isYou: msg.sender_id === userId,
           ...(msg.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: msg.id } : {}),
+          ...(msg.message_type === 'poll' ? { messageType: 'poll' as const, messageId: msg.id } : {}),
         }));
       const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
       return {
