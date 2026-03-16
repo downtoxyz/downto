@@ -15,6 +15,8 @@ const EventLobby = ({
   inSquadPool,
   isDemoMode,
   onViewProfile,
+  existingSquadId,
+  onGoToSquad,
 }: {
   event: Event | null;
   open: boolean;
@@ -25,6 +27,8 @@ const EventLobby = ({
   inSquadPool: boolean;
   isDemoMode: boolean;
   onViewProfile?: (userId: string) => void;
+  existingSquadId?: string;
+  onGoToSquad?: (squadId: string) => void;
 }) => {
   const [selectingMembers, setSelectingMembers] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -284,27 +288,49 @@ const EventLobby = ({
 
         {/* CTAs */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24 }}>
-          {/* Start a squad — visible when anyone is down */}
+          {/* Start a squad / Go to squad — visible when anyone is down */}
           {(friends.length > 0 || others.length > 0) && !isSelecting && (
-            <button
-              onClick={() => { setSelectingMembers(true); setSelectedIds(new Set()); }}
-              style={{
-                width: "100%",
-                background: color.accent,
-                color: "#000",
-                border: "none",
-                borderRadius: 12,
-                padding: "14px",
-                fontFamily: font.mono,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-              }}
-            >
-              Start a Squad →
-            </button>
+            existingSquadId ? (
+              <button
+                onClick={() => { onGoToSquad?.(existingSquadId); close(); }}
+                style={{
+                  width: "100%",
+                  background: color.accent,
+                  color: "#000",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px",
+                  fontFamily: font.mono,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                Go to Squad →
+              </button>
+            ) : (
+              <button
+                onClick={() => { setSelectingMembers(true); setSelectedIds(new Set()); }}
+                style={{
+                  width: "100%",
+                  background: color.accent,
+                  color: "#000",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px",
+                  fontFamily: font.mono,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                Start a Squad →
+              </button>
+            )
           )}
 
           {/* Confirm selection (shared by both friend and pool selection modes) */}

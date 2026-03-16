@@ -1326,6 +1326,12 @@ export default function Home() {
         inSquadPool={squadsHook.inSquadPool}
         isDemoMode={isDemoMode}
         onViewProfile={(uid) => setViewingUserId(uid)}
+        existingSquadId={squadsHook.socialEvent?.id ? squadsHook.eventToSquad.get(squadsHook.socialEvent.id) : undefined}
+        onGoToSquad={(squadId) => {
+          squadsHook.setSocialEvent(null);
+          squadsHook.setAutoSelectSquadId(squadId);
+          setTab("groups");
+        }}
       />
       <NotificationsPanel
         open={notificationsHook.notificationsOpen}

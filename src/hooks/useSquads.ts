@@ -115,6 +115,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
     squadId: string;
   } | null>(null);
   const [creatingSquad, setCreatingSquad] = useState(false);
+  const [eventToSquad, setEventToSquad] = useState<Map<string, string>>(new Map());
   const [autoSelectSquadId, setAutoSelectSquadId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).get("squadId");
@@ -175,6 +176,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         lastMsg: lastMessage ? (lastMessage.sender === "system" ? lastMessage.text : `${lastMessage.sender}: ${lastMessage.text}`) : "",
         time: lastMessage ? lastMessage.time : formatTimeAgo(new Date(s.created_at)),
         checkId: s.check_id ?? undefined,
+        eventId: s.event_id ?? undefined,
         checkAuthorId: s.check?.author_id ?? undefined,
         meetingSpot: s.meeting_spot ?? undefined,
         arrivalTime: s.arrival_time ?? undefined,
@@ -219,6 +221,13 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
       if (c.inSquad || c.isWaitlisted) return { ...c, inSquad: undefined, isWaitlisted: undefined };
       return c;
     }));
+
+    // Link events to their squads
+    const newEventToSquad = new Map<string, string>();
+    for (const sq of transformedSquads) {
+      if (sq.eventId) newEventToSquad.set(sq.eventId, sq.id);
+    }
+    setEventToSquad(newEventToSquad);
   }, [userId, setChecks]);
 
   const startSquadFromCheck = async (check: InterestCheck) => {
@@ -289,6 +298,10 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
 
   const startSquadFromEvent = async (event: Event, selectedUserIds: string[]) => {
     if (creatingSquad) return;
+    if (event.id && eventToSquad.has(event.id)) {
+      showToast("You're already in a squad for this event");
+      return;
+    }
     setCreatingSquad(true);
     const squadName = event.title.slice(0, 30) + (event.title.length > 30 ? "..." : "");
     const opener = pickOpener(event.title);
@@ -462,5 +475,6 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
     startSquadFromCheck,
     startSquadFromEvent,
     handleJoinSquadPool,
+    eventToSquad,
   };
 }
