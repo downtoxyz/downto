@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { font, color } from "@/lib/styles";
-import { useModalTransition } from "@/hooks/useModalTransition";
+import { useModalTransition } from "@/shared/hooks/useModalTransition";
 import type { ScrapedEvent } from "@/lib/ui-types";
 import { parseNaturalDate, parseNaturalTime, sanitize } from "@/lib/utils";
 import { logWarn } from "@/lib/logger";

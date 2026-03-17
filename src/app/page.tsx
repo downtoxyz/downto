@@ -1,42 +1,44 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { usePullToRefresh } from "@/app/hooks/usePullToRefresh";
+import { useAppNavigation } from "@/app/hooks/useAppNavigation";
+import { useEvents } from "@/features/events/hooks/useEvents";
 import { supabase } from "@/lib/supabase";
 import * as db from "@/lib/db";
 import { font, color } from "@/lib/styles";
 import { sanitize, sanitizeVibes, parseDateToISO, toLocalISODate } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
-import type { Person, Event, Tab } from "@/lib/ui-types";
+import type { Person, Event, Tab, ScrapedEvent } from "@/lib/ui-types";
 import { DEMO_EVENTS, DEMO_CHECKS, DEMO_TONIGHT, DEMO_SQUADS, DEMO_FRIENDS, DEMO_SUGGESTIONS, DEMO_NOTIFICATIONS, DEMO_SEARCH_USERS } from "@/lib/demo-data";
-import Grain from "@/components/Grain";
-import AuthScreen from "@/components/AuthScreen";
-import ProfileSetupScreen from "@/components/ProfileSetupScreen";
-import EnableNotificationsScreen, { IOSInstallScreen } from "@/components/EnableNotificationsScreen";
-import EditEventModal from "@/components/events/EditEventModal";
-import EventLobby from "@/components/events/EventLobby";
-import AddModal from "@/components/events/CreateModal";
-import UserProfileOverlay from "@/components/friends/UserProfileOverlay";
-import FeedView from "@/components/events/FeedView";
-import FriendsModal from "@/components/friends/FriendsModal";
-import CalendarView from "@/components/calendar/CalendarView";
-import GroupsView from "@/components/squads/GroupsView";
-import ProfileView from "@/components/profile/ProfileView";
-import Header from "@/components/Header";
-import BottomNav from "@/components/BottomNav";
-import Toast from "@/components/Toast";
-import SquadNotificationBanner from "@/components/SquadNotificationBanner";
+import Grain from "@/app/components/Grain";
+import AuthScreen from "@/features/auth/components/AuthScreen";
+import ProfileSetupScreen from "@/features/auth/components/ProfileSetupScreen";
+import EnableNotificationsScreen, { IOSInstallScreen } from "@/features/auth/components/EnableNotificationsScreen";
+import EditEventModal from "@/features/events/components/EditEventModal";
+import EventLobby from "@/features/events/components/EventLobby";
+import AddModal from "@/features/events/components/CreateModal";
+import UserProfileOverlay from "@/features/friends/components/UserProfileOverlay";
+import FeedView from "@/features/feed/components/FeedView";
+import FriendsModal from "@/features/friends/components/FriendsModal";
+import CalendarView from "@/features/calendar/components/CalendarView";
+import GroupsView from "@/features/squads/components/GroupsView";
+import ProfileView from "@/features/profile/components/ProfileView";
+import Header from "@/app/components/Header";
+import BottomNav from "@/app/components/BottomNav";
+import Toast from "@/app/components/Toast";
+import SquadNotificationBanner from "@/features/squads/components/SquadNotificationBanner";
 import { isIOSNotStandalone } from "@/lib/pushNotifications";
-import NotificationsPanel from "@/components/NotificationsPanel";
-import FirstCheckScreen from "@/components/FirstCheckScreen";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/useToast";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useChecks } from "@/hooks/useChecks";
-import { useSquads } from "@/hooks/useSquads";
-import { useFriends } from "@/hooks/useFriends";
-import { useNotifications } from "@/hooks/useNotifications";
-import { useCheckComments } from "@/hooks/useCheckComments";
+import NotificationsPanel from "@/features/notifications/components/NotificationsPanel";
+import FirstCheckScreen from "@/features/checks/components/FirstCheckScreen";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useToast } from "@/app/hooks/useToast";
+import { usePushNotifications } from "@/features/auth/hooks/usePushNotifications";
+import { useChecks } from "@/features/checks/hooks/useChecks";
+import { useSquads } from "@/features/squads/hooks/useSquads";
+import { useFriends } from "@/features/friends/hooks/useFriends";
+import { useNotifications } from "@/features/notifications/hooks/useNotifications";
+import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
 import { logError, logWarn } from "@/lib/logger";
 
 
@@ -48,24 +50,32 @@ export default function Home() {
   const { pushEnabled, pushSupported, handleTogglePush } = usePushNotifications(isLoggedIn, isDemoMode, showToast);
 
   // ─── Tab / routing state ────────────────────────────────────────────────
-  const [tab, setTab] = useState<Tab>(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search).get("tab");
-      if (p === "feed" || p === "groups" || p === "profile" || p === "calendar") return p;
-    }
-    return "feed";
-  });
-  const [feedMode, setFeedMode] = useState<"foryou" | "tonight">("foryou");
+  const {
+    tab, setTab,
+    feedMode, setFeedMode,
+    squadChatOrigin, setSquadChatOrigin,
+    chatOpen, setChatOpen,
+    scrolledDown, setScrolledDown,
+  } = useAppNavigation();
   const [feedLoaded, setFeedLoaded] = useState(false);
 
-  // ─── Event state (stays in page.tsx) ────────────────────────────────────
-  const [events, setEvents] = useState<Event[]>([]);
-  const [tonightEvents, setTonightEvents] = useState<Event[]>([]);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
+  // ─── loadRealData ref (declared early so hooks can receive it) ──────────
+  const loadRealDataRef = useRef<() => Promise<void>>(async () => {});
+
+  // ─── Event state ─────────────────────────────────────────────────────────
+  const eventsHook = useEvents({ userId, isDemoMode, showToast, loadRealDataRef });
+  const {
+    events, setEvents,
+    tonightEvents, setTonightEvents,
+    editingEvent, setEditingEvent,
+    newlyAddedId, setNewlyAddedId,
+    archivedChecks, setArchivedChecks,
+    hydrateEvents, hydrateSocialData,
+    toggleSave, toggleDown, handleEditEvent,
+  } = eventsHook;
+
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addModalDefaultMode, setAddModalDefaultMode] = useState<"paste" | "idea" | "manual" | null>(null);
-  const [archivedChecks, setArchivedChecks] = useState<{ id: string; text: string; archived_at: string }[]>([]);
 
   // ─── PWA install gate (iOS Safari, pre-auth) ───────────────────────────
   const [installDismissed, setInstallDismissed] = useState(true); // default true to avoid flash
@@ -76,9 +86,6 @@ export default function Home() {
   }, []);
 
   // ─── Misc page-level state ──────────────────────────────────────────────
-  const [squadChatOrigin, setSquadChatOrigin] = useState<Tab | null>(null);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [scrolledDown, setScrolledDown] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [onboardingFriendGate, setOnboardingFriendGate] = useState(false);
   const [profileSetupDone, setProfileSetupDone] = useState(false);
@@ -89,9 +96,6 @@ export default function Home() {
     }
     return false;
   });
-
-  // ─── loadRealData ref (declared early so hooks can receive it) ──────────
-  const loadRealDataRef = useRef<() => Promise<void>>(async () => {});
 
   // ─── Domain hooks ───────────────────────────────────────────────────────
   const friendsHook = useFriends({
@@ -194,104 +198,8 @@ export default function Home() {
         db.getLeftChecks().catch((err) => { logWarn("loadLeftChecks", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getLeftChecks>>; }),
       ]);
 
-      // Phase 2: Transform events (stays in page.tsx)
-      const savedEventIds = savedEvents.map((se) => se.event!.id);
-      const savedEventIdSet = new Set(savedEventIds);
-      const savedDownMap = new Map(savedEvents.map((se) => [se.event!.id, se.is_down]));
-      const today = toLocalISODate(new Date());
-
-      setEvents((prev) => {
-        const prevPeopleDown = new Map(prev.map((e) => [e.id, e.peopleDown]));
-        const combined = [
-          ...savedEvents.map((se) => ({
-            id: se.event!.id,
-            createdBy: se.event!.created_by ?? undefined,
-            title: se.event!.title,
-            venue: se.event!.venue ?? "",
-            date: se.event!.date_display ?? "",
-            time: se.event!.time_display ?? "",
-            vibe: se.event!.vibes,
-            image: se.event!.image_url ?? "",
-            igHandle: se.event!.ig_handle ?? "",
-            igUrl: se.event!.ig_url ?? undefined,
-            diceUrl: se.event!.dice_url ?? undefined,
-            letterboxdUrl: se.event!.letterboxd_url ?? undefined,
-            movieTitle: se.event!.movie_metadata?.title,
-            movieYear: se.event!.movie_metadata?.year,
-            movieDirector: se.event!.movie_metadata?.director,
-            movieThumbnail: se.event!.movie_metadata?.thumbnail,
-            saved: true,
-            isDown: se.is_down,
-            isPublic: se.event!.is_public ?? false,
-            peopleDown: prevPeopleDown.get(se.event!.id) ?? [],
-            neighborhood: se.event!.neighborhood ?? undefined,
-            rawDate: se.event!.date ?? undefined,
-          })),
-          ...friendsEvents
-            .filter((e) => !savedEventIdSet.has(e.id))
-            .map((e) => ({
-              id: e.id,
-              createdBy: e.created_by ?? undefined,
-              title: e.title,
-              venue: e.venue ?? "",
-              date: e.date_display ?? "",
-              time: e.time_display ?? "",
-              vibe: e.vibes,
-              image: e.image_url ?? "",
-              igHandle: e.ig_handle ?? "",
-              igUrl: e.ig_url ?? undefined,
-              diceUrl: e.dice_url ?? undefined,
-              letterboxdUrl: e.letterboxd_url ?? undefined,
-              movieTitle: e.movie_metadata?.title,
-              movieYear: e.movie_metadata?.year,
-              movieDirector: e.movie_metadata?.director,
-              movieThumbnail: e.movie_metadata?.thumbnail,
-              saved: false,
-              isDown: false,
-              peopleDown: prevPeopleDown.get(e.id) ?? [],
-              neighborhood: e.neighborhood ?? undefined,
-              rawDate: e.date ?? undefined,
-            })),
-        ];
-        return combined
-          .filter((e) => !e.rawDate || e.rawDate >= today)
-          .sort((a, b) => {
-            if (!a.rawDate && !b.rawDate) return 0;
-            if (!a.rawDate) return 1;
-            if (!b.rawDate) return -1;
-            return a.rawDate.localeCompare(b.rawDate);
-          });
-      });
-
-      setTonightEvents((prev) => {
-        const prevPeopleDown = new Map(prev.map((e) => [e.id, e.peopleDown]));
-        return publicEvents
-          .filter((e) => e.venue && e.date_display)
-          .filter((e) => !e.date || e.date === today)
-          .map((e) => ({
-            id: e.id,
-            createdBy: e.created_by ?? undefined,
-            title: e.title,
-            venue: e.venue ?? "",
-            date: e.date_display ?? "Tonight",
-            time: e.time_display ?? "",
-            vibe: e.vibes,
-            image: e.image_url ?? "",
-            igHandle: e.ig_handle ?? "",
-            igUrl: e.ig_url ?? undefined,
-            diceUrl: e.dice_url ?? undefined,
-            letterboxdUrl: e.letterboxd_url ?? undefined,
-            movieTitle: e.movie_metadata?.title,
-            movieYear: e.movie_metadata?.year,
-            movieDirector: e.movie_metadata?.director,
-            movieThumbnail: e.movie_metadata?.thumbnail,
-            saved: savedEventIdSet.has(e.id),
-            isDown: savedDownMap.get(e.id) ?? false,
-            isPublic: true,
-            peopleDown: prevPeopleDown.get(e.id) ?? [],
-            neighborhood: e.neighborhood ?? undefined,
-          }));
-      });
+      // Phase 2: Transform events via useEvents hook
+      hydrateEvents(savedEvents, publicEvents, friendsEvents);
 
       // Phase 3: Hydrate domain hooks
       friendsHook.hydrateFriends(friendsList, pendingRequests, suggestedUsers, outgoingRequests);
@@ -311,6 +219,7 @@ export default function Home() {
       setFeedLoaded(true);
 
       // Phase 4: Backfill social data (peopleDown + crew pool)
+      const savedEventIds = savedEvents.map((se) => se.event!.id);
       const allEventIds = [...new Set([...savedEventIds, ...publicEvents.map((e) => e.id), ...friendsEvents.map((e) => e.id)])];
       if (allEventIds.length > 0) {
         try {
@@ -319,26 +228,7 @@ export default function Home() {
             db.getCrewPoolBatch(allEventIds),
             db.getUserPoolEventIds(allEventIds),
           ]);
-
-          const enrichEvent = (e: Event): Event => {
-            const pd = peopleDownMap[e.id] ?? e.peopleDown;
-            const poolMembers = crewPoolMap[e.id] ?? [];
-            const poolUserIds = new Set(poolMembers.map((p) => p.userId));
-            const enrichedPd = pd.map((p) => ({
-              ...p,
-              inPool: p.userId ? poolUserIds.has(p.userId) : false,
-            }));
-            const poolCount = poolMembers.length + (userPoolEventIds.has(e.id) ? 1 : 0);
-            return {
-              ...e,
-              peopleDown: enrichedPd,
-              poolCount,
-              userInPool: userPoolEventIds.has(e.id),
-            };
-          };
-
-          setEvents((prev) => prev.map(enrichEvent));
-          setTonightEvents((prev) => prev.map(enrichEvent));
+          hydrateSocialData(peopleDownMap, crewPoolMap, userPoolEventIds);
         } catch (err) {
           logWarn("loadPeopleDown", "Failed to load social data", { error: err });
         }
@@ -350,7 +240,7 @@ export default function Home() {
       isLoadingRef.current = false;
       setFeedLoaded(true);
     }
-  }, [isDemoMode, userId, checksHook.hydrateChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends]);
+  }, [isDemoMode, userId, checksHook.hydrateChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends, hydrateEvents, hydrateSocialData]);
 
   loadRealDataRef.current = loadRealData;
 
@@ -572,92 +462,262 @@ export default function Home() {
     return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, []);
 
-  // ─── Event handlers (stay in page.tsx) ──────────────────────────────────
+  // ─── Squad API handlers ──────────────────────────────────────────────────
 
-  const handleEditEvent = async (updated: { title: string; venue: string; date: string; time: string; vibe: string[] }) => {
-    if (!editingEvent) return;
+  const handleSetSquadDate = async (squadDbId: string, date: string, time?: string | null, locked?: boolean) => {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) return;
+    const res = await fetch('/api/squads/set-date', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ squadId: squadDbId, date, time: time ?? null, locked: !!locked }),
+    });
+    if (!res.ok) throw new Error('Failed to set date');
+    const { expires_at, date_status } = await res.json();
+    squadsHook.setSquads((prev) => prev.map((s) => s.id === squadDbId ? {
+      ...s,
+      eventIsoDate: date,
+      eventTime: time ?? s.eventTime,
+      expiresAt: expires_at,
+      graceStartedAt: undefined,
+      dateStatus: date_status === 'locked' ? 'locked' : date_status === 'proposed' ? 'proposed' : undefined,
+      dateFlexible: date_status === 'proposed',
+      timeFlexible: date_status === 'proposed',
+    } : s));
+    const squad = squadsHook.squads.find((s) => s.id === squadDbId);
+    if (squad?.checkId) {
+      const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const isProposal = date_status === 'proposed';
+      checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
+        ...c,
+        eventDate: date,
+        eventDateLabel: dateLabel,
+        eventTime: time ?? c.eventTime,
+        dateFlexible: isProposal,
+        ...(time ? { timeFlexible: isProposal } : {}),
+      } : c));
+    }
+  };
 
-    const dateISO = parseDateToISO(updated.date);
+  const handleClearSquadDate = async (squadDbId: string) => {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) return;
+    const res = await fetch('/api/squads/set-date', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ squadId: squadDbId, clear: true }),
+    });
+    if (!res.ok) throw new Error('Failed to clear date');
+    squadsHook.setSquads((prev) => prev.map((s) => s.id === squadDbId ? {
+      ...s, eventIsoDate: undefined, dateStatus: undefined,
+    } : s));
+    const squad = squadsHook.squads.find((s) => s.id === squadDbId);
+    if (squad?.checkId) {
+      checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
+        ...c, eventDate: undefined, eventDateLabel: undefined, eventTime: undefined,
+      } : c));
+    }
+  };
+
+  const handleUpdateSquadSize = async (checkId: string, newSize: number) => {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) return;
+    const res = await fetch('/api/squads/update-size', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ checkId, maxSquadSize: newSize }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      showToast(data.error ?? 'Failed to update squad size');
+      return;
+    }
+    const freshSquads = await db.getSquads();
+    squadsHook.hydrateSquads(freshSquads);
+  };
+
+  const handleSetMemberRole = async (squadId: string, targetUserId: string, role: string) => {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) return;
+    const res = await fetch('/api/squads/set-member-role', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ squadId, userId: targetUserId, role }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      showToast(data.error ?? 'Failed to update role');
+      return;
+    }
+    const freshSquads = await db.getSquads();
+    squadsHook.hydrateSquads(freshSquads);
+  };
+
+  const handleKickMember = async (squadId: string, targetUserId: string) => {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) return;
+    const res = await fetch('/api/squads/kick-member', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ squadId, userId: targetUserId }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      showToast(data.error ?? 'Failed to kick member');
+      return;
+    }
+    const freshSquads = await db.getSquads();
+    squadsHook.hydrateSquads(freshSquads);
+  };
+
+  const handleAddMember = async (squadId: string, targetUserId: string) => {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) return;
+    const res = await fetch('/api/squads/add-member', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ squadId, userId: targetUserId }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      showToast(data.error ?? 'Failed to add member');
+      return;
+    }
+    const freshSquads = await db.getSquads();
+    squadsHook.hydrateSquads(freshSquads);
+  };
+
+  // ─── AddModal submit handler ──────────────────────────────────────────────
+
+  const handleAddModalSubmit = async (e: ScrapedEvent, sharePublicly: boolean) => {
+    const rawTitle = e.type === "movie" ? (e.movieTitle || e.title) : e.title;
+    const title = sanitize(rawTitle, 100);
+    if (!title) { showToast("Event needs a title"); return; }
+    const venue = sanitize(e.venue || "TBD", 100);
+    const rawDate = sanitize(e.date || "TBD", 50);
+    const dateISO = parseDateToISO(rawDate);
     const dateDisplay = dateISO
       ? new Date(dateISO + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-      : updated.date;
+      : rawDate;
+    const timeDisplay = sanitize(e.time || "TBD", 50);
+    const vibes = sanitizeVibes(e.vibe);
+    const imageUrl = e.thumbnail || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80";
+    const igHandle = sanitize(e.igHandle || "", 30);
+    const igUrl = e.igUrl || null;
+    const diceUrl = e.diceUrl || null;
+    const letterboxdUrl = e.letterboxdUrl || null;
+    const movieMetadata = e.type === "movie" && e.movieTitle
+      ? { title: e.movieTitle, year: e.year, director: e.director, thumbnail: e.thumbnail, vibes: e.vibe }
+      : null;
 
     if (!isDemoMode && userId) {
       try {
-        await db.updateEvent(editingEvent.id, {
-          title: updated.title,
-          venue: updated.venue,
-          date: dateISO,
-          date_display: dateDisplay,
-          time_display: updated.time,
-          vibes: updated.vibe,
-        });
+        let dbEvent: Awaited<ReturnType<typeof db.createEvent>> | null = null;
+        if (igUrl) {
+          dbEvent = await db.findEventByIgUrl(igUrl);
+        } else if (diceUrl) {
+          dbEvent = await db.findEventByDiceUrl(diceUrl);
+        } else if (letterboxdUrl) {
+          dbEvent = await db.findEventByLetterboxdUrl(letterboxdUrl);
+        }
+
+        if (dbEvent && imageUrl && dbEvent.image_url !== imageUrl) {
+          dbEvent = await db.updateEvent(dbEvent.id, { image_url: imageUrl });
+        }
+
+        if (!dbEvent) {
+          dbEvent = await db.createEvent({
+            title,
+            venue,
+            neighborhood: null,
+            date: parseDateToISO(dateDisplay),
+            date_display: dateDisplay,
+            time_display: timeDisplay,
+            vibes,
+            image_url: imageUrl,
+            ig_handle: igHandle,
+            ig_url: igUrl,
+            dice_url: diceUrl,
+            letterboxd_url: letterboxdUrl,
+            movie_metadata: movieMetadata,
+            is_public: sharePublicly,
+            created_by: userId,
+          });
+        }
+
+        try {
+          await db.saveEvent(dbEvent.id);
+        } catch (saveErr: unknown) {
+          const code = saveErr && typeof saveErr === 'object' && 'code' in saveErr ? (saveErr as { code: string }).code : '';
+          if (code !== '23505') throw saveErr;
+        }
+        await db.toggleDown(dbEvent.id, true);
+
+        const mm = dbEvent.movie_metadata ?? movieMetadata;
+        const newEvent: Event = {
+          id: dbEvent.id,
+          createdBy: userId,
+          title: dbEvent.title || title,
+          venue: dbEvent.venue || venue,
+          date: dbEvent.date_display || dateDisplay,
+          time: dbEvent.time_display || timeDisplay,
+          vibe: dbEvent.vibes || vibes,
+          image: dbEvent.image_url || imageUrl,
+          igHandle: dbEvent.ig_handle || igHandle,
+          igUrl: dbEvent.ig_url ?? undefined,
+          diceUrl: dbEvent.dice_url ?? undefined,
+          letterboxdUrl: dbEvent.letterboxd_url ?? undefined,
+          movieTitle: mm?.title,
+          movieYear: mm?.year,
+          movieDirector: mm?.director,
+          movieThumbnail: mm?.thumbnail,
+          saved: true,
+          isDown: true,
+          isPublic: dbEvent.is_public ?? sharePublicly,
+          peopleDown: [],
+        };
+        setEvents((prev) => [newEvent, ...prev]);
+        setNewlyAddedId(newEvent.id);
+        setTimeout(() => setNewlyAddedId(null), 2500);
       } catch (err) {
-        logError("updateEvent", err, { eventId: editingEvent.id });
-        showToast("Failed to update - try again");
+        logError("saveEvent", err, { title });
+        showToast("Failed to save - try again");
         return;
       }
+    } else {
+      const newEvent: Event = {
+        id: `local-event-${Date.now()}`,
+        title,
+        venue,
+        date: dateDisplay,
+        time: timeDisplay,
+        vibe: vibes,
+        image: imageUrl,
+        igHandle,
+        igUrl: e.igUrl,
+        diceUrl: e.diceUrl,
+        letterboxdUrl: e.letterboxdUrl,
+        movieTitle: movieMetadata?.title,
+        movieYear: movieMetadata?.year,
+        movieDirector: movieMetadata?.director,
+        movieThumbnail: movieMetadata?.thumbnail,
+        saved: true,
+        isDown: true,
+        isPublic: sharePublicly,
+        peopleDown: [],
+      };
+      setEvents((prev) => [newEvent, ...prev]);
+      setNewlyAddedId(newEvent.id);
+      setTimeout(() => setNewlyAddedId(null), 2500);
     }
 
-    const updateList = (prev: Event[]) =>
-      prev.map((e) =>
-        e.id === editingEvent.id
-          ? { ...e, title: updated.title, venue: updated.venue, date: dateDisplay, time: updated.time, vibe: updated.vibe, rawDate: dateISO ?? undefined }
-          : e
-      );
-    setEvents(updateList);
-    setTonightEvents(updateList);
-    setEditingEvent(null);
-    showToast("Event updated!");
-  };
-
-  const toggleSave = (id: string) => {
-    const event = events.find((e) => e.id === id);
-    if (!event) return;
-    const newSaved = !event.saved;
-    setEvents((prev) =>
-      prev.map((e) => e.id === id ? { ...e, saved: newSaved } : e)
-    );
-    showToast(newSaved ? "Added to your calendar \u2713" : "Removed from calendar");
-    if (!isDemoMode && event.id) {
-      (newSaved ? db.saveEvent(event.id) : db.unsaveEvent(event.id))
-        .catch((err) => {
-          logError("toggleSave", err, { eventId: id });
-          setEvents((prev) =>
-            prev.map((e) => e.id === id ? { ...e, saved: !newSaved } : e)
-          );
-          showToast("Failed to save \u2014 try again");
-        });
-    }
-  };
-
-  const toggleDown = async (id: string) => {
-    const event = events.find((e) => e.id === id);
-    if (!event) return;
-    const newDown = !event.isDown;
-    const prevSaved = event.saved;
-    setEvents((prev) =>
-      prev.map((e) => e.id === id ? { ...e, isDown: newDown, saved: newDown ? true : e.saved } : e)
-    );
-    showToast(newDown ? "You're down! \u{1F919}" : "Maybe next time");
-    if (!isDemoMode && event.id) {
-      try {
-        if (newDown && !prevSaved) {
-          await db.saveEvent(event.id);
-        }
-        await db.toggleDown(event.id, newDown);
-        // Un-downing triggers DB auto-removal from squads — refresh to sync UI
-        if (!newDown) loadRealData();
-      } catch (err: unknown) {
-        const code = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : '';
-        if (code !== '23505') {
-          logError("toggleDown", err, { eventId: id });
-          setEvents((prev) =>
-            prev.map((e) => e.id === id ? { ...e, isDown: !newDown, saved: prevSaved } : e)
-          );
-          showToast("Failed to update \u2014 try again");
-        }
-      }
+    setTab("feed");
+    setFeedMode("foryou");
+    const openFriends = () => friendsHook.setFriendsOpen(true);
+    if (e.type === "movie") {
+      showToastWithAction("Movie night saved! Rally friends?", openFriends);
+    } else {
+      showToastWithAction("Event saved! Rally friends?", openFriends);
     }
   };
 
@@ -916,153 +976,15 @@ export default function Home() {
               await db.leaveSquad(squadDbId);
               await loadRealData();
             }}
-            onSetSquadDate={async (squadDbId, date, time, locked) => {
-              const token = (await supabase.auth.getSession()).data.session?.access_token;
-              if (!token) return;
-              const res = await fetch('/api/squads/set-date', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ squadId: squadDbId, date, time: time ?? null, locked: !!locked }),
-              });
-              if (!res.ok) throw new Error('Failed to set date');
-              const { expires_at, date_status } = await res.json();
-              squadsHook.setSquads((prev) => prev.map((s) => s.id === squadDbId ? {
-                ...s,
-                eventIsoDate: date,
-                eventTime: time ?? s.eventTime,
-                expiresAt: expires_at,
-                graceStartedAt: undefined,
-                dateStatus: date_status === 'locked' ? 'locked' : date_status === 'proposed' ? 'proposed' : undefined,
-                dateFlexible: date_status === 'proposed',
-                timeFlexible: date_status === 'proposed',
-              } : s));
-              // Update the linked check's date so the feed card reflects the change
-              const squad = squadsHook.squads.find((s) => s.id === squadDbId);
-              if (squad?.checkId) {
-                const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                const isProposal = date_status === 'proposed';
-                checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
-                  ...c,
-                  eventDate: date,
-                  eventDateLabel: dateLabel,
-                  eventTime: time ?? c.eventTime,
-                  dateFlexible: isProposal,
-                  ...(time ? { timeFlexible: isProposal } : {}),
-                } : c));
-              }
-            }}
-            onClearSquadDate={async (squadDbId) => {
-              const token = (await supabase.auth.getSession()).data.session?.access_token;
-              if (!token) return;
-              const res = await fetch('/api/squads/set-date', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ squadId: squadDbId, clear: true }),
-              });
-              if (!res.ok) throw new Error('Failed to clear date');
-              squadsHook.setSquads((prev) => prev.map((s) => s.id === squadDbId ? {
-                ...s,
-                eventIsoDate: undefined,
-                dateStatus: undefined,
-              } : s));
-              // Clear the linked check's date so the feed card reflects the change
-              const squad = squadsHook.squads.find((s) => s.id === squadDbId);
-              if (squad?.checkId) {
-                checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
-                  ...c,
-                  eventDate: undefined,
-                  eventDateLabel: undefined,
-                  eventTime: undefined,
-                } : c));
-              }
-            }}
+            onSetSquadDate={handleSetSquadDate}
+            onClearSquadDate={handleClearSquadDate}
             onConfirmDate={async (squadDbId, response) => {
               await db.respondToDateConfirm(squadDbId, response);
             }}
-            onUpdateSquadSize={async (checkId, newSize) => {
-              const token = (await supabase.auth.getSession()).data.session?.access_token;
-              if (!token) return;
-              const res = await fetch('/api/squads/update-size', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ checkId, maxSquadSize: newSize }),
-              });
-              if (!res.ok) {
-                const data = await res.json();
-                showToast(data.error ?? 'Failed to update squad size');
-                return;
-              }
-              // Reload squads to reflect any promoted waitlist members
-              const freshSquads = await db.getSquads();
-              squadsHook.hydrateSquads(freshSquads);
-            }}
-            onSetMemberRole={async (squadId, targetUserId, role) => {
-              const token = (await supabase.auth.getSession()).data.session?.access_token;
-              if (!token) return;
-              const res = await fetch('/api/squads/set-member-role', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ squadId, userId: targetUserId, role }),
-              });
-              if (!res.ok) {
-                const data = await res.json();
-                showToast(data.error ?? 'Failed to update role');
-                return;
-              }
-              const freshSquads = await db.getSquads();
-              squadsHook.hydrateSquads(freshSquads);
-            }}
-            onKickMember={async (squadId, targetUserId) => {
-              const token = (await supabase.auth.getSession()).data.session?.access_token;
-              if (!token) return;
-              const res = await fetch('/api/squads/kick-member', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ squadId, userId: targetUserId }),
-              });
-              if (!res.ok) {
-                const data = await res.json();
-                showToast(data.error ?? 'Failed to kick member');
-                return;
-              }
-              const freshSquads = await db.getSquads();
-              squadsHook.hydrateSquads(freshSquads);
-            }}
-            onAddMember={async (squadId, targetUserId) => {
-              const token = (await supabase.auth.getSession()).data.session?.access_token;
-              if (!token) return;
-              const res = await fetch('/api/squads/add-member', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ squadId, userId: targetUserId }),
-              });
-              if (!res.ok) {
-                const data = await res.json();
-                showToast(data.error ?? 'Failed to add member');
-                return;
-              }
-              // Reload squads to get fresh state
-              const freshSquads = await db.getSquads();
-              squadsHook.hydrateSquads(freshSquads);
-            }}
+            onUpdateSquadSize={handleUpdateSquadSize}
+            onSetMemberRole={handleSetMemberRole}
+            onKickMember={handleKickMember}
+            onAddMember={handleAddMember}
             userId={userId}
             onViewProfile={(uid) => setViewingUserId(uid)}
             onChatOpen={setChatOpen}
@@ -1175,137 +1097,7 @@ export default function Home() {
         open={addModalOpen}
         onClose={() => { setAddModalOpen(false); setAddModalDefaultMode(null); }}
         defaultMode={addModalDefaultMode}
-        onSubmit={async (e, sharePublicly) => {
-          const rawTitle = e.type === "movie" ? (e.movieTitle || e.title) : e.title;
-          const title = sanitize(rawTitle, 100);
-          if (!title) { showToast("Event needs a title"); return; }
-          const venue = sanitize(e.venue || "TBD", 100);
-          const rawDate = sanitize(e.date || "TBD", 50);
-          const dateISO = parseDateToISO(rawDate);
-          const dateDisplay = dateISO
-            ? new Date(dateISO + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-            : rawDate;
-          const timeDisplay = sanitize(e.time || "TBD", 50);
-          const vibes = sanitizeVibes(e.vibe);
-          const imageUrl = e.thumbnail || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80";
-          const igHandle = sanitize(e.igHandle || "", 30);
-          const igUrl = e.igUrl || null;
-          const diceUrl = e.diceUrl || null;
-          const letterboxdUrl = e.letterboxdUrl || null;
-          const movieMetadata = e.type === "movie" && e.movieTitle
-            ? { title: e.movieTitle, year: e.year, director: e.director, thumbnail: e.thumbnail, vibes: e.vibe }
-            : null;
-
-          if (!isDemoMode && userId) {
-            try {
-              let dbEvent: Awaited<ReturnType<typeof db.createEvent>> | null = null;
-              if (igUrl) {
-                dbEvent = await db.findEventByIgUrl(igUrl);
-              } else if (diceUrl) {
-                dbEvent = await db.findEventByDiceUrl(diceUrl);
-              } else if (letterboxdUrl) {
-                dbEvent = await db.findEventByLetterboxdUrl(letterboxdUrl);
-              }
-
-              if (dbEvent && imageUrl && dbEvent.image_url !== imageUrl) {
-                dbEvent = await db.updateEvent(dbEvent.id, { image_url: imageUrl });
-              }
-
-              if (!dbEvent) {
-                dbEvent = await db.createEvent({
-                  title,
-                  venue,
-                  neighborhood: null,
-                  date: parseDateToISO(dateDisplay),
-                  date_display: dateDisplay,
-                  time_display: timeDisplay,
-                  vibes,
-                  image_url: imageUrl,
-                  ig_handle: igHandle,
-                  ig_url: igUrl,
-                  dice_url: diceUrl,
-                  letterboxd_url: letterboxdUrl,
-                  movie_metadata: movieMetadata,
-                  is_public: sharePublicly,
-                  created_by: userId,
-                });
-              }
-
-              try {
-                await db.saveEvent(dbEvent.id);
-              } catch (saveErr: unknown) {
-                const code = saveErr && typeof saveErr === 'object' && 'code' in saveErr ? (saveErr as { code: string }).code : '';
-                if (code !== '23505') throw saveErr;
-              }
-              await db.toggleDown(dbEvent.id, true);
-
-              const mm = dbEvent.movie_metadata ?? movieMetadata;
-              const newEvent: Event = {
-                id: dbEvent.id,
-                createdBy: userId,
-                title: dbEvent.title || title,
-                venue: dbEvent.venue || venue,
-                date: dbEvent.date_display || dateDisplay,
-                time: dbEvent.time_display || timeDisplay,
-                vibe: dbEvent.vibes || vibes,
-                image: dbEvent.image_url || imageUrl,
-                igHandle: dbEvent.ig_handle || igHandle,
-                igUrl: dbEvent.ig_url ?? undefined,
-                diceUrl: dbEvent.dice_url ?? undefined,
-                letterboxdUrl: dbEvent.letterboxd_url ?? undefined,
-                movieTitle: mm?.title,
-                movieYear: mm?.year,
-                movieDirector: mm?.director,
-                movieThumbnail: mm?.thumbnail,
-                saved: true,
-                isDown: true,
-                isPublic: dbEvent.is_public ?? sharePublicly,
-                peopleDown: [],
-              };
-              setEvents((prev) => [newEvent, ...prev]);
-              setNewlyAddedId(newEvent.id);
-              setTimeout(() => setNewlyAddedId(null), 2500);
-            } catch (err) {
-              logError("saveEvent", err, { title });
-              showToast("Failed to save - try again");
-              return;
-            }
-          } else {
-            const newEvent: Event = {
-              id: `local-event-${Date.now()}`,
-              title,
-              venue,
-              date: dateDisplay,
-              time: timeDisplay,
-              vibe: vibes,
-              image: imageUrl,
-              igHandle,
-              igUrl: e.igUrl,
-              diceUrl: e.diceUrl,
-              letterboxdUrl: e.letterboxdUrl,
-              movieTitle: movieMetadata?.title,
-              movieYear: movieMetadata?.year,
-              movieDirector: movieMetadata?.director,
-              movieThumbnail: movieMetadata?.thumbnail,
-              saved: true,
-              isDown: true,
-              isPublic: sharePublicly,
-              peopleDown: [],
-            };
-            setEvents((prev) => [newEvent, ...prev]);
-            setNewlyAddedId(newEvent.id);
-            setTimeout(() => setNewlyAddedId(null), 2500);
-          }
-
-          setTab("feed");
-          setFeedMode("foryou");
-          const openFriends = () => friendsHook.setFriendsOpen(true);
-          if (e.type === "movie") {
-            showToastWithAction("Movie night saved! Rally friends?", openFriends);
-          } else {
-            showToastWithAction("Event saved! Rally friends?", openFriends);
-          }
-        }}
+        onSubmit={handleAddModalSubmit}
         onInterestCheck={checksHook.handleCreateCheck}
         friends={friendsHook.friends.filter(f => f.status === 'friend').map(f => ({ id: f.id, name: f.name, avatar: f.avatar }))}
       />

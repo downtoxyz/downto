@@ -6,12 +6,12 @@ import type { Profile } from "@/lib/types";
 import { font, color } from "@/lib/styles";
 import { toLocalISODate } from "@/lib/utils";
 import type { Event, InterestCheck, Friend } from "@/lib/ui-types";
-import EventCard from "@/components/events/EventCard";
-import EditCheckModal from "@/components/events/EditCheckModal";
-import CheckActionsSheet from "@/components/events/CheckActionsSheet";
+import EventCard from "@/features/events/components/EventCard";
+import EditCheckModal from "@/features/checks/components/EditCheckModal";
+import CheckActionsSheet from "@/features/checks/components/CheckActionsSheet";
 import { logError } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
-import type { CommentUI } from "@/hooks/useCheckComments";
+import type { CommentUI } from "@/features/checks/hooks/useCheckComments";
 
 /** Render @mentions highlighted + inline URLs as clickable links */
 function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: boolean; coAuthors?: { name: string }[] }) {

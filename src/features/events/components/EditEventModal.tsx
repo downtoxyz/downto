@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, CSSProperties } from "react";
 import { font, color } from "@/lib/styles";
-import { useModalTransition } from "@/hooks/useModalTransition";
+import { useModalTransition } from "@/shared/hooks/useModalTransition";
 import type { Event } from "@/lib/ui-types";
 
 const EditEventModal = ({

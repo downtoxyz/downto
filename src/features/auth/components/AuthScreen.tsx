@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { font, color } from "@/lib/styles";
-import Grain from "./Grain";
+import Grain from "@/app/components/Grain";
 
 const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
   const [pendingAddUser, setPendingAddUser] = useState<string | null>(null);

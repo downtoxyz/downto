@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { font, color } from "@/lib/styles";
 import { parseNaturalDate, parseNaturalTime, parseNaturalLocation, parseDateToISO, sanitize, stripDateTimeText } from "@/lib/utils";
-import Grain from "./Grain";
+import Grain from "@/app/components/Grain";
 
 const FirstCheckScreen = ({
   onComplete,

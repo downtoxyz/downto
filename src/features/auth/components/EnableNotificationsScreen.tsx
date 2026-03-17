@@ -8,7 +8,7 @@ import {
   registerServiceWorker,
   subscribeToPush,
 } from "@/lib/pushNotifications";
-import Grain from "./Grain";
+import Grain from "@/app/components/Grain";
 
 const IOSInstallScreen = ({ onComplete }: { onComplete: (enabled: boolean) => void }) => (
   <div

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Instrument_Serif, Space_Mono } from 'next/font/google';
-import DevProdBanner from '@/components/DevProdBanner';
-import UpdateBanner from '@/components/UpdateBanner';
-import Grain from '@/components/Grain';
+import DevProdBanner from '@/app/components/DevProdBanner';
+import UpdateBanner from '@/app/components/UpdateBanner';
+import Grain from '@/app/components/Grain';
 
 import './global.css';
 import './animations.css';

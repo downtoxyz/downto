@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
 import type { Friend } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
-import { useModalTransition } from "@/hooks/useModalTransition";
+import { useModalTransition } from "@/shared/hooks/useModalTransition";
 
 const FriendsModal = ({
   open,

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
 import { parseNaturalDate, parseNaturalTime, parseNaturalLocation, parseDateToISO } from "@/lib/utils";
 import type { InterestCheck } from "@/lib/ui-types";
-import { useModalTransition } from "@/hooks/useModalTransition";
+import { useModalTransition } from "@/shared/hooks/useModalTransition";
 
 const EditCheckModal = ({
   check,

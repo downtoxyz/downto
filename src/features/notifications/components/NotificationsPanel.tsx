@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import * as db from "@/lib/db";
 import { font, color } from "@/lib/styles";
 import { formatTimeAgo } from "@/lib/utils";
-import { useModalTransition } from "@/hooks/useModalTransition";
+import { useModalTransition } from "@/shared/hooks/useModalTransition";
 import type { Tab } from "@/lib/ui-types";
 
 interface Notification {

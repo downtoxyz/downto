@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { font, color } from "@/lib/styles";
 import type { Event, InterestCheck } from "@/lib/ui-types";
-import EventCard from "@/components/events/EventCard";
+import EventCard from "@/features/events/components/EventCard";
 
 const CHECK_DOT_COLOR = "#AF52DE";
 
