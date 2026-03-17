@@ -205,7 +205,7 @@ VALUES (
   'puzzle pints this week?',
   (CURRENT_DATE + 2)::date::timestamp + interval '23 hours 59 minutes',
   CURRENT_DATE + 2,
-  '6 PM',
+  '6pm',
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -256,5 +256,91 @@ INSERT INTO public.squad_members (squad_id, user_id) VALUES
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public.messages (squad_id, sender_id, text, is_system, created_at) VALUES
-  ('d2222222-2222-2222-2222-222222222222', NULL, 'Kat locked in ' || to_char(CURRENT_DATE + 2, 'Dy, Mon DD') || ' at 6 PM', true, now() - interval '2 minutes')
+  ('d2222222-2222-2222-2222-222222222222', NULL, 'Kat locked in ' || to_char(CURRENT_DATE + 2, 'Dy, Mon DD') || ' at 6pm', true, now() - interval '2 minutes')
 ON CONFLICT DO NOTHING;
+
+-- ─── Date/time/location matrix checks (all 7 non-empty combos) ──────────────
+
+-- 1. date only
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location)
+VALUES (
+  'c5000001-0000-0000-0000-000000000000',
+  'b2222222-2222-2222-2222-222222222222',
+  'picnic in the park this saturday?',
+  now() + interval '24 hours',
+  CURRENT_DATE + 5,
+  NULL,
+  NULL
+) ON CONFLICT (id) DO NOTHING;
+
+-- 2. time only
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location)
+VALUES (
+  'c5000002-0000-0000-0000-000000000000',
+  'b2222222-2222-2222-2222-222222222222',
+  'late night food run tonight',
+  now() + interval '12 hours',
+  NULL,
+  '11pm',
+  NULL
+) ON CONFLICT (id) DO NOTHING;
+
+-- 3. location only
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location)
+VALUES (
+  'c5000003-0000-0000-0000-000000000000',
+  'b2222222-2222-2222-2222-222222222222',
+  'who wants to check out that new spot',
+  now() + interval '24 hours',
+  NULL,
+  NULL,
+  'East Village'
+) ON CONFLICT (id) DO NOTHING;
+
+-- 4. date + time
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location)
+VALUES (
+  'c5000004-0000-0000-0000-000000000000',
+  'b2222222-2222-2222-2222-222222222222',
+  'karaoke night let''s goooo',
+  now() + interval '48 hours',
+  CURRENT_DATE + 3,
+  '8pm',
+  NULL
+) ON CONFLICT (id) DO NOTHING;
+
+-- 5. date + location
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location)
+VALUES (
+  'c5000005-0000-0000-0000-000000000000',
+  'b2222222-2222-2222-2222-222222222222',
+  'farmers market tmrw morning?',
+  now() + interval '24 hours',
+  CURRENT_DATE + 1,
+  NULL,
+  'Union Square'
+) ON CONFLICT (id) DO NOTHING;
+
+-- 6. time + location
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location)
+VALUES (
+  'c5000006-0000-0000-0000-000000000000',
+  'b2222222-2222-2222-2222-222222222222',
+  'ramen tonight anyone?',
+  now() + interval '12 hours',
+  NULL,
+  '7pm',
+  'Bushwick'
+) ON CONFLICT (id) DO NOTHING;
+
+-- 7. date + time + location
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location)
+VALUES (
+  'c5000007-0000-0000-0000-000000000000',
+  'b2222222-2222-2222-2222-222222222222',
+  'cooking dinner need taste testers',
+  now() + interval '48 hours',
+  CURRENT_DATE + 2,
+  '6:30pm',
+  'my place'
+) ON CONFLICT (id) DO NOTHING;

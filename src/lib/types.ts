@@ -74,6 +74,7 @@ export interface InterestCheck {
   event_time: string | null; // display time like "7 PM"
   date_flexible: boolean;
   time_flexible: boolean;
+  location: string | null;
   max_squad_size: number;
   letterboxd_url: string | null;
   movie_metadata: {

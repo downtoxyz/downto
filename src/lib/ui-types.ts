@@ -50,6 +50,7 @@ export interface InterestCheck {
   eventTime?: string;
   dateFlexible?: boolean;
   timeFlexible?: boolean;
+  location?: string;
   maxSquadSize?: number | null;
   squadId?: string;
   squadMemberCount?: number;

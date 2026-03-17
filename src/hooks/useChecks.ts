@@ -68,9 +68,10 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
     squadMemberCount: c.squads?.find((s) => !s.archived_at)?.members?.filter((m) => (m as { role?: string }).role !== 'waitlist')?.length ?? 0,
     eventDate: c.event_date ?? undefined,
     eventDateLabel: c.event_date ? new Date(c.event_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : undefined,
-    eventTime: c.event_time ?? undefined,
+    eventTime: c.event_time?.replace(/AM/gi, 'am').replace(/PM/gi, 'pm') ?? undefined,
     dateFlexible: c.date_flexible,
     timeFlexible: c.time_flexible,
+    location: (c as Record<string, unknown>).location as string | undefined,
     movieTitle: mm?.title,
     year: mm?.year,
     director: mm?.director,
@@ -259,7 +260,7 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
           maxSquadSize: maxSquadSize ?? undefined,
           eventDate: eventDate ?? undefined,
           eventDateLabel: dateLabel,
-          eventTime: eventTime ?? undefined,
+          eventTime: eventTime?.replace(/AM/gi, 'am').replace(/PM/gi, 'pm') ?? undefined,
           dateFlexible: dateFlexible ?? true,
           timeFlexible: timeFlexible ?? true,
           ...movieFields,
@@ -285,7 +286,7 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
         maxSquadSize: maxSquadSize ?? undefined,
         eventDate: eventDate ?? undefined,
         eventDateLabel: dateLabel,
-        eventTime: eventTime ?? undefined,
+        eventTime: eventTime?.replace(/AM/gi, 'am').replace(/PM/gi, 'pm') ?? undefined,
         dateFlexible: dateFlexible ?? true,
         ...movieFields,
       };
@@ -402,7 +403,7 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
       eventDateLabel: r.check.event_date
         ? new Date(r.check.event_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
         : undefined,
-      eventTime: r.check.event_time ?? undefined,
+      eventTime: r.check.event_time?.replace(/AM/gi, 'am').replace(/PM/gi, 'pm') ?? undefined,
     })));
   }, []);
 

@@ -643,60 +643,22 @@ export default function FeedView({
                                   </button>
                                 )}
                               </div>
-                              {(check.eventDateLabel || check.eventTime) && (
-                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-                                  {check.eventDateLabel && (
-                                    <span style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 4,
-                                      padding: "3px 8px",
-                                      background: "rgba(232,255,90,0.08)",
-                                      border: "1px solid rgba(232,255,90,0.2)",
-                                      borderRadius: 6,
-                                      fontFamily: font.mono,
-                                      fontSize: 10,
-                                      color: color.accent,
-                                      fontWeight: 600,
-                                    }}>
-                                      {check.eventDateLabel}
-                                      {check.dateFlexible && (
-                                        <span style={{
-                                          padding: "0px 4px",
-                                          background: "rgba(232,255,90,0.15)",
-                                          borderRadius: 3,
-                                          fontSize: 8,
-                                        }}>flexible</span>
-                                      )}
-                                    </span>
-                                  )}
-                                  {check.eventTime && (
-                                    <span style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 4,
-                                      padding: "3px 8px",
-                                      background: "rgba(232,255,90,0.08)",
-                                      border: "1px solid rgba(232,255,90,0.2)",
-                                      borderRadius: 6,
-                                      fontFamily: font.mono,
-                                      fontSize: 10,
-                                      color: color.accent,
-                                      fontWeight: 600,
-                                    }}>
-                                      {check.eventTime}
-                                      {check.timeFlexible && (
-                                        <span style={{
-                                          padding: "0px 4px",
-                                          background: "rgba(232,255,90,0.15)",
-                                          borderRadius: 3,
-                                          fontSize: 8,
-                                        }}>flexible</span>
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                              {(check.eventDateLabel || check.eventTime || check.location) && (() => {
+                                const when = [check.eventDateLabel, check.eventTime].filter(Boolean).join(" ");
+                                const parts = [when, check.location].filter(Boolean);
+                                if (parts.length === 0) return null;
+                                return (
+                                  <p style={{
+                                    fontFamily: font.mono,
+                                    fontSize: 11,
+                                    color: color.dim,
+                                    margin: 0,
+                                    marginTop: 8,
+                                  }}>
+                                    {parts.join(" · ")}
+                                  </p>
+                                );
+                              })()}
                             {(check.isYours || check.isCoAuthor) && !check.squadId && check.responses.some((r) => r.status === "down") && (
                               <button
                                 onClick={(e) => {
