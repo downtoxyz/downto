@@ -168,7 +168,17 @@ export async function POST(req: NextRequest) {
 
     const otherMembers = members ?? [];
 
-    // Create pending confirm rows
+    // Auto-confirm proposer as "still down"
+    await adminClient
+      .from('squad_date_confirms')
+      .insert({
+        squad_id: squadId,
+        message_id: messageId,
+        user_id: user.id,
+        response: 'yes',
+      });
+
+    // Create pending confirm rows for other members
     if (otherMembers.length > 0) {
       await adminClient
         .from('squad_date_confirms')
