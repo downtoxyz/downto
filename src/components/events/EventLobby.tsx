@@ -89,8 +89,8 @@ const EventLobby = ({
   const poolCount = event.poolCount ?? squadPoolMembers.length + (inSquadPool ? 1 : 0);
   const maxSquadPick = 4; // max 4 others + you = 5 total
   const isSelecting = selectingMembers;
-  // Wait for squad enrichment before rendering people list when user has a squad
-  const peopleReady = !existingSquadId || socialDataLoaded;
+  // Wait for squad enrichment before rendering people list to avoid list→facepile flash
+  const peopleReady = !!socialDataLoaded;
 
   const toggleSelect = (userId: string) => {
     setSelectedIds((prev) => {
