@@ -363,6 +363,52 @@ const EventLobby = ({
           </div>
         )}
 
+        {/* Loading skeleton while waiting for squad enrichment */}
+        {!peopleReady && (friends.length > 0 || others.length > 0) && (
+          <div style={{ opacity: 0.4 }}>
+            {friends.length > 0 && (
+              <>
+                <div style={{
+                  fontFamily: font.mono, fontSize: 10, textTransform: "uppercase",
+                  letterSpacing: "0.15em", color: color.accent, marginBottom: 12,
+                }}>
+                  Friends ({friends.length})
+                </div>
+                {friends.map((p) => (
+                  <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid #222` }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%", background: color.accent,
+                      color: "#000", display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: font.mono, fontSize: 14, fontWeight: 700,
+                    }}>{p.avatar}</div>
+                    <div style={{ width: 80, height: 10, borderRadius: 4, background: color.borderLight }} />
+                  </div>
+                ))}
+              </>
+            )}
+            {others.length > 0 && (
+              <>
+                <div style={{
+                  fontFamily: font.mono, fontSize: 10, textTransform: "uppercase",
+                  letterSpacing: "0.15em", color: color.dim, marginTop: 20, marginBottom: 12,
+                }}>
+                  Also down ({others.length})
+                </div>
+                {others.map((p) => (
+                  <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${color.surface}` }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%", background: color.borderLight,
+                      color: color.dim, display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: font.mono, fontSize: 14, fontWeight: 700,
+                    }}>{p.avatar}</div>
+                    <div style={{ width: 80, height: 10, borderRadius: 4, background: color.borderLight }} />
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
         {/* Friends section */}
         {friends.length > 0 && peopleReady && (
           <>
