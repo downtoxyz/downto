@@ -15,7 +15,7 @@ import ProfileSetupScreen from "@/components/ProfileSetupScreen";
 import EnableNotificationsScreen, { IOSInstallScreen } from "@/components/EnableNotificationsScreen";
 import EditEventModal from "@/components/events/EditEventModal";
 import EventLobby from "@/components/events/EventLobby";
-import AddModal from "@/components/events/PasteModal";
+import AddModal from "@/components/events/CreateModal";
 import UserProfileOverlay from "@/components/friends/UserProfileOverlay";
 import FeedView from "@/components/events/FeedView";
 import FriendsModal from "@/components/friends/FriendsModal";
