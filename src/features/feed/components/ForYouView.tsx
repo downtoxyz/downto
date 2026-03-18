@@ -256,6 +256,7 @@ export default function ForYouView({
   const [actionsSheetCheck, setActionsSheetCheck] = useState<InterestCheck | null>(null);
   const checkLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkLongPressFired = useRef(false);
+  const checkTouchStart = useRef<{ x: number; y: number } | null>(null);
 
   const clearCheckLongPress = () => {
     if (checkLongPressTimer.current) {
@@ -269,14 +270,9 @@ export default function ForYouView({
       try { await db.markCheckShared(check.id); } catch { /* best-effort */ }
     }
     const url = `${window.location.origin}/check/${check.id}`;
-    const shareData = {
-      title: check.text.slice(0, 60),
-      text: `${check.author}: ${check.text}`,
-      url,
-    };
     try {
       if (navigator.share) {
-        await navigator.share(shareData);
+        await navigator.share({ url });
       } else {
         await navigator.clipboard.writeText(url);
         showToast("Link copied!");
@@ -321,17 +317,26 @@ export default function ForYouView({
               ref={check.id === newlyAddedCheckId ? (el) => {
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
               } : undefined}
-              onPointerDown={() => {
+              onTouchStart={(e) => {
                 if (!(check.isYours || check.isCoAuthor)) return;
+                const t = e.touches[0];
+                checkTouchStart.current = { x: t.clientX, y: t.clientY };
                 checkLongPressFired.current = false;
                 checkLongPressTimer.current = setTimeout(() => {
                   checkLongPressFired.current = true;
+                  if (navigator.vibrate) navigator.vibrate(20);
                   shareCheck(check);
-                }, 500);
+                }, 400);
               }}
-              onPointerUp={clearCheckLongPress}
-              onPointerLeave={clearCheckLongPress}
-              onTouchMove={clearCheckLongPress}
+              onTouchMove={(e) => {
+                if (!checkTouchStart.current) return;
+                const t = e.touches[0];
+                const dx = t.clientX - checkTouchStart.current.x;
+                const dy = t.clientY - checkTouchStart.current.y;
+                if (dx * dx + dy * dy > 200) clearCheckLongPress();
+              }}
+              onTouchEnd={() => { clearCheckLongPress(); checkTouchStart.current = null; }}
+              onTouchCancel={() => { clearCheckLongPress(); checkTouchStart.current = null; }}
               style={{
                 background: (check.isYours || check.isCoAuthor) ? "rgba(232,255,90,0.05)" : color.card,
                 borderRadius: 14,
@@ -341,6 +346,7 @@ export default function ForYouView({
                 ...(check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : {}),
                 WebkitUserSelect: (check.isYours || check.isCoAuthor) ? "none" : undefined,
                 userSelect: (check.isYours || check.isCoAuthor) ? "none" : undefined,
+                WebkitTouchCallout: (check.isYours || check.isCoAuthor) ? "none" : undefined,
               }}
             >
               {check.expiresIn !== "open" && (
@@ -908,7 +914,6 @@ export default function ForYouView({
         open={!!actionsSheetCheck}
         onClose={() => setActionsSheetCheck(null)}
         hasSquad={!!actionsSheetCheck?.squadId}
-        onShare={actionsSheetCheck ? () => shareCheck(actionsSheetCheck) : undefined}
         onEdit={() => { if (actionsSheetCheck) setEditModalCheck(actionsSheetCheck); setActionsSheetCheck(null); }}
         onArchive={async () => {
           if (!actionsSheetCheck) return;
