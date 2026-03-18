@@ -9,6 +9,7 @@ export default function CheckActionsSheet({
   onEdit,
   onArchive,
   onDelete,
+  onShare,
   hasSquad,
 }: {
   open: boolean;
@@ -16,6 +17,7 @@ export default function CheckActionsSheet({
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  onShare?: () => void;
   hasSquad: boolean;
 }) {
   const touchStartY = useRef(0);
@@ -139,6 +141,7 @@ export default function CheckActionsSheet({
           </p>
 
           {actionRow("Edit", "✎", () => { onClose(); onEdit(); })}
+          {onShare && actionRow("Share link", "🔗", () => { onClose(); onShare(); })}
           {actionRow("Archive", "📦", () => { onClose(); onArchive(); })}
           {!hasSquad && actionRow("Delete", "🗑", () => setConfirmDelete(true), true)}
         </div>

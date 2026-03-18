@@ -703,6 +703,16 @@ export async function updateInterestCheck(
   if (error) throw error;
 }
 
+export async function markCheckShared(checkId: string): Promise<void> {
+  const { error } = await supabase
+    .from('interest_checks')
+    .update({ shared_at: new Date().toISOString() })
+    .eq('id', checkId)
+    .is('shared_at', null);
+
+  if (error) throw error;
+}
+
 export async function removeCheckResponse(checkId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
