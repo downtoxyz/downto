@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type MutableRefObject } from "react";
+import { useState, useCallback, type MutableRefObject } from "react";
 import * as db from "@/lib/db";
 import { toLocalISODate, parseDateToISO } from "@/lib/utils";
 import type { Event } from "@/lib/ui-types";
@@ -20,7 +20,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
   const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
   const [archivedChecks, setArchivedChecks] = useState<{ id: string; text: string; archived_at: string }[]>([]);
 
-  const hydrateEvents = (
+  const hydrateEvents = useCallback((
     savedEvents: Awaited<ReturnType<typeof db.getSavedEvents>>,
     publicEvents: Awaited<ReturnType<typeof db.getPublicEvents>>,
     friendsEvents: Awaited<ReturnType<typeof db.getFriendsEvents>>
@@ -125,9 +125,9 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
           neighborhood: e.neighborhood ?? undefined,
         }));
     });
-  };
+  }, []);
 
-  const hydrateSocialData = (
+  const hydrateSocialData = useCallback((
     peopleDownMap: Awaited<ReturnType<typeof db.getPeopleDownBatch>>,
     crewPoolMap: Awaited<ReturnType<typeof db.getCrewPoolBatch>>,
     userPoolEventIds: Awaited<ReturnType<typeof db.getUserPoolEventIds>>
@@ -151,7 +151,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
 
     setEvents((prev) => prev.map(enrichEvent));
     setTonightEvents((prev) => prev.map(enrichEvent));
-  };
+  }, []);
 
   const toggleSave = (id: string) => {
     const event = events.find((e) => e.id === id);
