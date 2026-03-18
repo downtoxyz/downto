@@ -910,7 +910,7 @@ const AddModal = ({
             <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
               <input
                 type="text"
-                placeholder="when?"
+                placeholder="tmr 7pm"
                 value={whenInput}
                 onChange={(e) => setWhenInput(e.target.value)}
                 style={{
