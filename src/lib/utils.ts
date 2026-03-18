@@ -62,10 +62,7 @@ const MONTH_NAMES: Record<string, number> = {
 };
 
 /** Todoist-style: scan free text for date phrases, return { label, iso } or null */
-// TODO: disabled — parsing not reliable enough yet
-export const parseNaturalDate = (_text: string): { label: string; iso: string } | null => {
-  return null; // disabled
-  const text = _text; // eslint-disable-line no-unreachable
+export const parseNaturalDate = (text: string): { label: string; iso: string } | null => {
   const lower = text.toLowerCase();
   const today = new Date();
   const todayDay = today.getDay();
@@ -201,16 +198,14 @@ export const parseNaturalDate = (_text: string): { label: string; iso: string } 
   return null;
 };
 
-/** Scan free text for time phrases, return display string like "7 PM" or null */
-// TODO: disabled — parsing not reliable enough yet
-export const parseNaturalTime = (_text: string): string | null => {
-  return null; // disabled
-  const lower = _text.toLowerCase(); // eslint-disable-line no-unreachable
+/** Scan free text for time phrases, return display string like "7pm" or null */
+export const parseNaturalTime = (text: string): string | null => {
+  const lower = text.toLowerCase();
 
   // "noon"
-  if (/\bnoon\b/.test(lower)) return "12 PM";
+  if (/\bnoon\b/.test(lower)) return "12pm";
   // "midnight"
-  if (/\bmidnight\b/.test(lower)) return "12 AM";
+  if (/\bmidnight\b/.test(lower)) return "12am";
 
   // "at 7", "at 7pm", "at 7 pm", "at 7:30", "at 7:30pm" — "at" prefix makes it a time
   const atMatch = lower.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
@@ -229,8 +224,8 @@ export const parseNaturalTime = (_text: string): string | null => {
 
 const formatTimeMatch = (rawHour: number, minutes: string | null, meridiem: "am" | "pm" | undefined): string | null => {
   if (rawHour === 0 || rawHour > 12) return null;
-  const suffix = meridiem ? meridiem.toUpperCase() : "PM";
-  return minutes ? `${rawHour}:${minutes} ${suffix}` : `${rawHour} ${suffix}`;
+  const suffix = meridiem ?? "pm";
+  return minutes ? `${rawHour}:${minutes}${suffix}` : `${rawHour}${suffix}`;
 };
 
 /** Parse a location from text, e.g. "dinner at Jollibee" → "Jollibee" */
@@ -244,7 +239,7 @@ export const parseNaturalLocation = (_text: string): string | null => {
 
   // Match "at {location}" — capture everything after "at" until end or temporal/stop words
   const atMatch = lower.match(/\bat\s+(.+?)(?:\s*[·|,]|\s+(?:on|at|around|from|with|tonight|today|tomorrow|tmrw|tmr|tn|this|next|in|mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\s*$)/);
-  if (atMatch) {
+  if (atMatch && atMatch[1]) {
     const candidate = atMatch[1].trim();
     if (timeWords.test(candidate)) return null;
     if (candidate.length < 2 || candidate.length > 50) return null;
