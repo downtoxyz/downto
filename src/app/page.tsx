@@ -606,6 +606,7 @@ export default function Home() {
     const igUrl = e.igUrl || null;
     const diceUrl = e.diceUrl || null;
     const letterboxdUrl = e.letterboxdUrl || null;
+    const eventNote = e.note ? sanitize(e.note, 200) : null;
     const movieMetadata = e.type === "movie" && e.movieTitle
       ? { title: e.movieTitle, year: e.year, director: e.director, thumbnail: e.thumbnail, vibes: e.vibe }
       : null;
@@ -640,6 +641,7 @@ export default function Home() {
             dice_url: diceUrl,
             letterboxd_url: letterboxdUrl,
             movie_metadata: movieMetadata,
+            note: eventNote,
             is_public: sharePublicly,
             created_by: userId,
           });
@@ -671,6 +673,7 @@ export default function Home() {
           movieYear: mm?.year,
           movieDirector: mm?.director,
           movieThumbnail: mm?.thumbnail,
+          note: dbEvent.note ?? eventNote ?? undefined,
           saved: true,
           isDown: true,
           isPublic: dbEvent.is_public ?? sharePublicly,
@@ -701,6 +704,7 @@ export default function Home() {
         movieYear: movieMetadata?.year,
         movieDirector: movieMetadata?.director,
         movieThumbnail: movieMetadata?.thumbnail,
+        note: eventNote ?? undefined,
         saved: true,
         isDown: true,
         isPublic: sharePublicly,

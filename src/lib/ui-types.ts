@@ -25,6 +25,7 @@ export interface Event {
   movieYear?: string;
   movieDirector?: string;
   movieThumbnail?: string;
+  note?: string;
   saved: boolean;
   isDown: boolean;
   peopleDown: Person[];
@@ -85,6 +86,7 @@ export interface ScrapedEvent {
   thumbnail?: string;
   letterboxdUrl?: string;
   diceUrl?: string;
+  note?: string;
 }
 
 export interface Squad {

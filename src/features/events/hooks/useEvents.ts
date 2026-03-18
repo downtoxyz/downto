@@ -50,6 +50,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
           movieYear: se.event!.movie_metadata?.year,
           movieDirector: se.event!.movie_metadata?.director,
           movieThumbnail: se.event!.movie_metadata?.thumbnail,
+          note: se.event!.note ?? undefined,
           saved: true,
           isDown: se.is_down,
           isPublic: se.event!.is_public ?? false,
@@ -76,6 +77,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
             movieYear: e.movie_metadata?.year,
             movieDirector: e.movie_metadata?.director,
             movieThumbnail: e.movie_metadata?.thumbnail,
+            note: e.note ?? undefined,
             saved: false,
             isDown: false,
             peopleDown: prevPeopleDown.get(e.id) ?? [],
@@ -115,6 +117,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
           movieYear: e.movie_metadata?.year,
           movieDirector: e.movie_metadata?.director,
           movieThumbnail: e.movie_metadata?.thumbnail,
+          note: e.note ?? undefined,
           saved: savedEventIdSet.has(e.id),
           isDown: savedDownMap.get(e.id) ?? false,
           isPublic: true,
@@ -200,7 +203,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
     }
   };
 
-  const handleEditEvent = async (updated: { title: string; venue: string; date: string; time: string; vibe: string[] }) => {
+  const handleEditEvent = async (updated: { title: string; venue: string; date: string; time: string; vibe: string[]; note: string }) => {
     if (!editingEvent) return;
 
     const dateISO = parseDateToISO(updated.date);
@@ -217,6 +220,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
           date_display: dateDisplay,
           time_display: updated.time,
           vibes: updated.vibe,
+          note: updated.note || null,
         });
       } catch (err) {
         logError("updateEvent", err, { eventId: editingEvent.id });
@@ -228,7 +232,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
     const updateList = (prev: Event[]) =>
       prev.map((e) =>
         e.id === editingEvent.id
-          ? { ...e, title: updated.title, venue: updated.venue, date: dateDisplay, time: updated.time, vibe: updated.vibe, rawDate: dateISO ?? undefined }
+          ? { ...e, title: updated.title, venue: updated.venue, date: dateDisplay, time: updated.time, vibe: updated.vibe, note: updated.note || undefined, rawDate: dateISO ?? undefined }
           : e
       );
     setEvents(updateList);

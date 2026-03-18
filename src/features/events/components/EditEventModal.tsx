@@ -14,13 +14,14 @@ const EditEventModal = ({
   event: Event | null;
   open: boolean;
   onClose: () => void;
-  onSave: (updated: { title: string; venue: string; date: string; time: string; vibe: string[] }) => void;
+  onSave: (updated: { title: string; venue: string; date: string; time: string; vibe: string[]; note: string }) => void;
 }) => {
   const [title, setTitle] = useState("");
   const [venue, setVenue] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [vibeText, setVibeText] = useState("");
+  const [note, setNote] = useState("");
   const { visible, entering, closing, close } = useModalTransition(open, onClose);
   const touchStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -34,6 +35,7 @@ const EditEventModal = ({
       setDate(event.date);
       setTime(event.time);
       setVibeText(event.vibe.join(", "));
+      setNote(event.note || "");
     }
   }, [event, open]);
 
@@ -205,12 +207,25 @@ const EditEventModal = ({
               style={inputStyle}
             />
           </div>
+          {event?.isPublic && (
+            <div>
+              <div style={labelStyle}>Note</div>
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. DJ set starts at midnight"
+                maxLength={200}
+                style={inputStyle}
+              />
+            </div>
+          )}
         </div>
 
         <button
           onClick={() => {
             const vibes = vibeText.split(",").map((v) => v.trim()).filter(Boolean);
-            onSave({ title, venue, date, time, vibe: vibes });
+            onSave({ title, venue, date, time, vibe: vibes, note: note.trim() });
           }}
           disabled={!title.trim()}
           style={{

@@ -37,6 +37,7 @@ export interface Event {
     thumbnail?: string;
     vibes?: string[];
   } | null;
+  note: string | null;
   is_public: boolean;
   created_by: string | null;
   created_at: string;

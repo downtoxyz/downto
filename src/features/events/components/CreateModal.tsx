@@ -101,6 +101,7 @@ const AddModal = ({
   const [loading, setLoading] = useState(false);
   const [scraped, setScraped] = useState<ScrapedEvent | null>(null);
   const [sharePublicly, setSharePublicly] = useState(false);
+  const [note, setNote] = useState("");
   const [manual, setManual] = useState({
     title: "",
     venue: "",
@@ -144,6 +145,7 @@ const AddModal = ({
       setLoading(false);
       setScraped(null);
       setSharePublicly(false);
+      setNote("");
       setMode("idea");
       setError(null);
       setManual({ title: "", venue: "", date: "", time: "", vibe: "" });
@@ -684,6 +686,28 @@ const AddModal = ({
                 </button>
               </div>
             )}
+            {sharePublicly && (
+              <input
+                type="text"
+                placeholder="Add a note (e.g. DJ set starts at midnight)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={200}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  background: color.deep,
+                  color: color.text,
+                  border: `1px solid ${color.borderMid}`,
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  fontFamily: font.mono,
+                  fontSize: 12,
+                  marginBottom: 14,
+                  outline: "none",
+                }}
+              />
+            )}
             {!scraped.isPublicPost && (
               <div
                 style={{
@@ -701,7 +725,8 @@ const AddModal = ({
             )}
             <button
               onClick={async () => {
-                await onSubmit(scraped, sharePublicly);
+                const submitted = { ...scraped, note: note.trim() || undefined };
+                await onSubmit(submitted, sharePublicly);
                 close();
               }}
               style={{

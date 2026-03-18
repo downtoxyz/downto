@@ -162,7 +162,7 @@ export async function createEvent(event: Omit<Event, 'id' | 'created_at'>): Prom
 
 export async function updateEvent(
   eventId: string,
-  updates: Partial<Pick<Event, 'title' | 'venue' | 'date' | 'date_display' | 'time_display' | 'vibes' | 'image_url' | 'movie_metadata' | 'letterboxd_url'>>
+  updates: Partial<Pick<Event, 'title' | 'venue' | 'date' | 'date_display' | 'time_display' | 'vibes' | 'image_url' | 'movie_metadata' | 'letterboxd_url' | 'note'>>
 ): Promise<Event> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');

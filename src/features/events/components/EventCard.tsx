@@ -244,6 +244,11 @@ const EventCard = ({
             <div style={{ fontFamily: font.mono, fontSize: 12, color: color.dim }}>
               {event.venue}
             </div>
+            {event.note && (
+              <div style={{ fontFamily: font.mono, fontSize: 11, color: color.muted, marginTop: 4 }}>
+                {event.note}
+              </div>
+            )}
             {event.movieTitle && (
               <div style={{
                 display: "inline-flex",
