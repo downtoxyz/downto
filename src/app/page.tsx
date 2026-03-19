@@ -42,6 +42,23 @@ import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
 import { logError, logWarn } from "@/lib/logger";
 
 
+function computeExpiry(expiresAt: string | null, createdAt: string): { expiresIn: string; expiryPercent: number } {
+  if (!expiresAt) return { expiresIn: "open", expiryPercent: 0 };
+  const now = Date.now();
+  const expires = new Date(expiresAt).getTime();
+  const created = new Date(createdAt).getTime();
+  const total = expires - created;
+  const elapsed = now - created;
+  const remaining = expires - now;
+  if (remaining <= 0) return { expiresIn: "expired", expiryPercent: 100 };
+  const hours = Math.floor(remaining / (1000 * 60 * 60));
+  const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+  return {
+    expiresIn: hours > 0 ? `${hours}h` : `${mins}m`,
+    expiryPercent: Math.min(100, (elapsed / total) * 100),
+  };
+}
+
 // ─── Main App ───────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -372,8 +389,7 @@ export default function Home() {
               author: shared.author_name,
               authorId: shared.author_id,
               timeAgo: formatTimeAgo(new Date(shared.created_at)),
-              expiresIn: shared.expires_at ? "expiring" : "open",
-              expiryPercent: 0,
+              ...computeExpiry(shared.expires_at, shared.created_at),
               responses: [],
               eventDate: shared.event_date ?? undefined,
               eventTime: shared.event_time ?? undefined,
