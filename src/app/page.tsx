@@ -336,10 +336,41 @@ export default function Home() {
     const checkId = localStorage.getItem("pendingCheckId");
     if (!checkId) return;
     localStorage.removeItem("pendingCheckId");
-    setTab("feed");
-    setFeedMode("foryou");
-    checksHook.setNewlyAddedCheckId(checkId);
-    setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
+
+    // Auto-respond "down" and inject the check into the feed
+    (async () => {
+      await db.respondToSharedCheck(checkId);
+      await loadRealData();
+
+      // If the check isn't in the feed (not friends yet), fetch and inject it
+      const alreadyInFeed = checksHook.checks.some((c) => c.id === checkId);
+      if (!alreadyInFeed) {
+        const shared = await db.getSharedCheck(checkId);
+        if (shared) {
+          const { formatTimeAgo } = await import("@/lib/utils");
+          checksHook.setChecks((prev) => [{
+            id: shared.id,
+            text: shared.text,
+            author: shared.author_name,
+            authorId: shared.author_id,
+            timeAgo: formatTimeAgo(new Date(shared.created_at)),
+            expiresIn: shared.expires_at ? "expiring" : "open",
+            expiryPercent: 0,
+            responses: [{ name: "You", avatar: profile?.avatar_letter ?? "?", status: "down" as const }],
+            eventDate: shared.event_date ?? undefined,
+            eventTime: shared.event_time ?? undefined,
+            location: shared.location ?? undefined,
+            viaFriendName: "shared link",
+          }, ...prev.filter((c) => c.id !== shared.id)]);
+        }
+      }
+
+      setTab("feed");
+      setFeedMode("foryou");
+      checksHook.setNewlyAddedCheckId(checkId);
+      setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
+      showToast("You're down! \u{1F919}");
+    })();
   }, [isLoggedIn, userId, profile?.onboarded]);
 
   // Trigger data load when logged in

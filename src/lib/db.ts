@@ -527,6 +527,29 @@ export async function getSuggestedUsers(): Promise<Profile[]> {
 // INTEREST CHECKS
 // ============================================================================
 
+export async function getSharedCheck(checkId: string) {
+  const { data, error } = await supabase.rpc('get_shared_check', { p_check_id: checkId });
+  if (error || !data || data.length === 0) return null;
+  return data[0] as {
+    id: string; text: string; author_id: string;
+    author_name: string; author_avatar: string;
+    event_date: string | null; event_time: string | null;
+    location: string | null; expires_at: string | null;
+    created_at: string; response_count: number;
+  };
+}
+
+export async function respondToSharedCheck(checkId: string): Promise<boolean> {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) return false;
+  const res = await fetch('/api/checks/respond-shared', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ checkId, response: 'down' }),
+  });
+  return res.ok;
+}
+
 export async function getCheckAuthorProfile(checkId: string): Promise<Profile | null> {
   const { data, error } = await supabase.rpc('get_shared_check_author', { p_check_id: checkId });
   if (error || !data || data.length === 0) return null;

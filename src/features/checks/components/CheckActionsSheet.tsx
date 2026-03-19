@@ -142,6 +142,19 @@ export default function CheckActionsSheet({
 
           {actionRow("Edit", "✎", () => { onClose(); onEdit(); })}
           {onShare && actionRow("Share link", "🔗", () => { onClose(); onShare(); })}
+          {onShare && (
+            <p style={{
+              fontFamily: font.mono,
+              fontSize: 10,
+              color: color.faint,
+              margin: "0 0 4px",
+              padding: "0 0 10px",
+              borderBottom: `1px solid ${color.border}`,
+              lineHeight: 1.5,
+            }}>
+              This link is tied to you — anyone who joins through it will be prompted to add you as a friend
+            </p>
+          )}
           {actionRow("Archive", "📦", () => { onClose(); onArchive(); })}
           {!hasSquad && actionRow("Delete", "🗑", () => setConfirmDelete(true), true)}
         </div>
