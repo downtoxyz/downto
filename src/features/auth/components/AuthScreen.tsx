@@ -7,10 +7,12 @@ import Grain from "@/app/components/Grain";
 
 const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
   const [pendingAddUser, setPendingAddUser] = useState<string | null>(null);
+  const [pendingCheck, setPendingCheck] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("pendingAddUsername");
     if (stored) setPendingAddUser(stored);
+    if (localStorage.getItem("pendingCheckId")) setPendingCheck(true);
   }, []);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -83,6 +85,24 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
       >
         from idea to squad in 10 seconds
       </p>
+      {pendingCheck && !pendingAddUser && (
+        <div
+          style={{
+            background: "rgba(232,255,90,0.08)",
+            border: `1px solid rgba(232,255,90,0.2)`,
+            borderRadius: 12,
+            padding: "12px 16px",
+            marginBottom: 32,
+          }}
+        >
+          <p style={{ fontFamily: font.mono, fontSize: 12, color: color.accent, margin: 0, lineHeight: 1.5 }}>
+            sign up or log in to respond to this check
+          </p>
+          <p style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, margin: "4px 0 0" }}>
+            quick setup, then you&apos;re in
+          </p>
+        </div>
+      )}
       {pendingAddUser && (
         <p
           style={{

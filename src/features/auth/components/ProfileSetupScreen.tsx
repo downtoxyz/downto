@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import { font, color } from "@/lib/styles";
@@ -14,6 +14,10 @@ const ProfileSetupScreen = ({
   profile: Profile;
   onComplete: (updated: Profile) => void;
 }) => {
+  const [hasPendingCheck, setHasPendingCheck] = useState(false);
+  useEffect(() => {
+    if (localStorage.getItem("pendingCheckId")) setHasPendingCheck(true);
+  }, []);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -84,7 +88,9 @@ const ProfileSetupScreen = ({
           marginBottom: 40,
         }}
       >
-        pick a name and username — this is how you&apos;ll show up
+        {hasPendingCheck
+          ? "almost there — quick setup, then you can respond"
+          : "pick a name and username \u2014 this is how you\u2019ll show up"}
       </p>
 
       {/* Display name */}
