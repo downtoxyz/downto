@@ -337,38 +337,39 @@ export default function Home() {
     if (!checkId) return;
     localStorage.removeItem("pendingCheckId");
 
-    // Inject the shared check into the feed and highlight it
-    (async () => {
-      await loadRealData();
+    // Fetch the shared check and inject it after a short delay
+    // (wait for loadRealData to finish hydrating first)
+    const injectSharedCheck = async () => {
+      const shared = await db.getSharedCheck(checkId);
+      if (!shared) return;
+      const { formatTimeAgo } = await import("@/lib/utils");
+      checksHook.setChecks((prev) => {
+        if (prev.some((c) => c.id === checkId)) return prev;
+        return [{
+          id: shared.id,
+          text: shared.text,
+          author: shared.author_name,
+          authorId: shared.author_id,
+          timeAgo: formatTimeAgo(new Date(shared.created_at)),
+          expiresIn: shared.expires_at ? "expiring" : "open",
+          expiryPercent: 0,
+          responses: [],
+          eventDate: shared.event_date ?? undefined,
+          eventTime: shared.event_time ?? undefined,
+          location: shared.location ?? undefined,
+          viaFriendName: "shared link",
+        }, ...prev];
+      });
+    };
 
-      // If the check isn't in the feed (not friends yet), fetch and inject it
-      const alreadyInFeed = checksHook.checks.some((c) => c.id === checkId);
-      if (!alreadyInFeed) {
-        const shared = await db.getSharedCheck(checkId);
-        if (shared) {
-          const { formatTimeAgo } = await import("@/lib/utils");
-          checksHook.setChecks((prev) => [{
-            id: shared.id,
-            text: shared.text,
-            author: shared.author_name,
-            authorId: shared.author_id,
-            timeAgo: formatTimeAgo(new Date(shared.created_at)),
-            expiresIn: shared.expires_at ? "expiring" : "open",
-            expiryPercent: 0,
-            responses: [],
-            eventDate: shared.event_date ?? undefined,
-            eventTime: shared.event_time ?? undefined,
-            location: shared.location ?? undefined,
-            viaFriendName: "shared link",
-          }, ...prev.filter((c) => c.id !== shared.id)]);
-        }
-      }
-
-      setTab("feed");
-      setFeedMode("foryou");
+    setTab("feed");
+    setFeedMode("foryou");
+    // Inject after loadRealData has had time to hydrate
+    setTimeout(async () => {
+      await injectSharedCheck();
       checksHook.setNewlyAddedCheckId(checkId);
       setTimeout(() => checksHook.setNewlyAddedCheckId(null), 5000);
-    })();
+    }, 1500);
   }, [isLoggedIn, userId, profile?.onboarded]);
 
   // Trigger data load when logged in
