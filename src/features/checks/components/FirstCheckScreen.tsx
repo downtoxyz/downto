@@ -2,32 +2,32 @@
 
 import { useState, useRef, useEffect } from "react";
 import { font, color } from "@/lib/styles";
-import { parseNaturalDate, parseNaturalTime, parseNaturalLocation, parseDateToISO, sanitize, stripDateTimeText } from "@/lib/utils";
+import { parseNaturalDate, parseNaturalTime, sanitize } from "@/lib/utils";
 import Grain from "@/app/components/Grain";
 
 const FirstCheckScreen = ({
   onComplete,
   onSkip,
 }: {
-  onComplete: (idea: string, expiresInHours: number | null, eventDate: string | null, maxSquadSize: number | null, eventTime?: string | null, dateFlexible?: boolean, timeFlexible?: boolean) => void;
+  onComplete: (idea: string, expiresInHours: number | null, eventDate: string | null, maxSquadSize: number | null, eventTime?: string | null, dateFlexible?: boolean, timeFlexible?: boolean, location?: string | null) => void;
   onSkip: () => void;
 }) => {
   const [idea, setIdea] = useState("");
   const [checkTimer, setCheckTimer] = useState<number | null>(24);
   const [squadSize, setSquadSize] = useState(5);
-
-  const detectedDate = idea ? parseNaturalDate(idea) : null;
-  const detectedTime = idea ? parseNaturalTime(idea) : null;
-  const detectedLocation = idea ? parseNaturalLocation(idea) : null;
-
-  const [manualDate, setManualDate] = useState<string | null>(null);
-  const [manualTime, setManualTime] = useState<string | null>(null);
-  const [manualLocation, setManualLocation] = useState<string | null>(null);
-  const [dateLocked, setDateLocked] = useState(false);
-  const [timeLocked, setTimeLocked] = useState(false);
-  const [locationLocked, setLocationLocked] = useState(false);
-  const [editingChip, setEditingChip] = useState<"date" | "time" | "location" | null>(null);
+  const [whenInput, setWhenInput] = useState("");
+  const [whereInput, setWhereInput] = useState("");
   const ideaRef = useRef<HTMLTextAreaElement>(null);
+
+  const parsedDate = whenInput ? parseNaturalDate(whenInput) : null;
+  const parsedTime = whenInput ? parseNaturalTime(whenInput) : null;
+  const whenPreview = (() => {
+    if (!parsedDate && !parsedTime) return null;
+    const parts: string[] = [];
+    if (parsedDate) parts.push(parsedDate.label);
+    if (parsedTime) parts.push(parsedTime);
+    return parts.join(" ");
+  })();
 
   useEffect(() => {
     setTimeout(() => ideaRef.current?.focus(), 300);
@@ -74,9 +74,9 @@ const FirstCheckScreen = ({
       <textarea
         ref={ideaRef}
         value={idea}
-        onChange={(e) => { setIdea(e.target.value.slice(0, 280)); setManualDate(null); setManualTime(null); setManualLocation(null); }}
+        onChange={(e) => setIdea(e.target.value.slice(0, 280))}
         maxLength={280}
-        placeholder="e.g., park hang w me and @kat ^.^ dinner at 7 tomorrow? need to touch grass asap"
+        placeholder="e.g., park hang w me and @kat ^.^"
         style={{
           width: "100%",
           background: color.card,
@@ -88,140 +88,66 @@ const FirstCheckScreen = ({
           fontSize: 13,
           outline: "none",
           resize: "none",
-          height: 100,
+          height: 72,
           lineHeight: 1.5,
           marginBottom: 16,
           boxSizing: "border-box",
         }}
       />
 
-      {/* Date / Time / Location chips — always visible */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-        {([
-          { key: "date" as const, placeholder: "date?", detected: detectedDate?.label ?? null, manual: manualDate, setManual: setManualDate, locked: dateLocked, setLocked: setDateLocked },
-          { key: "time" as const, placeholder: "time?", detected: detectedTime ?? null, manual: manualTime, setManual: setManualTime, locked: timeLocked, setLocked: setTimeLocked },
-          { key: "location" as const, placeholder: "location?", detected: detectedLocation ?? null, manual: manualLocation, setManual: setManualLocation, locked: locationLocked, setLocked: setLocationLocked },
-        ] as const).map((chip) => {
-          const value = chip.manual !== null ? chip.manual : chip.detected;
-          const hasValue = !!value;
-          const isEditing = editingChip === chip.key;
-
-          if (isEditing) {
-            const validate = (v: string): string | null => {
-              if (!v) return "";
-              if (chip.key === "date") {
-                const parsed = parseNaturalDate(v);
-                if (parsed) return parsed.label;
-                if (parseDateToISO(v)) return v;
-                return null;
-              }
-              if (chip.key === "time") {
-                const parsed = parseNaturalTime(v);
-                if (parsed) return parsed;
-                return null;
-              }
-              return v;
-            };
-            return (
-              <input
-                key={chip.key}
-                autoFocus
-                placeholder={chip.key === "date" ? "e.g. friday, mar 7" : chip.key === "time" ? "e.g. 7pm, noon" : "e.g. Jollibee"}
-                defaultValue={value ?? ""}
-                onBlur={(e) => {
-                  const v = e.target.value.trim();
-                  const result = validate(v);
-                  if (result !== null) {
-                    chip.setManual(result);
-                    setEditingChip(null);
-                  } else {
-                    e.target.style.borderColor = "#ff4444";
-                    setTimeout(() => { e.target.style.borderColor = color.accent; }, 800);
-                    e.target.focus();
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
-                  if (e.key === "Escape") { setEditingChip(null); }
-                }}
-                style={{
-                  padding: "6px 10px",
-                  background: "rgba(232,255,90,0.08)",
-                  border: `1px solid ${color.accent}`,
-                  borderRadius: 8,
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  color: color.accent,
-                  fontWeight: 600,
-                  outline: "none",
-                  width: 120,
-                  transition: "border-color 0.2s",
-                }}
-              />
-            );
-          }
-
-          return (
-            <div
-              key={chip.key}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "6px 10px",
-                background: "rgba(232,255,90,0.08)",
-                borderRadius: 8,
-                border: "1px solid rgba(232,255,90,0.2)",
-              }}
-            >
-              <span
-                onClick={() => {
-                  if (chip.key === "location") {
-                    if (hasValue) chip.setLocked(!chip.locked);
-                    return;
-                  }
-                  if (!hasValue) setEditingChip(chip.key);
-                  else if (chip.locked) chip.setLocked(false);
-                  else setEditingChip(chip.key);
-                }}
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  color: hasValue ? color.accent : color.dim,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {hasValue ? value : chip.placeholder}
-              </span>
-              {!chip.locked && (
-                <span
-                  onClick={(e) => { e.stopPropagation(); chip.setLocked(true); }}
-                  style={{
-                    padding: "1px 6px",
-                    background: "rgba(232,255,90,0.15)",
-                    borderRadius: 4,
-                    fontFamily: font.mono,
-                    fontSize: 9,
-                    color: color.accent,
-                    cursor: "pointer",
-                  }}
-                >
-                  flexible
-                </span>
-              )}
-              {hasValue && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); chip.setManual(""); chip.setLocked(false); }}
-                  style={{ background: "none", border: "none", color: color.dim, fontFamily: font.mono, fontSize: 13, cursor: "pointer", padding: "0 2px", lineHeight: 1 }}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          );
-        })}
+      {/* When / Where inputs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+        <input
+          type="text"
+          placeholder="tmr 7pm"
+          value={whenInput}
+          onChange={(e) => setWhenInput(e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: "10px 12px",
+            background: color.deep,
+            border: `1px solid ${color.borderMid}`,
+            borderRadius: 10,
+            fontFamily: font.mono,
+            fontSize: 11,
+            color: color.text,
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+        />
+        <input
+          type="text"
+          placeholder="where?"
+          value={whereInput}
+          onChange={(e) => setWhereInput(e.target.value)}
+          style={{
+            flex: 0.6,
+            minWidth: 0,
+            padding: "10px 12px",
+            background: color.deep,
+            border: `1px solid ${color.borderMid}`,
+            borderRadius: 10,
+            fontFamily: font.mono,
+            fontSize: 11,
+            color: color.text,
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+        />
       </div>
+      {whenPreview && (
+        <div style={{
+          fontFamily: font.mono,
+          fontSize: 10,
+          color: color.dim,
+          marginBottom: 8,
+          paddingLeft: 2,
+        }}>
+          {whenPreview}
+        </div>
+      )}
+      {!whenPreview && <div style={{ marginBottom: 8 }} />}
 
       {/* Timer picker */}
       <div style={{ marginBottom: 16 }}>
@@ -303,12 +229,11 @@ const FirstCheckScreen = ({
       <button
         onClick={() => {
           if (idea.trim()) {
-            const eventDate = manualDate !== null
-              ? (manualDate ? parseDateToISO(manualDate) : null)
-              : (detectedDate?.iso ?? null);
-            const eventTime = manualTime !== null ? (manualTime || null) : (detectedTime ?? null);
-            const title = sanitize(stripDateTimeText(idea), 280);
-            onComplete(title, checkTimer, eventDate, squadSize === 0 ? null : squadSize, eventTime, !dateLocked, !timeLocked);
+            const eventDate = parsedDate?.iso ?? null;
+            const eventTime = parsedTime ?? null;
+            const location = whereInput.trim() || null;
+            const title = sanitize(idea, 280);
+            onComplete(title, checkTimer, eventDate, squadSize === 0 ? null : squadSize, eventTime, true, true, location);
           }
         }}
         disabled={!idea.trim()}
