@@ -384,6 +384,11 @@ export default function Home() {
         const shared = await db.getSharedCheck(checkId);
         if (shared) {
           const { formatTimeAgo } = await import("@/lib/utils");
+          const myResponses: Record<string, "down" | "waitlist"> = {};
+          if (shared.myResponse === "down" || shared.myResponse === "waitlist") {
+            myResponses[shared.id] = shared.myResponse;
+            checksHook.setMyCheckResponses((prev) => ({ ...prev, ...myResponses }));
+          }
           checksHook.setChecks((prev) => {
             if (prev.some((c) => c.id === checkId)) return prev;
             return [{
@@ -393,11 +398,14 @@ export default function Home() {
               authorId: shared.author_id,
               timeAgo: formatTimeAgo(new Date(shared.created_at)),
               ...computeExpiry(shared.expires_at, shared.created_at),
-              responses: [],
+              responses: shared.myResponse === "down" ? [{ name: "You", avatar: profile?.avatar_letter ?? "?", status: "down" as const }] : [],
               eventDate: shared.event_date ?? undefined,
               eventTime: shared.event_time ?? undefined,
               location: shared.location ?? undefined,
               viaFriendName: "shared link",
+              squadId: shared.squadId ?? undefined,
+              squadMemberCount: shared.squadMemberCount,
+              inSquad: shared.inSquad,
             }, ...prev];
           });
         }
@@ -434,6 +442,9 @@ export default function Home() {
         return;
       }
       const { formatTimeAgo } = await import("@/lib/utils");
+      if (shared.myResponse === "down" || shared.myResponse === "waitlist") {
+        checksHook.setMyCheckResponses((prev) => ({ ...prev, [shared.id]: shared.myResponse as "down" | "waitlist" }));
+      }
       const injected: InterestCheck = {
         id: shared.id,
         text: shared.text,
@@ -441,11 +452,14 @@ export default function Home() {
         authorId: shared.author_id,
         timeAgo: formatTimeAgo(new Date(shared.created_at)),
         ...computeExpiry(shared.expires_at, shared.created_at),
-        responses: [],
+        responses: shared.myResponse === "down" ? [{ name: "You", avatar: profile?.avatar_letter ?? "?", status: "down" as const }] : [],
         eventDate: shared.event_date ?? undefined,
         eventTime: shared.event_time ?? undefined,
         location: shared.location ?? undefined,
         viaFriendName: "shared link",
+        squadId: shared.squadId ?? undefined,
+        squadMemberCount: shared.squadMemberCount,
+        inSquad: shared.inSquad,
       };
       sharedCheckCache.current = injected;
       checksHook.setChecks((prev) => {

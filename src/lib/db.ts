@@ -530,13 +530,50 @@ export async function getSuggestedUsers(): Promise<Profile[]> {
 export async function getSharedCheck(checkId: string) {
   const { data, error } = await supabase.rpc('get_shared_check', { p_check_id: checkId });
   if (error || !data || data.length === 0) return null;
-  return data[0] as {
+  const check = data[0] as {
     id: string; text: string; author_id: string;
     author_name: string; author_avatar: string;
     event_date: string | null; event_time: string | null;
     location: string | null; expires_at: string | null;
     created_at: string; response_count: number;
   };
+
+  // Check if current user has responded and is in a squad for this check
+  const { data: { user } } = await supabase.auth.getUser();
+  let myResponse: string | null = null;
+  let squadId: string | null = null;
+  let squadMemberCount = 0;
+  let inSquad = false;
+
+  if (user) {
+    const { data: resp } = await supabase
+      .from('check_responses')
+      .select('response')
+      .eq('check_id', checkId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (resp) myResponse = resp.response;
+
+    const { data: squad } = await supabase
+      .from('squads')
+      .select('id, members:squad_members(id)')
+      .eq('check_id', checkId)
+      .is('archived_at', null)
+      .maybeSingle();
+    if (squad) {
+      squadId = squad.id;
+      squadMemberCount = (squad.members as { id: string }[])?.length ?? 0;
+      const { data: membership } = await supabase
+        .from('squad_members')
+        .select('id')
+        .eq('squad_id', squad.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      inSquad = !!membership;
+    }
+  }
+
+  return { ...check, myResponse, squadId, squadMemberCount, inSquad };
 }
 
 export async function respondToSharedCheck(checkId: string): Promise<boolean> {
