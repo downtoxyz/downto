@@ -346,7 +346,7 @@ export default function Home() {
     if (!isLoggedIn || isDemoMode || !userId) return;
 
     const channel = db.subscribeToNotifications(userId, async (newNotif) => {
-      if (newNotif.type === "squad_message") {
+      if (newNotif.type === "squad_message" || newNotif.type === "squad_mention") {
         notificationsHook.setHasUnreadSquadMessage(true);
         notificationsHook.setUnreadSquadCount((prev) => prev + 1);
         if (newNotif.related_squad_id) {
@@ -441,7 +441,7 @@ export default function Home() {
           setTab('profile');
           friendsHook.setFriendsInitialTab("friends");
           friendsHook.setFriendsOpen(true);
-        } else if (nType === 'squad_message' || nType === 'squad_invite') {
+        } else if (nType === 'squad_message' || nType === 'squad_invite' || nType === 'squad_mention') {
           if (relatedId) squadsHook.setAutoSelectSquadId(relatedId);
           setTab('groups');
         } else if (nType === 'date_confirm') {

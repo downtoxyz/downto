@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       .from('notifications')
       .select('*')
       .eq('related_squad_id', squadId)
-      .eq('type', 'squad_message');
+      .in('type', ['squad_message', 'squad_mention']);
     if (messageTimestamp) {
       query = query.gte('created_at', messageTimestamp);
     }

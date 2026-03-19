@@ -261,7 +261,7 @@ const NotificationsPanel = ({
                       type: "friends",
                       tab: n.type === "friend_request" && !alreadyFriends ? "add" : "friends",
                     });
-                  } else if (n.type === "squad_message" || n.type === "squad_invite" || n.type === "date_confirm" || n.type === "squad_join_request") {
+                  } else if (n.type === "squad_message" || n.type === "squad_invite" || n.type === "date_confirm" || n.type === "squad_join_request" || n.type === "squad_mention") {
                     // Mark all notifications for this squad as read
                     const squadId = n.related_squad_id;
                     if (squadId) {
