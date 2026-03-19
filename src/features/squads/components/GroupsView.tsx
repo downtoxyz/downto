@@ -588,55 +588,23 @@ const GroupsView = ({
               ? new Date(selectedSquad.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
               : null;
             const timeLabel = selectedSquad.eventTime ?? null;
-            const isDateFlexible = selectedSquad.dateFlexible !== false;
-            const isTimeFlexible = selectedSquad.timeFlexible !== false;
-            const showExtend = !selectedSquad.eventIsoDate ||
-              new Date(selectedSquad.eventIsoDate + "T00:00:00") <= new Date(new Date().toDateString());
+            const locationLabel = selectedSquad.eventLocation ?? null;
             const expiryLabel = formatExpiryLabel(selectedSquad.expiresAt, selectedSquad.graceStartedAt);
             const expiryUrgent = !!selectedSquad.graceStartedAt ||
               (selectedSquad.expiresAt && new Date(selectedSquad.expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000);
-            const hasContent = dateLabel || timeLabel || expiryLabel;
+            const when = [dateLabel, timeLabel].filter(Boolean).join(" ");
+            const detailParts = [when, locationLabel].filter(Boolean);
+            const hasContent = detailParts.length > 0 || expiryLabel;
             if (!hasContent) return null;
             return (
               <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "6px 0 0", flexWrap: "wrap" }}>
-                {dateLabel && (
+                {detailParts.length > 0 && (
                   <span style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "2px 8px",
-                    background: !isDateFlexible ? "rgba(232,255,90,0.08)" : "transparent",
-                    borderRadius: 6,
-                    border: !isDateFlexible ? "1px solid rgba(232,255,90,0.2)" : "1px solid rgba(232,255,90,0.35)",
                     fontFamily: font.mono,
-                    fontSize: 9,
-                    fontWeight: 600,
-                    color: color.accent,
+                    fontSize: 11,
+                    color: color.dim,
                   }}>
-                    📅 {dateLabel}
-                    <span style={{ fontSize: 8, color: !isDateFlexible ? color.accent : color.dim }}>
-                      {!isDateFlexible ? "locked" : "flexible"}
-                    </span>
-                  </span>
-                )}
-                {timeLabel && (
-                  <span style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "2px 8px",
-                    background: !isTimeFlexible ? "rgba(232,255,90,0.08)" : "transparent",
-                    borderRadius: 6,
-                    border: !isTimeFlexible ? "1px solid rgba(232,255,90,0.2)" : "1px solid rgba(232,255,90,0.35)",
-                    fontFamily: font.mono,
-                    fontSize: 9,
-                    fontWeight: 600,
-                    color: color.accent,
-                  }}>
-                    🕐 {timeLabel}
-                    <span style={{ fontSize: 8, color: !isTimeFlexible ? color.accent : color.dim }}>
-                      {!isTimeFlexible ? "locked" : "flexible"}
-                    </span>
+                    {detailParts.join(" · ")}
                   </span>
                 )}
                 {expiryLabel && (

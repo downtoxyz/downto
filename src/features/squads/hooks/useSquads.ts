@@ -168,6 +168,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         eventDate: s.event?.date_display ?? (s.check?.event_date ? new Date(s.check.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : undefined),
         eventIsoDate: s.locked_date ?? s.event?.date ?? s.check?.event_date ?? undefined,
         eventTime: s.check?.event_time?.replace(/\s*(AM)/gi, 'am').replace(/\s*(PM)/gi, 'pm') ?? undefined,
+        eventLocation: s.check?.location ?? undefined,
         dateFlexible: s.check?.date_flexible ?? true,
         timeFlexible: s.check?.time_flexible ?? true,
         maxSquadSize: s.check?.max_squad_size ?? undefined,
