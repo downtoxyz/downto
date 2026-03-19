@@ -262,12 +262,17 @@ export default function Home() {
 
   // ─── Effects ────────────────────────────────────────────────────────────
 
-  // Capture ?add= param on mount
+  // Capture ?add= and ?pendingCheck= params on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const addUser = params.get("add");
     if (addUser) {
       localStorage.setItem("pendingAddUsername", addUser);
+      window.history.replaceState({}, "", "/");
+    }
+    const pendingCheck = params.get("pendingCheck");
+    if (pendingCheck) {
+      localStorage.setItem("pendingCheckId", pendingCheck);
       window.history.replaceState({}, "", "/");
     }
     // Deep-link params from SW cold-open
@@ -320,6 +325,18 @@ export default function Home() {
         showToast("User not found");
       }
     })();
+  }, [isLoggedIn, userId, profile?.onboarded]);
+
+  // Process pendingCheck after auth + onboarding complete
+  useEffect(() => {
+    if (!isLoggedIn || !userId || !profile?.onboarded) return;
+    const checkId = localStorage.getItem("pendingCheckId");
+    if (!checkId) return;
+    localStorage.removeItem("pendingCheckId");
+    setTab("feed");
+    setFeedMode("foryou");
+    checksHook.setNewlyAddedCheckId(checkId);
+    setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
   }, [isLoggedIn, userId, profile?.onboarded]);
 
   // Trigger data load when logged in
@@ -971,8 +988,8 @@ export default function Home() {
             onSquadUpdate={squadsHook.setSquads}
             autoSelectSquadId={squadsHook.autoSelectSquadId}
             clearAutoSelectSquadId={() => squadsHook.setAutoSelectSquadId(null)}
-            onSendMessage={async (squadDbId, text) => {
-              await db.sendMessage(squadDbId, text);
+            onSendMessage={async (squadDbId, text, mentions) => {
+              await db.sendMessage(squadDbId, text, mentions);
             }}
             onLeaveSquad={async (squadDbId) => {
               await db.leaveSquad(squadDbId);

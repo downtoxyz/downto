@@ -71,11 +71,13 @@ function CheckCommentsSection({
   checkId,
   comments,
   userId,
+  friends,
   onPostComment,
 }: {
   checkId: string;
   comments: CommentUI[];
   userId: string | null;
+  friends?: { id: string; name: string; avatar: string }[];
   onPostComment: (checkId: string, text: string, mentions?: string[]) => void;
 }) {
   const [text, setText] = useState("");
@@ -83,13 +85,14 @@ function CheckCommentsSection({
   const [mentionIdx, setMentionIdx] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const mentionCandidates = Array.from(
-    new Map(
-      comments
-        .filter((c) => c.userId !== userId && !c.isYours)
-        .map((c) => [c.userId, { id: c.userId, name: c.userName, avatar: c.userAvatar }])
-    ).values()
-  );
+  const mentionCandidates = (() => {
+    const map = new Map<string, { id: string; name: string; avatar: string }>();
+    for (const f of (friends ?? [])) map.set(f.id, { id: f.id, name: f.name, avatar: f.avatar });
+    for (const c of comments.filter((c) => c.userId !== userId && !c.isYours)) {
+      if (!map.has(c.userId)) map.set(c.userId, { id: c.userId, name: c.userName, avatar: c.userAvatar });
+    }
+    return Array.from(map.values());
+  })();
 
   const handleSubmit = () => {
     const trimmed = text.trim();
@@ -874,6 +877,7 @@ export default function ForYouView({
                       checkId={check.id}
                       comments={commentsByCheck[check.id] ?? []}
                       userId={userId}
+                      friends={friends.filter(f => f.status === 'friend').map(f => ({ id: f.id, name: f.name, avatar: f.avatar }))}
                       onPostComment={onPostComment}
                     />
                   )}

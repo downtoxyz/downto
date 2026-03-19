@@ -1073,7 +1073,7 @@ export async function createSquad(
 // MESSAGES (with realtime)
 // ============================================================================
 
-export async function sendMessage(squadId: string, text: string): Promise<Message> {
+export async function sendMessage(squadId: string, text: string, mentions: string[] = []): Promise<Message> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -1083,6 +1083,7 @@ export async function sendMessage(squadId: string, text: string): Promise<Messag
       squad_id: squadId,
       sender_id: user.id,
       text,
+      mentions,
     })
     .select('*, sender:profiles(*)')
     .single();
