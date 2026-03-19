@@ -46,16 +46,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not a squad member' }, { status: 403 });
   }
 
-  // Upsert vote
-  const { error: voteError } = await adminClient
+  // Toggle: check if vote already exists for this option
+  const { data: existing } = await adminClient
     .from('squad_poll_votes')
-    .upsert(
-      { poll_id: pollId, user_id: user.id, option_index: optionIndex },
-      { onConflict: 'poll_id,user_id' }
-    );
+    .select('id')
+    .eq('poll_id', pollId)
+    .eq('user_id', user.id)
+    .eq('option_index', optionIndex)
+    .maybeSingle();
 
-  if (voteError) {
-    return NextResponse.json({ error: voteError.message }, { status: 500 });
+  if (existing) {
+    // Remove vote (unselect)
+    const { error: deleteError } = await adminClient
+      .from('squad_poll_votes')
+      .delete()
+      .eq('id', existing.id);
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+  } else {
+    // Add vote
+    const { error: insertError } = await adminClient
+      .from('squad_poll_votes')
+      .insert({ poll_id: pollId, user_id: user.id, option_index: optionIndex });
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });

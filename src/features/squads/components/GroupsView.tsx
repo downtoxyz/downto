@@ -141,7 +141,7 @@ const GroupsView = ({
     id: string; messageId: string; question: string;
     options: string[]; status: string; createdBy: string;
   } | null>(null);
-  const [pollVotes, setPollVotes] = useState<Map<string, { optionIndex: number; displayName: string }>>(new Map());
+  const [pollVotes, setPollVotes] = useState<Array<{ userId: string; optionIndex: number; displayName: string }>>([]);
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
@@ -220,7 +220,7 @@ const GroupsView = ({
   useEffect(() => {
     if (!selectedSquad?.id) {
       setActivePoll(null);
-      setPollVotes(new Map());
+      setPollVotes([]);
       return;
     }
     let stale = false;
@@ -238,13 +238,11 @@ const GroupsView = ({
         });
         db.getPollVotes(active.id).then((votes) => {
           if (stale) return;
-          const map = new Map<string, { optionIndex: number; displayName: string }>();
-          for (const v of votes) map.set(v.userId, { optionIndex: v.optionIndex, displayName: v.displayName });
-          setPollVotes(map);
+          setPollVotes(votes);
         }).catch(() => {});
       } else {
         setActivePoll(null);
-        setPollVotes(new Map());
+        setPollVotes([]);
       }
     }).catch(() => {});
     return () => { stale = true; };
@@ -253,12 +251,10 @@ const GroupsView = ({
   // Realtime subscription for poll votes
   useEffect(() => {
     if (!activePoll?.id || activePoll.status !== 'active') return;
-    const channel = db.subscribeToPollVotes(activePoll.id, (payload) => {
+    const channel = db.subscribeToPollVotes(activePoll.id, () => {
       // Refetch all votes to get display names
       db.getPollVotes(activePoll.id).then((votes) => {
-        const map = new Map<string, { optionIndex: number; displayName: string }>();
-        for (const v of votes) map.set(v.userId, { optionIndex: v.optionIndex, displayName: v.displayName });
-        setPollVotes(map);
+        setPollVotes(votes);
       }).catch(() => {});
     });
     return () => { channel.unsubscribe(); };
@@ -313,9 +309,7 @@ const GroupsView = ({
               options: active.options as string[], status: active.status, createdBy: active.created_by,
             });
             db.getPollVotes(active.id).then((votes) => {
-              const map = new Map<string, { optionIndex: number; displayName: string }>();
-              for (const v of votes) map.set(v.userId, { optionIndex: v.optionIndex, displayName: v.displayName });
-              setPollVotes(map);
+              setPollVotes(votes);
             }).catch(() => {});
           }
         }).catch(() => {});
@@ -1229,8 +1223,9 @@ const GroupsView = ({
 
               // Poll message — render inline poll card
               if (msg.messageType === 'poll' && activePoll && msg.messageId === activePoll.messageId) {
-                const totalVotes = pollVotes.size;
-                const myVote = userId ? pollVotes.get(userId) : undefined;
+                const uniqueVoters = new Set(pollVotes.map((v) => v.userId));
+                const totalVoters = uniqueVoters.size;
+                const myVotes = userId ? new Set(pollVotes.filter((v) => v.userId === userId).map((v) => v.optionIndex)) : new Set<number>();
                 const isClosed = activePoll.status === 'closed';
                 const isCreator = userId === activePoll.createdBy;
                 return (
@@ -1249,21 +1244,22 @@ const GroupsView = ({
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {activePoll.options.map((opt, oi) => {
-                          const isMyVote = myVote?.optionIndex === oi;
-                          const votersForOption = Array.from(pollVotes.values()).filter((v) => v.optionIndex === oi);
+                          const isMyVote = myVotes.has(oi);
+                          const votersForOption = pollVotes.filter((v) => v.optionIndex === oi);
                           const count = votersForOption.length;
-                          const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                          const pct = totalVoters > 0 ? Math.round((count / totalVoters) * 100) : 0;
                           const canVote = !isClosed && !selectedSquad.isWaitlisted;
                           return (
                             <div
                               key={oi}
                               onClick={canVote ? async () => {
-                                if (!activePoll?.id) return;
-                                // Optimistic update
+                                if (!activePoll?.id || !userId) return;
+                                // Optimistic toggle
                                 setPollVotes((prev) => {
-                                  const next = new Map(prev);
-                                  if (userId) next.set(userId, { optionIndex: oi, displayName: 'You' });
-                                  return next;
+                                  if (isMyVote) {
+                                    return prev.filter((v) => !(v.userId === userId && v.optionIndex === oi));
+                                  }
+                                  return [...prev, { userId, optionIndex: oi, displayName: 'You' }];
                                 });
                                 try { await onVotePoll?.(activePoll.id, oi); } catch {}
                               } : undefined}
@@ -1278,7 +1274,7 @@ const GroupsView = ({
                               }}
                             >
                               {/* Percentage bar background */}
-                              {totalVotes > 0 && (
+                              {totalVoters > 0 && (
                                 <div style={{
                                   position: 'absolute',
                                   left: 0, top: 0, bottom: 0,
@@ -1295,7 +1291,7 @@ const GroupsView = ({
                                   color: isMyVote ? '#000' : color.text,
                                   fontWeight: isMyVote ? 700 : 400,
                                 }}>{opt}</span>
-                                {totalVotes > 0 && (
+                                {totalVoters > 0 && (
                                   <span style={{
                                     fontFamily: font.mono,
                                     fontSize: 10,
@@ -1312,7 +1308,7 @@ const GroupsView = ({
                                   color: isMyVote ? 'rgba(0,0,0,0.6)' : color.faint,
                                   marginTop: 2,
                                 }}>
-                                  {votersForOption.map((v) => v.displayName === 'You' || v.displayName === (userId ? 'You' : '') ? 'You' : v.displayName).join(', ')}
+                                  {votersForOption.map((v) => v.userId === userId ? 'You' : v.displayName).join(', ')}
                                 </div>
                               )}
                             </div>
@@ -1321,7 +1317,7 @@ const GroupsView = ({
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                         <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
-                          {totalVotes} vote{totalVotes !== 1 ? 's' : ''}{isClosed ? ' · closed' : ''}
+                          {totalVoters} vote{totalVoters !== 1 ? 's' : ''}{isClosed ? ' · closed' : ''}
                         </span>
                         {isCreator && !isClosed && (
                           <button
@@ -1554,7 +1550,7 @@ const GroupsView = ({
                   fontWeight: 700,
                   color: color.accent,
                   flexShrink: 0,
-                }}>{pollVotes.size}</span>
+                }}>{new Set(pollVotes.map((v) => v.userId)).size}</span>
               </div>
             </div>
           )}
