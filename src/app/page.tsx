@@ -1209,6 +1209,7 @@ export default function Home() {
           suggestions={friendsHook.suggestions}
           checkAuthorId={onboardingCheckAuthorId}
           onAddFriend={friendsHook.addFriend}
+          onSearchUsers={friendsHook.searchUsers}
           onDone={() => {
             setOnboardingFriendGate(false);
             setOnboardingCheckAuthorId(null);
