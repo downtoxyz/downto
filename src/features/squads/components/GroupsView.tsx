@@ -105,7 +105,7 @@ const GroupsView = ({
   onSetMemberRole?: (squadId: string, userId: string, role: 'member' | 'waitlist') => Promise<void>;
   onKickMember?: (squadId: string, userId: string) => Promise<void>;
   onSquadRead?: () => void;
-  onCreatePoll?: (squadId: string, question: string, options: string[]) => Promise<void>;
+  onCreatePoll?: (squadId: string, question: string, options: string[], multiSelect: boolean) => Promise<void>;
   onVotePoll?: (pollId: string, optionIndex: number) => Promise<void>;
   onClosePoll?: (pollId: string) => Promise<void>;
   pendingJoinRequests?: { squadId: string; userId: string; name: string; avatar: string }[];
@@ -140,11 +140,13 @@ const GroupsView = ({
   const [activePoll, setActivePoll] = useState<{
     id: string; messageId: string; question: string;
     options: string[]; status: string; createdBy: string;
+    multiSelect: boolean;
   } | null>(null);
   const [pollVotes, setPollVotes] = useState<Array<{ userId: string; optionIndex: number; displayName: string }>>([]);
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [pollMultiSelect, setPollMultiSelect] = useState(true);
   const [pollCreating, setPollCreating] = useState(false);
   const pollMessageRef = useRef<HTMLDivElement>(null);
 
@@ -235,6 +237,7 @@ const GroupsView = ({
           options: active.options as string[],
           status: active.status,
           createdBy: active.created_by,
+          multiSelect: active.multi_select ?? true,
         });
         db.getPollVotes(active.id).then((votes) => {
           if (stale) return;
@@ -307,6 +310,7 @@ const GroupsView = ({
             setActivePoll({
               id: active.id, messageId: active.message_id, question: active.question,
               options: active.options as string[], status: active.status, createdBy: active.created_by,
+              multiSelect: active.multi_select ?? true,
             });
             db.getPollVotes(active.id).then((votes) => {
               setPollVotes(votes);
@@ -1238,9 +1242,12 @@ const GroupsView = ({
                       maxWidth: 300,
                       width: '100%',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                         <span style={{ fontSize: 16 }}>📊</span>
                         <span style={{ fontFamily: font.serif, fontSize: 16, color: color.text }}>{activePoll.question}</span>
+                      </div>
+                      <div style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, marginBottom: 10 }}>
+                        {activePoll.multiSelect ? 'Select all that apply' : 'Pick one'}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {activePoll.options.map((opt, oi) => {
@@ -1259,7 +1266,11 @@ const GroupsView = ({
                                   if (isMyVote) {
                                     return prev.filter((v) => !(v.userId === userId && v.optionIndex === oi));
                                   }
-                                  return [...prev, { userId, optionIndex: oi, displayName: 'You' }];
+                                  if (activePoll.multiSelect) {
+                                    return [...prev, { userId, optionIndex: oi, displayName: 'You' }];
+                                  }
+                                  // Single-select: replace existing vote
+                                  return [...prev.filter((v) => v.userId !== userId), { userId, optionIndex: oi, displayName: 'You' }];
                                 });
                                 try { await onVotePoll?.(activePoll.id, oi); } catch {}
                               } : undefined}
@@ -2289,7 +2300,7 @@ const GroupsView = ({
       {/* Poll creation modal */}
       {showPollCreator && (
         <div
-          onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); }}
+          onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiSelect(true); }}
           style={{
             position: "fixed",
             top: 0, left: 0, right: 0, bottom: 0,
@@ -2393,9 +2404,44 @@ const GroupsView = ({
                 + Add option
               </button>
             )}
+            <div
+              onClick={() => setPollMultiSelect(!pollMultiSelect)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 0',
+                marginBottom: 12,
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                Allow multiple selections
+              </span>
+              <div style={{
+                width: 36,
+                height: 20,
+                borderRadius: 10,
+                background: pollMultiSelect ? color.accent : color.borderMid,
+                position: 'relative',
+                transition: 'background 0.2s',
+              }}>
+                <div style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  position: 'absolute',
+                  top: 2,
+                  left: pollMultiSelect ? 18 : 2,
+                  transition: 'left 0.2s',
+                }} />
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: 10 }}>
               <button
-                onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); }}
+                onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiSelect(true); }}
                 style={{
                   flex: 1,
                   background: 'transparent',
@@ -2421,10 +2467,11 @@ const GroupsView = ({
                   if (validOptions.length < 2) return;
                   setPollCreating(true);
                   try {
-                    await onCreatePoll?.(selectedSquad.id, pollQuestion.trim(), validOptions);
+                    await onCreatePoll?.(selectedSquad.id, pollQuestion.trim(), validOptions, pollMultiSelect);
                     setShowPollCreator(false);
                     setPollQuestion("");
                     setPollOptions(["", ""]);
+                    setPollMultiSelect(true);
                   } catch (err) {
                     logError('createPoll', err);
                   } finally {

@@ -1381,7 +1381,7 @@ export async function getPollVotes(pollId: string) {
   }));
 }
 
-export async function createPoll(squadId: string, question: string, options: string[]) {
+export async function createPoll(squadId: string, question: string, options: string[], multiSelect = true) {
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
@@ -1391,7 +1391,7 @@ export async function createPoll(squadId: string, question: string, options: str
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ squadId, question, options }),
+    body: JSON.stringify({ squadId, question, options, multiSelect }),
   });
 
   if (!res.ok) {

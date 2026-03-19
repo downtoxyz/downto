@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   if (isAuthError(auth)) return auth.error;
   const { user, supabase } = auth;
 
-  const { squadId, question, options } = await req.json();
+  const { squadId, question, options, multiSelect = true } = await req.json();
   if (!squadId || !question?.trim() || !Array.isArray(options) || options.length < 2 || options.length > 10) {
     return NextResponse.json({ error: 'squadId, question, and 2-10 options required' }, { status: 400 });
   }
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
       message_id: message.id,
       question: question.trim(),
       options: options.map((o: string) => o.trim()),
+      multi_select: !!multiSelect,
       created_by: user.id,
     })
     .select('id')

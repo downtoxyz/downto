@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   // Fetch poll
   const { data: poll, error: pollError } = await adminClient
     .from('squad_polls')
-    .select('id, squad_id, options, status')
+    .select('id, squad_id, options, status, multi_select')
     .eq('id', pollId)
     .single();
 
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not a squad member' }, { status: 403 });
   }
 
-  // Toggle: check if vote already exists for this option
+  // Check if vote already exists for this option
   const { data: existing } = await adminClient
     .from('squad_poll_votes')
     .select('id')
@@ -66,7 +66,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
   } else {
-    // Add vote
+    // Single-select: remove any existing votes first
+    if (!poll.multi_select) {
+      await adminClient
+        .from('squad_poll_votes')
+        .delete()
+        .eq('poll_id', pollId)
+        .eq('user_id', user.id);
+    }
+
     const { error: insertError } = await adminClient
       .from('squad_poll_votes')
       .insert({ poll_id: pollId, user_id: user.id, option_index: optionIndex });
