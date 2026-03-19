@@ -152,7 +152,7 @@ export default function CheckActionsSheet({
               borderBottom: `1px solid ${color.border}`,
               lineHeight: 1.5,
             }}>
-              This link is tied to you — anyone who joins through it will be prompted to add you as a friend
+              linked to you — new users will be prompted to add you
             </p>
           )}
           {actionRow("Archive", "📦", () => { onClose(); onArchive(); })}
