@@ -93,7 +93,10 @@ export default function Home() {
   const [notificationsDone, setNotificationsDone] = useState(false);
   const [showFirstCheck, setShowFirstCheck] = useState(false);
   const [pendingSharedCheckId, setPendingSharedCheckId] = useState<string | null>(null);
-  const [activeSharedCheckId, setActiveSharedCheckId] = useState<string | null>(null);
+  const [activeSharedCheckId, setActiveSharedCheckId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem("activeSharedCheckId");
+    return null;
+  });
   const [showAddGlow, setShowAddGlow] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("showAddGlow") === "true";
@@ -381,26 +384,58 @@ export default function Home() {
         }
       }
       setActiveSharedCheckId(checkId);
+      localStorage.setItem("activeSharedCheckId", checkId);
       checksHook.setNewlyAddedCheckId(checkId);
       setTimeout(() => checksHook.setNewlyAddedCheckId(null), 5000);
     })();
   }, [pendingSharedCheckId, feedLoaded]);
 
-  // Re-inject shared check if it gets removed by a data reload
+  // Re-inject shared check if it gets removed by a data reload or page refresh
   const sharedCheckCache = useRef<InterestCheck | null>(null);
   useEffect(() => {
-    if (!activeSharedCheckId) return;
+    if (!activeSharedCheckId || !feedLoaded) return;
     // Cache the shared check when it exists
     const found = checksHook.checks.find((c) => c.id === activeSharedCheckId);
     if (found) { sharedCheckCache.current = found; return; }
-    // Re-inject from cache if it was removed
+    // Re-inject from cache
     if (sharedCheckCache.current) {
       checksHook.setChecks((prev) => {
         if (prev.some((c) => c.id === activeSharedCheckId)) return prev;
         return [sharedCheckCache.current!, ...prev];
       });
+      return;
     }
-  }, [activeSharedCheckId, checksHook.checks]);
+    // Cache is empty (page refresh) — fetch from DB and inject
+    (async () => {
+      const shared = await db.getSharedCheck(activeSharedCheckId);
+      if (!shared) {
+        // Check no longer exists or was unshared — clean up
+        setActiveSharedCheckId(null);
+        localStorage.removeItem("activeSharedCheckId");
+        return;
+      }
+      const { formatTimeAgo } = await import("@/lib/utils");
+      const injected: InterestCheck = {
+        id: shared.id,
+        text: shared.text,
+        author: shared.author_name,
+        authorId: shared.author_id,
+        timeAgo: formatTimeAgo(new Date(shared.created_at)),
+        expiresIn: shared.expires_at ? "expiring" : "open",
+        expiryPercent: 0,
+        responses: [],
+        eventDate: shared.event_date ?? undefined,
+        eventTime: shared.event_time ?? undefined,
+        location: shared.location ?? undefined,
+        viaFriendName: "shared link",
+      };
+      sharedCheckCache.current = injected;
+      checksHook.setChecks((prev) => {
+        if (prev.some((c) => c.id === activeSharedCheckId)) return prev;
+        return [injected, ...prev];
+      });
+    })();
+  }, [activeSharedCheckId, feedLoaded, checksHook.checks]);
 
   // Trigger data load when logged in
   useEffect(() => {
