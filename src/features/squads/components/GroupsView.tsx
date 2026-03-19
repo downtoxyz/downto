@@ -595,7 +595,7 @@ const GroupsView = ({
             const expiryLabel = formatExpiryLabel(selectedSquad.expiresAt, selectedSquad.graceStartedAt);
             const expiryUrgent = !!selectedSquad.graceStartedAt ||
               (selectedSquad.expiresAt && new Date(selectedSquad.expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000);
-            const hasContent = dateLabel || timeLabel || onSetSquadDate || showExtend || expiryLabel;
+            const hasContent = dateLabel || timeLabel || expiryLabel;
             if (!hasContent) return null;
             return (
               <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "6px 0 0", flexWrap: "wrap" }}>
@@ -638,59 +638,6 @@ const GroupsView = ({
                       {!isTimeFlexible ? "locked" : "flexible"}
                     </span>
                   </span>
-                )}
-                {!dateLabel && !timeLabel && onSetSquadDate && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDatePicker(true);
-                      setDatePickerValue("");
-                      setDateLocked(false);
-                      setTimeLocked(false);
-                      setDateDismissed(false);
-                      setTimeDismissed(false);
-                    }}
-                    style={{
-                      background: "transparent",
-                      color: color.accent,
-                      border: `1px solid ${color.accent}`,
-                      borderRadius: 6,
-                      padding: "2px 8px",
-                      fontFamily: font.mono,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Set date &amp; time
-                  </button>
-                )}
-                {showExtend && (
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        const newExpiry = await db.extendSquad(selectedSquad.id);
-                        onSquadUpdate((prev) => prev.map((s) =>
-                          s.id === selectedSquad.id ? { ...s, expiresAt: newExpiry } : s
-                        ));
-                        setSelectedSquad((prev) => prev ? { ...prev, expiresAt: newExpiry } : prev);
-                      } catch {}
-                    }}
-                    style={{
-                      background: "transparent",
-                      color: color.dim,
-                      border: `1px solid ${color.borderMid}`,
-                      borderRadius: 6,
-                      padding: "2px 8px",
-                      fontFamily: font.mono,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    +7 days
-                  </button>
                 )}
                 {expiryLabel && (
                   <span style={{
@@ -2011,6 +1958,33 @@ const GroupsView = ({
                         Set plans
                       </button>
                     )}
+                    <button
+                      onClick={async () => {
+                        try {
+                          const newExpiry = await db.extendSquad(selectedSquad.id);
+                          onSquadUpdate((prev) => prev.map((s) =>
+                            s.id === selectedSquad.id ? { ...s, expiresAt: newExpiry } : s
+                          ));
+                          setSelectedSquad((prev) => prev ? { ...prev, expiresAt: newExpiry } : prev);
+                          setShowSquadPopup(false);
+                          setSquadPopupView('menu');
+                          showToast("Extended by 7 days");
+                        } catch {}
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        borderBottom: `1px solid ${color.border}`,
+                        color: color.text,
+                        fontFamily: font.mono,
+                        fontSize: 12,
+                        padding: "12px 0",
+                        cursor: "pointer",
+                        textAlign: "center",
+                      }}
+                    >
+                      Extend chat +7 days
+                    </button>
                     <button
                       onClick={() => {
                         setShowSquadPopup(false);
