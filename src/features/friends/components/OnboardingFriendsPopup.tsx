@@ -8,12 +8,14 @@ export default function OnboardingFriendsPopup({
   suggestions,
   checkAuthorId,
   onAddFriend,
+  onCancelRequest,
   onSearchUsers,
   onDone,
 }: {
   suggestions: Friend[];
   checkAuthorId: string | null;
   onAddFriend: (id: string) => void;
+  onCancelRequest?: (id: string) => void;
   onSearchUsers?: (query: string) => Promise<Friend[]>;
   onDone: () => void;
 }) {
@@ -150,15 +152,15 @@ export default function OnboardingFriendsPopup({
                   <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>@{f.username}</div>
                 </div>
                 <button
-                  onClick={() => f.status === "none" && onAddFriend(f.id)}
-                  disabled={f.status !== "none"}
+                  onClick={() => f.status === "pending" ? onCancelRequest?.(f.id) : f.status === "none" ? onAddFriend(f.id) : undefined}
+                  disabled={f.status === "friend"}
                   style={{
                     background: f.status === "none" ? color.accent : "transparent",
                     color: f.status === "none" ? "#000" : color.dim,
                     border: f.status !== "none" ? `1px solid ${color.borderMid}` : "none",
                     borderRadius: 8, padding: "8px 14px",
                     fontFamily: font.mono, fontSize: 11, fontWeight: 700,
-                    cursor: f.status === "none" ? "pointer" : "default", flexShrink: 0,
+                    cursor: f.status === "friend" ? "default" : "pointer", flexShrink: 0,
                   }}
                 >
                   {f.status === "pending" ? "Requested" : f.status === "friend" ? "Friends" : "Add"}
@@ -262,16 +264,21 @@ export default function OnboardingFriendsPopup({
                 request sent!
               </div>
             </div>
-            <span style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              color: color.dim,
-              border: `1px solid ${color.borderMid}`,
-              borderRadius: 8,
-              padding: "8px 14px",
-            }}>
+            <button
+              onClick={() => onCancelRequest?.(checkAuthor.id)}
+              style={{
+                fontFamily: font.mono,
+                fontSize: 11,
+                color: color.dim,
+                background: "transparent",
+                border: `1px solid ${color.borderMid}`,
+                borderRadius: 8,
+                padding: "8px 14px",
+                cursor: "pointer",
+              }}
+            >
               Requested
-            </span>
+            </button>
           </div>
         )}
 
@@ -321,8 +328,7 @@ export default function OnboardingFriendsPopup({
                   <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>@{f.username}</div>
                 </div>
                 <button
-                  onClick={() => f.status === "none" && onAddFriend(f.id)}
-                  disabled={f.status === "pending"}
+                  onClick={() => f.status === "pending" ? onCancelRequest?.(f.id) : onAddFriend(f.id)}
                   style={{
                     background: f.status === "pending" ? "transparent" : color.accent,
                     color: f.status === "pending" ? color.dim : "#000",
@@ -332,7 +338,7 @@ export default function OnboardingFriendsPopup({
                     fontFamily: font.mono,
                     fontSize: 11,
                     fontWeight: 700,
-                    cursor: f.status === "pending" ? "default" : "pointer",
+                    cursor: "pointer",
                     flexShrink: 0,
                   }}
                 >
