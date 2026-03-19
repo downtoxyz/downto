@@ -527,6 +527,18 @@ export async function getSuggestedUsers(): Promise<Profile[]> {
 // INTEREST CHECKS
 // ============================================================================
 
+export async function getCheckAuthorProfile(checkId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('interest_checks')
+    .select('author:profiles!author_id(*)')
+    .eq('id', checkId)
+    .single();
+
+  if (error || !data) return null;
+  const author = Array.isArray(data.author) ? data.author[0] : data.author;
+  return author as Profile | null;
+}
+
 export async function getHiddenCheckIds(): Promise<string[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];

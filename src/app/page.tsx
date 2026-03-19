@@ -795,6 +795,26 @@ export default function Home() {
           } else {
             setProfile((prev) => prev ? { ...prev, onboarded: true } : prev);
           }
+          // If user came from a shared check, suggest the check author first
+          const pendingCheckId = localStorage.getItem("pendingCheckId");
+          if (pendingCheckId) {
+            try {
+              const authorProfile = await db.getCheckAuthorProfile(pendingCheckId);
+              if (authorProfile && authorProfile.id !== userId) {
+                friendsHook.setSuggestions((prev) => {
+                  const without = prev.filter((s) => s.id !== authorProfile.id);
+                  return [{
+                    id: authorProfile.id,
+                    name: authorProfile.display_name,
+                    username: authorProfile.username,
+                    avatar: authorProfile.avatar_letter,
+                    status: "none" as const,
+                    igHandle: authorProfile.ig_handle ?? undefined,
+                  }, ...without];
+                });
+              }
+            } catch {}
+          }
           friendsHook.setFriendsInitialTab("add");
           friendsHook.setFriendsOpen(true);
           setOnboardingFriendGate(true);
