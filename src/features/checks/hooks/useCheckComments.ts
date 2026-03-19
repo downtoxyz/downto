@@ -65,7 +65,7 @@ export function useCheckComments({ userId, profile, isDemoMode }: UseCheckCommen
     }
   }, [expandedCommentCheckId, commentsByCheck, isDemoMode, userId]);
 
-  const postComment = useCallback(async (checkId: string, text: string) => {
+  const postComment = useCallback(async (checkId: string, text: string, mentions: string[] = []) => {
     if (!userId || !profile || isDemoMode) return;
 
     const optimisticId = `optimistic-${Date.now()}`;
@@ -87,7 +87,7 @@ export function useCheckComments({ userId, profile, isDemoMode }: UseCheckCommen
     setCommentCounts(prev => ({ ...prev, [checkId]: (prev[checkId] ?? 0) + 1 }));
 
     try {
-      const saved = await db.postCheckComment(checkId, text);
+      const saved = await db.postCheckComment(checkId, text, mentions);
       // Replace optimistic with real
       setCommentsByCheck(prev => ({
         ...prev,

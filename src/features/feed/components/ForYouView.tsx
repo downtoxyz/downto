@@ -76,16 +76,34 @@ function CheckCommentsSection({
   checkId: string;
   comments: CommentUI[];
   userId: string | null;
-  onPostComment: (checkId: string, text: string) => void;
+  onPostComment: (checkId: string, text: string, mentions?: string[]) => void;
 }) {
   const [text, setText] = useState("");
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIdx, setMentionIdx] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const mentionCandidates = Array.from(
+    new Map(
+      comments
+        .filter((c) => c.userId !== userId && !c.isYours)
+        .map((c) => [c.userId, { id: c.userId, name: c.userName, avatar: c.userAvatar }])
+    ).values()
+  );
 
   const handleSubmit = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    onPostComment(checkId, trimmed);
+    const mentionedNames = [...trimmed.matchAll(/@(\S+)/g)].map((m) => m[1].toLowerCase());
+    const mentionedIds = mentionCandidates
+      .filter((c) => mentionedNames.some((n) =>
+        c.name.toLowerCase() === n || c.name.split(' ')[0].toLowerCase() === n
+      ))
+      .map((c) => c.id);
+    onPostComment(checkId, trimmed, mentionedIds.length > 0 ? mentionedIds : undefined);
     setText("");
+    setMentionQuery(null);
+    setMentionIdx(-1);
   };
 
   return (
@@ -124,7 +142,11 @@ function CheckCommentsSection({
                   </span>
                 </div>
                 <p style={{ fontFamily: font.mono, fontSize: 11, color: color.text, margin: 0, lineHeight: 1.4 }}>
-                  {c.text}
+                  {c.text.split(/(@\S+)/g).map((part, pi) =>
+                    part.startsWith("@") ? (
+                      <span key={pi} style={{ color: color.accent, fontWeight: 700 }}>{part}</span>
+                    ) : part
+                  )}
                 </p>
               </div>
             </div>
@@ -135,8 +157,28 @@ function CheckCommentsSection({
         <input
           ref={inputRef}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+          onChange={(e) => {
+            const val = e.target.value.slice(0, 280);
+            setText(val);
+            const cursor = e.target.selectionStart ?? val.length;
+            const before = val.slice(0, cursor);
+            const atMatch = before.match(/@([^\s@]*)$/);
+            if (atMatch) {
+              setMentionQuery(atMatch[1].toLowerCase());
+              setMentionIdx(before.length - atMatch[0].length);
+            } else {
+              setMentionQuery(null);
+              setMentionIdx(-1);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (mentionQuery !== null && e.key === "Escape") {
+              setMentionQuery(null);
+              setMentionIdx(-1);
+              return;
+            }
+            if (e.key === "Enter") handleSubmit();
+          }}
           placeholder="Add a comment…"
           style={{
             flex: 1,
@@ -169,6 +211,49 @@ function CheckCommentsSection({
           Post
         </button>
       </div>
+      {/* @mention autocomplete */}
+      {mentionQuery !== null && mentionCandidates.length > 0 && (() => {
+        const filtered = mentionCandidates.filter(c => c.name.toLowerCase().includes(mentionQuery));
+        if (filtered.length === 0) return null;
+        return (
+          <div style={{
+            background: color.deep, border: `1px solid ${color.borderMid}`,
+            borderRadius: 8, marginTop: 4, maxHeight: 100, overflowY: "auto",
+          }}>
+            {filtered.slice(0, 5).map(c => (
+              <button
+                key={c.id}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const before = text.slice(0, mentionIdx);
+                  const after = text.slice(mentionIdx + 1 + (mentionQuery?.length ?? 0));
+                  setText(before + "@" + c.name + " " + after);
+                  setMentionQuery(null);
+                  setMentionIdx(-1);
+                  inputRef.current?.focus();
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  width: "100%", padding: "6px 10px",
+                  background: "transparent", border: "none", cursor: "pointer",
+                  borderBottom: `1px solid ${color.border}`,
+                }}
+              >
+                <div style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: color.borderLight, color: color.dim,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: font.mono, fontSize: 8, fontWeight: 700,
+                }}>
+                  {c.avatar}
+                </div>
+                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.text }}>{c.name}</span>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -208,7 +293,7 @@ export interface ForYouViewProps {
   commentsByCheck: Record<string, CommentUI[]>;
   expandedCommentCheckId: string | null;
   onToggleComments: (checkId: string) => void;
-  onPostComment: (checkId: string, text: string) => void;
+  onPostComment: (checkId: string, text: string, mentions?: string[]) => void;
   setFeedMode: (mode: "foryou" | "tonight") => void;
 }
 

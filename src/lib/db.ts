@@ -904,13 +904,13 @@ export async function getCheckComments(checkId: string): Promise<CheckComment[]>
   return data ?? [];
 }
 
-export async function postCheckComment(checkId: string, text: string): Promise<CheckComment> {
+export async function postCheckComment(checkId: string, text: string, mentions: string[] = []): Promise<CheckComment> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('check_comments')
-    .insert({ check_id: checkId, user_id: user.id, text })
+    .insert({ check_id: checkId, user_id: user.id, text, mentions })
     .select('*, user:profiles!user_id(*)')
     .single();
 
