@@ -373,7 +373,7 @@ export default function FeedView({
 
   return (
     <>
-      <div style={{ paddingTop: 8 }}>
+      <div style={{ padding: "8px 16px 0" }}>
       {checks.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div
