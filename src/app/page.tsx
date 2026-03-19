@@ -769,7 +769,7 @@ export default function Home() {
     );
   }
 
-  if (profile && !profile.onboarded && !profileSetupDone) {
+  if (profile && !profile.onboarded && !profileSetupDone && !profile.display_name) {
     return (
       <ProfileSetupScreen
         profile={profile}
@@ -786,17 +786,6 @@ export default function Home() {
       <EnableNotificationsScreen
         onComplete={async () => {
           localStorage.setItem("pushAutoPrompted", "1");
-          if (!isDemoMode) {
-            try {
-              const updated = await db.updateProfile({ onboarded: true } as Partial<Profile>);
-              setProfile(updated);
-            } catch (err) {
-              logError("finishOnboarding", err);
-              setProfile((prev) => prev ? { ...prev, onboarded: true } : prev);
-            }
-          } else {
-            setProfile((prev) => prev ? { ...prev, onboarded: true } : prev);
-          }
           // If user came from a shared check, suggest the check author first
           const pendingCheckId = localStorage.getItem("pendingCheckId");
           if (pendingCheckId) {
@@ -1211,7 +1200,19 @@ export default function Home() {
           onAddFriend={friendsHook.addFriend}
           onCancelRequest={friendsHook.cancelRequest}
           onSearchUsers={friendsHook.searchUsers}
-          onDone={() => {
+          onDone={async () => {
+            // Mark onboarded now that friend gate is passed
+            if (!isDemoMode) {
+              try {
+                const updated = await db.updateProfile({ onboarded: true } as Partial<Profile>);
+                setProfile(updated);
+              } catch (err) {
+                logError("finishOnboarding", err);
+                setProfile((prev) => prev ? { ...prev, onboarded: true } : prev);
+              }
+            } else {
+              setProfile((prev) => prev ? { ...prev, onboarded: true } : prev);
+            }
             setOnboardingFriendGate(false);
             setOnboardingCheckAuthorId(null);
             setShowFirstCheck(true);
