@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { logVersionPing } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { font, color } from "@/lib/styles";
 
 const CLIENT_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "";
@@ -10,9 +11,18 @@ const MIN_BACKGROUND_MS = 5 * 60 * 1000; // 5 minutes
 export default function UpdateBanner() {
   const backgroundSince = useRef<number | null>(null);
   const [reloading, setReloading] = useState(false);
+  const hasPinged = useRef(false);
 
+  // Wait for auth to be ready before logging version ping
   useEffect(() => {
-    if (CLIENT_BUILD_ID) logVersionPing(CLIENT_BUILD_ID);
+    if (!CLIENT_BUILD_ID) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && !hasPinged.current) {
+        hasPinged.current = true;
+        logVersionPing(CLIENT_BUILD_ID);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
