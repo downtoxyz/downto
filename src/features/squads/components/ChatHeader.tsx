@@ -77,6 +77,7 @@ export default function ChatHeader({
         position: "relative",
         zIndex: hasOpenModal ? 10000 : "auto",
         background: color.bg,
+        flexShrink: 0,
       }}
     >
       <div

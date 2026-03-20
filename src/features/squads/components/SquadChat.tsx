@@ -7,34 +7,8 @@ import type { Squad } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
 import { parseNaturalDate, parseNaturalTime, parseDateToISO, formatTimeAgo } from "@/lib/utils";
 import ChatHeader from "./ChatHeader";
-
-const URL_RE = /(https?:\/\/[^\s<]+)/;
-
-/** Split text into plain strings and clickable link elements */
-const linkify = (text: string, isDark: boolean): React.ReactNode => {
-  const parts = text.split(URL_RE);
-  if (parts.length === 1) return text;
-  return parts.map((part, i) =>
-    URL_RE.test(part) ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          color: isDark ? "#000" : color.accent,
-          textDecoration: "underline",
-          textUnderlineOffset: 2,
-          wordBreak: "break-all",
-        }}
-      >
-        {part.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
-      </a>
-    ) : (
-      part
-    )
-  );
-};
+import MessageComposer from "./MessageComposer";
+import ChatMessage from "./ChatMessage";
 
 
 interface SquadChatProps {
@@ -54,8 +28,6 @@ interface SquadChatProps {
   onSetMemberRole?: (squadId: string, userId: string, role: 'member' | 'waitlist') => Promise<void>;
   onKickMember?: (squadId: string, userId: string) => Promise<void>;
   onCreatePoll?: (squadId: string, question: string, options: string[], multiSelect: boolean) => Promise<void>;
-  onVotePoll?: (pollId: string, optionIndex: number) => Promise<void>;
-  onClosePoll?: (pollId: string) => Promise<void>;
   pendingJoinRequests?: { squadId: string; userId: string; name: string; avatar: string }[];
   onRespondToJoinRequest?: (squadId: string, userId: string, accept: boolean) => Promise<void>;
 }
@@ -77,8 +49,6 @@ const SquadChat = ({
   onSetMemberRole,
   onKickMember,
   onCreatePoll,
-  onVotePoll,
-  onClosePoll,
   pendingJoinRequests,
   onRespondToJoinRequest,
 }: SquadChatProps) => {
@@ -91,11 +61,7 @@ const SquadChat = ({
   // Local squad state for non-message fields (members, sizes, dates, etc.)
   const [localSquad, setLocalSquad] = useState(squad);
 
-  const [newMsg, setNewMsg] = useState("");
-  const [chatMentionQuery, setChatMentionQuery] = useState<string | null>(null);
-  const [chatMentionIdx, setChatMentionIdx] = useState(-1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const msgInputRef = useRef<HTMLTextAreaElement>(null);
   const [entering, setEntering] = useState(true);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showImOutConfirm, setShowImOutConfirm] = useState(false);
@@ -164,7 +130,7 @@ const SquadChat = ({
     };
 
     const onFocusIn = (e: FocusEvent) => {
-      if (e.target !== msgInputRef.current) return;
+      if (!(e.target instanceof HTMLTextAreaElement)) return;
       inputFocused = true;
       clearTimeout(timeoutId);
       // Wait for iOS keyboard animation to finish (~300ms)
@@ -172,7 +138,7 @@ const SquadChat = ({
     };
 
     const onFocusOut = (e: FocusEvent) => {
-      if (e.target !== msgInputRef.current) return;
+      if (!(e.target instanceof HTMLTextAreaElement)) return;
       inputFocused = false;
       clearTimeout(timeoutId);
       timeoutId = setTimeout(apply, 100);
@@ -338,21 +304,7 @@ const SquadChat = ({
     };
   }, [localSquad.id, userId]);
 
-  const chatOtherMembers = localSquad.members.filter((m) => m.name !== "You") ?? [];
-
-  const handleSend = () => {
-    if (!newMsg.trim()) return;
-    const text = newMsg.trim();
-
-    // Extract @mentioned user IDs
-    const mentionedNames = [...text.matchAll(/@(\S+)/g)].map((m) => m[1].toLowerCase());
-    const mentionedIds = chatOtherMembers
-      .filter((m) => mentionedNames.some((n) =>
-        m.name.toLowerCase() === n || m.name.split(' ')[0].toLowerCase() === n
-      ))
-      .map((m) => m.userId)
-      .filter((id): id is string => !!id);
-
+  const handleSend = async (text: string, mentionIds: string[]) => {
     const newMsgObj = { sender: "You", text, time: "now", isYou: true };
     const lastMsgPreview = `You: ${text}`;
     const now = new Date().toISOString();
@@ -368,14 +320,10 @@ const SquadChat = ({
       );
       return updated;
     });
-    setNewMsg("");
-    setChatMentionQuery(null);
-    setChatMentionIdx(-1);
-    if (msgInputRef.current) msgInputRef.current.style.height = "auto";
 
     // Persist to DB
     if (localSquad.id && onSendMessage) {
-      onSendMessage(localSquad.id, text, mentionedIds.length > 0 ? mentionedIds : undefined).catch((err) =>
+      onSendMessage(localSquad.id, text, mentionIds.length > 0 ? mentionIds : undefined).catch((err) =>
         logError("sendMessage", err, { squadId: localSquad.id })
       );
     }
@@ -952,212 +900,28 @@ const SquadChat = ({
         {(() => {
           const lastConfirmIdx = messages.reduce((acc, m, idx) => m.messageType === 'date_confirm' ? idx : acc, -1);
           return messages.map((msg, i) => {
-          const prev = i > 0 ? messages[i - 1] : null;
-          const next = i < messages.length - 1 ? messages[i + 1] : null;
-          const sameSenderAsPrev = prev && prev.sender === msg.sender && prev.sender !== "system";
-          const sameSenderAsNext = next && next.sender === msg.sender && next.sender !== "system";
-          const isFirstInGroup = !sameSenderAsPrev;
-          const isLastInGroup = !sameSenderAsNext;
-
-          if (msg.sender === "system") {
-            if (msg.messageType === 'date_confirm' && i === lastConfirmIdx) {
-              return (
-                <div key={i} style={{ textAlign: "center", padding: "8px 0" }}>
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>{msg.text}</span>
-                  {confirmLoading && (
-                    <div style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, marginTop: 6 }}>...</div>
-                  )}
-                  {dateConfirmStatus === 'yes' && !confirmLoading && (
-                    <div style={{ fontFamily: font.mono, fontSize: 10, color: color.accent, marginTop: 6 }}>
-                      you&apos;re in
-                    </div>
-                  )}
-                  {dateConfirmStatus === 'none' && !confirmLoading && (
-                    <div style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, marginTop: 6 }}>
-                      waiting for responses
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            if (msg.messageType === 'poll' && activePoll && msg.messageId === activePoll.messageId) {
-              const uniqueVoters = new Set(pollVotes.map((v) => v.userId));
-              const totalVoters = uniqueVoters.size;
-              const myVotes = userId ? new Set(pollVotes.filter((v) => v.userId === userId).map((v) => v.optionIndex)) : new Set<number>();
-              const isClosed = activePoll.status === 'closed';
-              const isCreator = userId === activePoll.createdBy;
-              return (
-                <div key={i} ref={pollMessageRef} style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
-                  <div style={{
-                    background: color.card,
-                    border: `1px solid ${color.borderMid}`,
-                    borderRadius: 14,
-                    padding: 16,
-                    maxWidth: 300,
-                    width: '100%',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontSize: 16 }}>📊</span>
-                      <span style={{ fontFamily: font.serif, fontSize: 16, color: color.text }}>{activePoll.question}</span>
-                    </div>
-                    <div style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, marginBottom: 10 }}>
-                      {activePoll.multiSelect ? 'Select all that apply' : 'Pick one'}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {activePoll.options.map((opt, oi) => {
-                        const isMyVote = myVotes.has(oi);
-                        const votersForOption = pollVotes.filter((v) => v.optionIndex === oi);
-                        const count = votersForOption.length;
-                        const pct = totalVoters > 0 ? Math.round((count / totalVoters) * 100) : 0;
-                        const canVote = !isClosed && !localSquad.isWaitlisted;
-                        return (
-                          <div
-                            key={oi}
-                            onClick={canVote ? async () => {
-                              if (!activePoll?.id || !userId) return;
-                              setPollVotes((prev) => {
-                                if (isMyVote) {
-                                  return prev.filter((v) => !(v.userId === userId && v.optionIndex === oi));
-                                }
-                                if (activePoll.multiSelect) {
-                                  return [...prev, { userId, optionIndex: oi, displayName: 'You' }];
-                                }
-                                return [...prev.filter((v) => v.userId !== userId), { userId, optionIndex: oi, displayName: 'You' }];
-                              });
-                              try { await onVotePoll?.(activePoll.id, oi); } catch {}
-                            } : undefined}
-                            style={{
-                              position: 'relative',
-                              border: isMyVote ? 'none' : `1px solid ${color.borderMid}`,
-                              background: isMyVote ? color.accent : 'transparent',
-                              borderRadius: 10,
-                              padding: '8px 12px',
-                              cursor: canVote ? 'pointer' : 'default',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            {totalVoters > 0 && (
-                              <div style={{
-                                position: 'absolute',
-                                left: 0, top: 0, bottom: 0,
-                                width: `${pct}%`,
-                                background: isMyVote ? 'rgba(0,0,0,0.1)' : `${color.accent}15`,
-                                borderRadius: 10,
-                                transition: 'width 0.3s ease',
-                              }} />
-                            )}
-                            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{
-                                fontFamily: font.mono,
-                                fontSize: 12,
-                                color: isMyVote ? '#000' : color.text,
-                                fontWeight: isMyVote ? 700 : 400,
-                              }}>{opt}</span>
-                              {totalVoters > 0 && (
-                                <span style={{
-                                  fontFamily: font.mono,
-                                  fontSize: 10,
-                                  color: isMyVote ? '#000' : color.dim,
-                                  fontWeight: 700,
-                                }}>{pct}%</span>
-                              )}
-                            </div>
-                            {count > 0 && (
-                              <div style={{
-                                position: 'relative',
-                                fontFamily: font.mono,
-                                fontSize: 10,
-                                color: isMyVote ? 'rgba(0,0,0,0.6)' : color.faint,
-                                marginTop: 2,
-                              }}>
-                                {votersForOption.map((v) => v.userId === userId ? 'You' : v.displayName).join(', ')}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                      <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
-                        {totalVoters} vote{totalVoters !== 1 ? 's' : ''}{isClosed ? ' · closed' : ''}
-                      </span>
-                      {isCreator && !isClosed && (
-                        <button
-                          onClick={async () => {
-                            try {
-                              await onClosePoll?.(activePoll.id);
-                              setActivePoll((prev) => prev ? { ...prev, status: 'closed' } : prev);
-                            } catch {}
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: `1px solid ${color.borderMid}`,
-                            borderRadius: 8,
-                            padding: '4px 10px',
-                            fontFamily: font.mono,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: color.dim,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          CLOSE POLL
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
+            const prev = i > 0 ? messages[i - 1] : null;
+            const next = i < messages.length - 1 ? messages[i + 1] : null;
+            const sameSenderAsPrev = prev && prev.sender === msg.sender && prev.sender !== "system";
+            const sameSenderAsNext = next && next.sender === msg.sender && next.sender !== "system";
             return (
-              <div key={i} style={{ textAlign: "center", padding: "4px 0" }}>
-                <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>{msg.text}</span>
-              </div>
+              <ChatMessage
+                key={i}
+                msg={msg}
+                isFirstInGroup={!sameSenderAsPrev}
+                isLastInGroup={!sameSenderAsNext}
+                isLastConfirm={i === lastConfirmIdx}
+                confirmLoading={confirmLoading}
+                dateConfirmStatus={dateConfirmStatus}
+                activePoll={activePoll}
+                pollVotes={pollVotes}
+                userId={userId}
+                isWaitlisted={localSquad.isWaitlisted ?? false}
+                pollMessageRef={pollMessageRef}
+                onPollClosed={() => setActivePoll((prev) => prev ? { ...prev, status: 'closed' } : prev)}
+              />
             );
-          }
-
-          return (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: msg.isYou ? "flex-end" : "flex-start",
-                marginTop: isFirstInGroup ? 8 : 0,
-              }}
-            >
-              {isFirstInGroup && !msg.isYou && (
-                <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, marginBottom: 3 }}>
-                  {msg.sender}
-                </span>
-              )}
-              <div
-                className="select-text"
-                style={{
-                  background: msg.isYou ? color.accent : color.card,
-                  color: msg.isYou ? "#000" : color.text,
-                  padding: "8px 12px",
-                  borderRadius: msg.isYou
-                    ? `${isFirstInGroup ? 16 : 8}px 16px ${isLastInGroup ? 4 : 8}px 16px`
-                    : `16px ${isFirstInGroup ? 16 : 8}px ${isLastInGroup ? 8 : 8}px ${isLastInGroup ? 4 : 8}px`,
-                  fontFamily: font.mono,
-                  fontSize: 13,
-                  maxWidth: "80%",
-                  lineHeight: 1.4,
-                }}
-              >
-                {linkify(msg.text, !!msg.isYou)}
-              </div>
-              {isLastInGroup && (
-                <span style={{ fontFamily: font.mono, fontSize: 9, color: color.faint, marginTop: 2 }}>
-                  {msg.time}
-                </span>
-              )}
-            </div>
-          );
-        });
+          });
         })()}
         <div ref={messagesEndRef} />
       </div>
@@ -1327,140 +1091,12 @@ const SquadChat = ({
             </div>
           ))
         }
-        {/* @mention autocomplete */}
-        {chatMentionQuery !== null && chatOtherMembers.length > 0 && (() => {
-          const filtered = chatOtherMembers.filter((m) =>
-            m.name.toLowerCase().includes(chatMentionQuery)
-          );
-          if (filtered.length === 0) return null;
-          return (
-            <div style={{ padding: "4px 20px", background: color.surface }}>
-              <div style={{
-                background: color.deep, border: `1px solid ${color.borderMid}`,
-                borderRadius: 10, maxHeight: 120, overflowY: "auto",
-              }}>
-                {filtered.slice(0, 6).map((m) => (
-                  <button
-                    key={m.userId}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      const before = newMsg.slice(0, chatMentionIdx);
-                      const after = newMsg.slice(chatMentionIdx + 1 + (chatMentionQuery?.length ?? 0));
-                      setNewMsg(before + "@" + m.name + " " + after);
-                      setChatMentionQuery(null);
-                      setChatMentionIdx(-1);
-                      msgInputRef.current?.focus();
-                    }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      width: "100%", padding: "8px 12px",
-                      background: "transparent", border: "none", cursor: "pointer",
-                      borderBottom: `1px solid ${color.border}`,
-                    }}
-                  >
-                    <div style={{
-                      width: 24, height: 24, borderRadius: "50%",
-                      background: color.borderLight, color: color.dim,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: font.mono, fontSize: 10, fontWeight: 700,
-                    }}>
-                      {m.avatar}
-                    </div>
-                    <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>{m.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-        {/* Input row */}
-        <div
-          style={{
-            padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
-            display: "flex",
-            gap: 8,
-            alignItems: "flex-end",
-          }}
-        >
-          {(!activePoll || activePoll.status === 'closed') && onCreatePoll && (
-            <button
-              onClick={() => setShowPollCreator(true)}
-              style={{
-                background: 'none', border: 'none', padding: 0,
-                fontSize: 20, opacity: 0.6, cursor: 'pointer', lineHeight: 1, marginBottom: 8,
-              }}
-            >
-              📊
-            </button>
-          )}
-          <textarea
-            ref={msgInputRef}
-            value={newMsg}
-            onChange={(e) => {
-              const val = e.target.value;
-              setNewMsg(val);
-              e.target.style.height = "auto";
-              e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-              const cursor = e.target.selectionStart ?? val.length;
-              const before = val.slice(0, cursor);
-              const atMatch = before.match(/@([^\s@]*)$/);
-              if (atMatch) {
-                setChatMentionQuery(atMatch[1].toLowerCase());
-                setChatMentionIdx(before.length - atMatch[0].length);
-              } else {
-                setChatMentionQuery(null);
-                setChatMentionIdx(-1);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (chatMentionQuery !== null && e.key === "Escape") {
-                setChatMentionQuery(null);
-                setChatMentionIdx(-1);
-                return;
-              }
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            enterKeyHint="send"
-            placeholder="Message..."
-            rows={1}
-            style={{
-              flex: 1,
-              background: color.card,
-              border: `1px solid ${color.borderMid}`,
-              borderRadius: 20,
-              padding: "10px 16px",
-              color: color.text,
-              fontFamily: font.mono,
-              fontSize: 16,
-              outline: "none",
-              resize: "none",
-              maxHeight: 120,
-              lineHeight: 1.4,
-              overflowY: "auto",
-            }}
-          />
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={handleSend}
-            disabled={!newMsg.trim()}
-            style={{
-              background: newMsg.trim() ? color.accent : color.borderMid,
-              color: newMsg.trim() ? "#000" : color.dim,
-              border: "none",
-              borderRadius: "50%",
-              width: 40,
-              height: 40,
-              cursor: newMsg.trim() ? "pointer" : "default",
-              fontWeight: 700,
-              fontSize: 16,
-            }}
-          >
-            ↑
-          </button>
-        </div>
+        <MessageComposer
+          members={localSquad.members}
+          activePoll={activePoll}
+          onSend={handleSend}
+          onOpenPollCreator={onCreatePoll ? () => setShowPollCreator(true) : undefined}
+        />
       </div>
       )}
       </div>{/* end blur wrapper */}

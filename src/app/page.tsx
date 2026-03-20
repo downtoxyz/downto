@@ -1280,12 +1280,6 @@ export default function Home() {
           onCreatePoll={async (squadId, question, options, multiSelect) => {
             await db.createPoll(squadId, question, options, multiSelect);
           }}
-          onVotePoll={async (pollId, optionIndex) => {
-            await db.votePoll(pollId, optionIndex);
-          }}
-          onClosePoll={async (pollId) => {
-            await db.closePoll(pollId);
-          }}
           pendingJoinRequests={squadsHook.pendingJoinRequests}
           onRespondToJoinRequest={squadsHook.handleRespondToJoinRequest}
         />
