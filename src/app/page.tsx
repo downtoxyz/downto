@@ -38,7 +38,6 @@ import { useChecks } from "@/features/checks/hooks/useChecks";
 import { useSquads } from "@/features/squads/hooks/useSquads";
 import { useFriends } from "@/features/friends/hooks/useFriends";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
-import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
 import { logError, logWarn } from "@/lib/logger";
 
 
@@ -179,8 +178,6 @@ export default function Home() {
     },
   });
 
-  const commentsHook = useCheckComments({ userId, profile, isDemoMode });
-
   const notificationsHook = useNotifications({
     userId,
     isDemoMode,
@@ -241,14 +238,6 @@ export default function Home() {
       squadsHook.hydrateSquads(squadsList);
       setArchivedChecks(archivedChecksList);
       checksHook.hydrateLeftChecks(leftChecksList);
-
-      // Hydrate comment counts
-      const activeCheckIds = activeChecks.map(c => c.id);
-      if (activeCheckIds.length > 0) {
-        db.getCheckCommentCounts(activeCheckIds)
-          .then(counts => commentsHook.hydrateCommentCounts(counts))
-          .catch(() => {});
-      }
 
       setFeedLoaded(true);
 
@@ -1090,7 +1079,6 @@ export default function Home() {
             myCheckResponses={checksHook.myCheckResponses}
             setMyCheckResponses={checksHook.setMyCheckResponses}
             events={events}
-            setEvents={setEvents}
             newlyAddedId={newlyAddedId}
             newlyAddedCheckId={checksHook.newlyAddedCheckId}
             sharedCheckId={activeSharedCheckId}
@@ -1123,11 +1111,6 @@ export default function Home() {
             acceptCoAuthorTag={checksHook.acceptCoAuthorTag}
             declineCoAuthorTag={checksHook.declineCoAuthorTag}
             onViewProfile={(uid) => setViewingUserId(uid)}
-            commentCounts={commentsHook.commentCounts}
-            commentsByCheck={commentsHook.commentsByCheck}
-            expandedCommentCheckId={commentsHook.expandedCommentCheckId}
-            onToggleComments={commentsHook.toggleComments}
-            onPostComment={commentsHook.postComment}
           />
         )}
         {feedLoaded && tab === "calendar" && (
