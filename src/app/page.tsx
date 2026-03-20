@@ -297,9 +297,8 @@ export default function Home() {
 
   // ─── Effects ────────────────────────────────────────────────────────────
 
-  // Capture ?add= and ?pendingCheck= params on mount (sync, before child effects)
-  const [paramsProcessed] = useState(() => {
-    if (typeof window === 'undefined') return false;
+  // Capture ?add= and ?pendingCheck= params on mount
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const addUser = params.get("add");
     if (addUser) {
@@ -311,8 +310,7 @@ export default function Home() {
       localStorage.setItem("pendingCheckId", pendingCheck);
       window.history.replaceState({}, "", "/");
     }
-    return true;
-  });
+  }, []);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     // Deep-link params from SW cold-open
@@ -883,7 +881,10 @@ export default function Home() {
   }
 
   // Normal visit (no shared check): show install prompt before auth
-  const hasPendingCheck = typeof window !== 'undefined' && !!localStorage.getItem("pendingCheckId");
+  const hasPendingCheck = typeof window !== 'undefined' && (
+    !!localStorage.getItem("pendingCheckId") ||
+    new URLSearchParams(window.location.search).has("pendingCheck")
+  );
   if (!installDismissed && !hasPendingCheck) {
     return (
       <IOSInstallScreen
