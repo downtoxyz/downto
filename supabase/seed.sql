@@ -344,3 +344,17 @@ VALUES (
   '6:30pm',
   'my place'
 ) ON CONFLICT (id) DO NOTHING;
+
+-- ─── Shared check (for testing /check/[id] preview + CTA flow) ─────────────
+
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_time, location, shared_at)
+VALUES (
+  'c6666666-6666-6666-6666-666666666666',
+  'b2222222-2222-2222-2222-222222222222',
+  'rooftop hangs this weekend — who''s in?',
+  now() + interval '72 hours',
+  CURRENT_DATE + 2,
+  '5pm',
+  'Brooklyn',
+  now()
+) ON CONFLICT (id) DO NOTHING;

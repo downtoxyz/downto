@@ -114,6 +114,7 @@ export default function Home() {
     if (typeof window !== 'undefined') return localStorage.getItem("activeSharedCheckId");
     return null;
   });
+  const [sharedCheckGlowId, setSharedCheckGlowId] = useState<string | null>(null);
   const [showAddGlow, setShowAddGlow] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("showAddGlow") === "true";
@@ -407,6 +408,8 @@ export default function Home() {
       }
       setActiveSharedCheckId(checkId);
       localStorage.setItem("activeSharedCheckId", checkId);
+      setSharedCheckGlowId(checkId);
+      setTimeout(() => setSharedCheckGlowId(null), 5000);
       checksHook.setNewlyAddedCheckId(checkId);
       setTimeout(() => checksHook.setNewlyAddedCheckId(null), 5000);
     })();
@@ -1105,7 +1108,7 @@ export default function Home() {
             events={events}
             newlyAddedId={newlyAddedId}
             newlyAddedCheckId={checksHook.newlyAddedCheckId}
-            sharedCheckId={activeSharedCheckId}
+            sharedCheckId={sharedCheckGlowId}
             friends={friendsHook.friends}
             userId={userId}
             isDemoMode={isDemoMode}

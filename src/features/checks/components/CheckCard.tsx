@@ -143,7 +143,7 @@ export default function CheckCard({
           overflow: "hidden",
           marginBottom: 8,
           border: `1px solid ${check.id === newlyAddedCheckId ? "rgba(90,200,255,0.5)" : check.id === sharedCheckId ? "rgba(232,255,90,0.4)" : (check.isYours || check.isCoAuthor) ? "rgba(232,255,90,0.2)" : color.border}`,
-          ...(check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : {}),
+          ...(check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : {}),
           WebkitUserSelect: (check.isYours || check.isCoAuthor) ? "none" : undefined,
           userSelect: (check.isYours || check.isCoAuthor) ? "none" : undefined,
         }}
