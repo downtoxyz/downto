@@ -12,7 +12,12 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
   useEffect(() => {
     const stored = localStorage.getItem("pendingAddUsername");
     if (stored) setPendingAddUser(stored);
-    if (localStorage.getItem("pendingCheckId")) setPendingCheck(true);
+    if (
+      localStorage.getItem("pendingCheckId") ||
+      new URLSearchParams(window.location.search).has("pendingCheck")
+    ) {
+      setPendingCheck(true);
+    }
   }, []);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
