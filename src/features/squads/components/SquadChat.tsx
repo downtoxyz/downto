@@ -6,6 +6,7 @@ import { font, color } from "@/lib/styles";
 import type { Squad } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
 import { parseNaturalDate, parseNaturalTime, parseDateToISO, formatTimeAgo } from "@/lib/utils";
+import ChatHeader from "./ChatHeader";
 
 const URL_RE = /(https?:\/\/[^\s<]+)/;
 
@@ -35,32 +36,6 @@ const linkify = (text: string, isDark: boolean): React.ReactNode => {
   );
 };
 
-const formatExpiryShort = (expiresAt?: string): string | null => {
-  if (!expiresAt) return null;
-  const msRemaining = new Date(expiresAt).getTime() - Date.now();
-  if (msRemaining <= 0) return "!";
-  const hours = Math.floor(msRemaining / (1000 * 60 * 60));
-  if (hours > 24) return `${Math.floor(hours / 24)}d`;
-  if (hours > 0) return `${hours}h`;
-  return `${Math.floor(msRemaining / (1000 * 60))}m`;
-};
-
-const formatExpiryLabel = (expiresAt?: string, graceStartedAt?: string): string | null => {
-  if (!expiresAt) return null;
-  const now = Date.now();
-  const expires = new Date(expiresAt).getTime();
-  const msRemaining = expires - now;
-  if (msRemaining <= 0) return "expiring soon";
-  if (graceStartedAt) return "set a date to keep this going";
-  const hours = Math.floor(msRemaining / (1000 * 60 * 60));
-  const mins = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-  if (hours > 24) {
-    const days = Math.floor(hours / 24);
-    return `chat expires in ${days}d`;
-  }
-  if (hours > 0) return `chat expires in ${hours}h`;
-  return `chat expires in ${mins}m`;
-};
 
 interface SquadChatProps {
   squad: Squad;
@@ -138,8 +113,6 @@ const SquadChat = ({
   const [dateConfirms, setDateConfirms] = useState<Map<string, 'yes' | 'no' | null>>(new Map());
   const [confirmLoading, setConfirmLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const [chatHeight, setChatHeight] = useState<string>("100dvh");
-
   // Poll state
   const [activePoll, setActivePoll] = useState<{
     id: string; messageId: string; question: string;
@@ -165,7 +138,7 @@ const SquadChat = ({
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
-      setChatHeight(`${vv.height}px`);
+      if (chatContainerRef.current) chatContainerRef.current.style.height = `${vv.height}px`;
       // Prevent iOS from scrolling the page when focusing input — keeps fixed positioning correct
       window.scrollTo(0, 0);
       // Scroll messages into view after keyboard resize
@@ -408,7 +381,7 @@ const SquadChat = ({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: chatHeight,
+        height: "100dvh",
         background: color.bg,
         overflow: "hidden",
         transform: closing ? "translateX(100%)" : `translateX(${dragX}px)`,
@@ -418,257 +391,32 @@ const SquadChat = ({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Chat header */}
-      <div
-        style={{
-          padding: "0 20px 12px",
-          borderBottom: `1px solid ${color.border}`,
-          position: "relative",
-          zIndex: (showSquadPopup || showDatePicker) ? 10000 : "auto",
-          background: color.bg,
+      <ChatHeader
+        squad={localSquad}
+        dateConfirms={dateConfirms}
+        userId={userId}
+        hasOpenModal={showSquadPopup || showDatePicker}
+        onBack={onClose}
+        onOpenSettings={() => setShowSquadPopup(true)}
+        onOpenDatePicker={() => {
+          setShowDatePicker(true);
+          setDatePickerValue("");
+          setDateLocked(false);
+          setTimeLocked(false);
+          setDateDismissed(false);
+          setTimeDismissed(false);
         }}
-      >
-        <div
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: color.accent,
-              fontSize: 18,
-              cursor: "pointer",
-              padding: 0,
-              marginRight: 8,
-              flexShrink: 0,
-            }}
-          >
-            ‹
-          </button>
-          <div
-            onClick={() => setShowSquadPopup(true)}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1, minWidth: 0 }}
-          >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h2
-              style={{
-                fontFamily: font.serif,
-                fontSize: 18,
-                color: color.text,
-                fontWeight: 400,
-                margin: 0,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
-              }}
-            >
-              {localSquad.name}
-            </h2>
-            {localSquad.event && (
-              <p
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 10,
-                  color: color.dim,
-                  margin: "2px 0 0",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {localSquad.event}
-              </p>
-            )}
-          </div>
-          <div
-            onClick={() => setShowSquadPopup(true)}
-            style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", marginLeft: 12, flexShrink: 0, cursor: "pointer" }}
-          >
-            <div style={{ display: "flex", alignItems: "center" }}>
-              {localSquad.members.slice(0, 4).map((m, idx) => {
-                const isLocked = localSquad.dateStatus === 'locked';
-                const isProposed = localSquad.dateStatus === 'proposed';
-                const confirmResponse = m.userId ? dateConfirms.get(m.userId) : undefined;
-                const isConfirmed = isLocked || (isProposed && dateConfirms.size > 0 && confirmResponse === 'yes');
-                const isPending = isProposed && dateConfirms.size > 0 && confirmResponse !== 'yes';
-                const avatarBg = isConfirmed
-                  ? color.accent
-                  : isPending
-                    ? color.borderLight
-                    : m.name === "You" ? color.accent : color.borderLight;
-                const avatarColor = isConfirmed
-                  ? "#000"
-                  : isPending
-                    ? color.dim
-                    : m.name === "You" ? "#000" : color.dim;
-                return (
-                  <div
-                    key={m.name}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      background: avatarBg,
-                      color: avatarColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      marginLeft: idx === 0 ? 0 : -6,
-                      border: `2px solid ${color.card}`,
-                      position: "relative",
-                      zIndex: 4 - idx,
-                    }}
-                  >
-                    {m.avatar}
-                  </div>
-                );
-              })}
-              {localSquad.members.length > 4 && (
-                <span style={{
-                  fontFamily: font.mono,
-                  fontSize: 8,
-                  fontWeight: 700,
-                  color: color.dim,
-                  marginLeft: 4,
-                }}>
-                  +{localSquad.members.length - 4}
-                </span>
-              )}
-            </div>
-          </div>
-          </div>
-        </div>
-        {(() => {
-          const dateLabel = localSquad.eventIsoDate
-            ? new Date(localSquad.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-            : null;
-          const timeLabel = localSquad.eventTime ?? null;
-          const isDateFlexible = localSquad.dateFlexible !== false;
-          const isTimeFlexible = localSquad.timeFlexible !== false;
-          const showExtend = !localSquad.eventIsoDate ||
-            new Date(localSquad.eventIsoDate + "T00:00:00") <= new Date(new Date().toDateString());
-          const expiryLabel = formatExpiryLabel(localSquad.expiresAt, localSquad.graceStartedAt);
-          const expiryUrgent = !!localSquad.graceStartedAt ||
-            (localSquad.expiresAt && new Date(localSquad.expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000);
-          const hasContent = dateLabel || timeLabel || onSetSquadDate || showExtend || expiryLabel;
-          if (!hasContent) return null;
-          return (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "6px 0 0", flexWrap: "wrap" }}>
-              {dateLabel && (
-                <span style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "2px 8px",
-                  background: !isDateFlexible ? "rgba(232,255,90,0.08)" : "transparent",
-                  borderRadius: 6,
-                  border: !isDateFlexible ? "1px solid rgba(232,255,90,0.2)" : "1px solid rgba(232,255,90,0.35)",
-                  fontFamily: font.mono,
-                  fontSize: 9,
-                  fontWeight: 600,
-                  color: color.accent,
-                }}>
-                  📅 {dateLabel}
-                  <span style={{ fontSize: 8, color: !isDateFlexible ? color.accent : color.dim }}>
-                    {!isDateFlexible ? "locked" : "flexible"}
-                  </span>
-                </span>
-              )}
-              {timeLabel && (
-                <span style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "2px 8px",
-                  background: !isTimeFlexible ? "rgba(232,255,90,0.08)" : "transparent",
-                  borderRadius: 6,
-                  border: !isTimeFlexible ? "1px solid rgba(232,255,90,0.2)" : "1px solid rgba(232,255,90,0.35)",
-                  fontFamily: font.mono,
-                  fontSize: 9,
-                  fontWeight: 600,
-                  color: color.accent,
-                }}>
-                  🕐 {timeLabel}
-                  <span style={{ fontSize: 8, color: !isTimeFlexible ? color.accent : color.dim }}>
-                    {!isTimeFlexible ? "locked" : "flexible"}
-                  </span>
-                </span>
-              )}
-              {!dateLabel && !timeLabel && onSetSquadDate && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDatePicker(true);
-                    setDatePickerValue("");
-                    setDateLocked(false);
-                    setTimeLocked(false);
-                    setDateDismissed(false);
-                    setTimeDismissed(false);
-                  }}
-                  style={{
-                    background: "transparent",
-                    color: color.accent,
-                    border: `1px solid ${color.accent}`,
-                    borderRadius: 6,
-                    padding: "2px 8px",
-                    fontFamily: font.mono,
-                    fontSize: 9,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Set date &amp; time
-                </button>
-              )}
-              {showExtend && (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      const newExpiry = await db.extendSquad(localSquad.id);
-                      onSquadUpdate((prev) => prev.map((s) =>
-                        s.id === localSquad.id ? { ...s, expiresAt: newExpiry } : s
-                      ));
-                      setLocalSquad((prev) => ({ ...prev, expiresAt: newExpiry }));
-                    } catch {}
-                  }}
-                  style={{
-                    background: "transparent",
-                    color: color.dim,
-                    border: `1px solid ${color.borderMid}`,
-                    borderRadius: 6,
-                    padding: "2px 8px",
-                    fontFamily: font.mono,
-                    fontSize: 9,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  +7 days
-                </button>
-              )}
-              {expiryLabel && (
-                <span style={{
-                  fontFamily: font.mono,
-                  fontSize: 9,
-                  color: expiryUrgent ? color.accent : color.faint,
-                  marginLeft: "auto",
-                }}>
-                  {expiryLabel}
-                </span>
-              )}
-            </div>
-          );
-        })()}
-      </div>
+        onExtendSquad={async () => {
+          try {
+            const newExpiry = await db.extendSquad(localSquad.id);
+            onSquadUpdate((prev) => prev.map((s) =>
+              s.id === localSquad.id ? { ...s, expiresAt: newExpiry } : s
+            ));
+            setLocalSquad((prev) => ({ ...prev, expiresAt: newExpiry }));
+          } catch {}
+        }}
+        canSetDate={!!onSetSquadDate}
+      />
 
       {/* Leave squad confirmation */}
       {showLeaveConfirm && (
