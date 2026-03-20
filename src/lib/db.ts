@@ -953,7 +953,7 @@ export async function getCheckCommentCounts(checkIds: string[]): Promise<Record<
   if (error) throw error;
 
   const counts: Record<string, number> = {};
-  for (const row of data ?? []) {
+  for (const row of (data ?? [])) {
     counts[row.check_id] = (counts[row.check_id] ?? 0) + 1;
   }
   return counts;
@@ -997,7 +997,7 @@ export function subscribeToCheckComments(
   checkId: string,
   callback: (comment: CheckComment) => void
 ) {
-  return supabase
+  const channel = supabase
     .channel(`check_comments:${checkId}`)
     .on(
       'postgres_changes',
@@ -1021,6 +1021,7 @@ export function subscribeToCheckComments(
       }
     )
     .subscribe();
+  return { unsubscribe: () => { supabase.removeChannel(channel); } };
 }
 
 // ============================================================================
