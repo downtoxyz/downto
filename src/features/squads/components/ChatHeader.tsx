@@ -41,9 +41,6 @@ interface ChatHeaderProps {
   hasOpenModal: boolean;
   onBack: () => void;
   onOpenSettings: () => void;
-  onOpenDatePicker: () => void;
-  onExtendSquad: () => Promise<void>;
-  canSetDate: boolean; // whether date setting is supported (onSetSquadDate is defined)
 }
 
 export default function ChatHeader({
@@ -53,18 +50,14 @@ export default function ChatHeader({
   hasOpenModal,
   onBack,
   onOpenSettings,
-  onOpenDatePicker,
-  onExtendSquad,
-  canSetDate,
 }: ChatHeaderProps) {
   const dateLabel = squad.eventIsoDate
     ? new Date(squad.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
     : null;
   const timeLabel = squad.eventTime ?? null;
-  const isDateFlexible = squad.dateFlexible !== false;
-  const isTimeFlexible = squad.timeFlexible !== false;
-  const showExtend = !squad.eventIsoDate ||
-    new Date(squad.eventIsoDate + "T00:00:00") <= new Date(new Date().toDateString());
+  const location = squad.meetingSpot ?? null;
+  const detailParts = [dateLabel, timeLabel, location].filter(Boolean);
+  const hasDetails = detailParts.length > 0 || !!squad.event;
   const expiryLabel = formatExpiryLabel(squad.expiresAt, squad.graceStartedAt);
   const expiryUrgent = !!squad.graceStartedAt ||
     (squad.expiresAt && new Date(squad.expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000);
@@ -93,6 +86,7 @@ export default function ChatHeader({
             padding: 0,
             marginRight: 8,
             flexShrink: 0,
+            alignSelf: hasDetails ? "flex-start" : "center",
           }}
         >
           ‹
@@ -117,7 +111,7 @@ export default function ChatHeader({
             >
               {squad.name}
             </h2>
-            {squad.event && (
+            {hasDetails && (
               <p
                 style={{
                   fontFamily: font.mono,
@@ -129,7 +123,7 @@ export default function ChatHeader({
                   textOverflow: "ellipsis",
                 }}
               >
-                {squad.event}
+                {detailParts.length > 0 ? detailParts.join(" · ") : squad.event}
               </p>
             )}
           </div>
@@ -185,77 +179,18 @@ export default function ChatHeader({
                 </span>
               )}
             </div>
+            {expiryLabel && (
+              <span style={{
+                fontFamily: font.mono, fontSize: 9,
+                color: expiryUrgent ? color.accent : color.faint,
+                marginTop: 2,
+              }}>
+                {expiryLabel}
+              </span>
+            )}
           </div>
         </div>
       </div>
-
-      {(dateLabel || timeLabel || (canSetDate && !dateLabel && !timeLabel) || showExtend || expiryLabel) && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "6px 0 0", flexWrap: "wrap" }}>
-          {dateLabel && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "2px 8px",
-              background: !isDateFlexible ? "rgba(232,255,90,0.08)" : "transparent",
-              borderRadius: 6,
-              border: !isDateFlexible ? "1px solid rgba(232,255,90,0.2)" : "1px solid rgba(232,255,90,0.35)",
-              fontFamily: font.mono, fontSize: 9, fontWeight: 600, color: color.accent,
-            }}>
-              📅 {dateLabel}
-              <span style={{ fontSize: 8, color: !isDateFlexible ? color.accent : color.dim }}>
-                {!isDateFlexible ? "locked" : "flexible"}
-              </span>
-            </span>
-          )}
-          {timeLabel && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "2px 8px",
-              background: !isTimeFlexible ? "rgba(232,255,90,0.08)" : "transparent",
-              borderRadius: 6,
-              border: !isTimeFlexible ? "1px solid rgba(232,255,90,0.2)" : "1px solid rgba(232,255,90,0.35)",
-              fontFamily: font.mono, fontSize: 9, fontWeight: 600, color: color.accent,
-            }}>
-              🕐 {timeLabel}
-              <span style={{ fontSize: 8, color: !isTimeFlexible ? color.accent : color.dim }}>
-                {!isTimeFlexible ? "locked" : "flexible"}
-              </span>
-            </span>
-          )}
-          {!dateLabel && !timeLabel && canSetDate && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onOpenDatePicker(); }}
-              style={{
-                background: "transparent", color: color.accent, border: `1px solid ${color.accent}`,
-                borderRadius: 6, padding: "2px 8px",
-                fontFamily: font.mono, fontSize: 9, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              Set date &amp; time
-            </button>
-          )}
-          {showExtend && (
-            <button
-              onClick={async (e) => { e.stopPropagation(); await onExtendSquad(); }}
-              style={{
-                background: "transparent", color: color.dim, border: `1px solid ${color.borderMid}`,
-                borderRadius: 6, padding: "2px 8px",
-                fontFamily: font.mono, fontSize: 9, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              +7 days
-            </button>
-          )}
-          {expiryLabel && (
-            <span style={{
-              fontFamily: font.mono, fontSize: 9,
-              color: expiryUrgent ? color.accent : color.faint,
-              marginLeft: "auto",
-            }}>
-              {expiryLabel}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 }

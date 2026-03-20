@@ -446,24 +446,6 @@ const SquadChat = ({
         hasOpenModal={showSquadPopup || showDatePicker}
         onBack={onClose}
         onOpenSettings={() => setShowSquadPopup(true)}
-        onOpenDatePicker={() => {
-          setShowDatePicker(true);
-          setDatePickerValue("");
-          setDateLocked(false);
-          setTimeLocked(false);
-          setDateDismissed(false);
-          setTimeDismissed(false);
-        }}
-        onExtendSquad={async () => {
-          try {
-            const newExpiry = await db.extendSquad(localSquad.id);
-            onSquadUpdate((prev) => prev.map((s) =>
-              s.id === localSquad.id ? { ...s, expiresAt: newExpiry } : s
-            ));
-            setLocalSquad((prev) => ({ ...prev, expiresAt: newExpiry }));
-          } catch {}
-        }}
-        canSetDate={!!onSetSquadDate}
       />
 
       {/* Leave squad confirmation */}
@@ -1622,6 +1604,27 @@ const SquadChat = ({
                       Set plans
                     </button>
                   )}
+                  <button
+                    onClick={async () => {
+                      try {
+                        const newExpiry = await db.extendSquad(localSquad.id);
+                        onSquadUpdate((prev) => prev.map((s) =>
+                          s.id === localSquad.id ? { ...s, expiresAt: newExpiry } : s
+                        ));
+                        setLocalSquad((prev) => ({ ...prev, expiresAt: newExpiry }));
+                      } catch {}
+                      setShowSquadPopup(false);
+                      setSquadPopupView('menu');
+                    }}
+                    style={{
+                      background: "none", border: "none",
+                      borderBottom: `1px solid ${color.border}`,
+                      color: color.text, fontFamily: font.mono, fontSize: 12,
+                      padding: "12px 0", cursor: "pointer", textAlign: "center",
+                    }}
+                  >
+                    Extend +7 days
+                  </button>
                   <button
                     onClick={() => {
                       setShowSquadPopup(false);
