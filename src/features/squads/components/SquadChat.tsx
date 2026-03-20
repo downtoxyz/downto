@@ -134,6 +134,15 @@ const SquadChat = ({
     return () => { onChatOpen?.(false); };
   }, [onChatOpen]);
 
+  // Prevent pinch-to-zoom in PWA
+  useEffect(() => {
+    const prevent = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    document.addEventListener("touchstart", prevent, { passive: false });
+    return () => document.removeEventListener("touchstart", prevent);
+  }, []);
+
   // Slide in from right on mount
   useEffect(() => {
     requestAnimationFrame(() => {
