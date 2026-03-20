@@ -59,7 +59,7 @@ export function useCheckComments({
   }, [checkId, userId, isDemoMode]);
 
   const openComments = useCallback(async () => {
-    if (isDemoMode) return;
+    if (isDemoMode || loaded) return;
     try {
       const fetched = await db.getCheckComments(checkId);
       setComments(fetched.map(c => toCommentUI(c, userId)));
