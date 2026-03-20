@@ -946,8 +946,8 @@ export default function Home() {
       );
     }
 
-    // In PWA (after reinstall) or normal flow: show notifications then friends
-    if (!notificationsDone && isInPWA) {
+    // Show notifications screen (PWA or after dismissing install prompt)
+    if (!notificationsDone && (isInPWA || (pendingCheckId && installDismissed))) {
       return (
         <EnableNotificationsScreen
           onComplete={async () => {
@@ -1406,6 +1406,10 @@ export default function Home() {
             // Skip first check screen for shared check flow — they already have one to respond to
             if (!localStorage.getItem("pendingCheckId") && !activeSharedCheckId) {
               setShowFirstCheck(true);
+            } else {
+              // Shared check flow: show glow on + button to prompt first check
+              setShowAddGlow(true);
+              localStorage.setItem("showAddGlow", "true");
             }
           }}
         />
