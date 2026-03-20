@@ -610,9 +610,11 @@ export default function Home() {
   useEffect(() => {
     if (!squadsHook.autoSelectSquadId) return;
     const squad = squadsHook.squads.find(s => s.id === squadsHook.autoSelectSquadId);
-    if (squad) setSelectedSquad({ ...squad, hasUnread: false });
-    squadsHook.setAutoSelectSquadId(null);
-  }, [squadsHook.autoSelectSquadId]);
+    if (squad) {
+      setSelectedSquad({ ...squad, hasUnread: false });
+      squadsHook.setAutoSelectSquadId(null);
+    }
+  }, [squadsHook.autoSelectSquadId, squadsHook.squads]);
 
   // ─── Squad API handlers ──────────────────────────────────────────────────
 
@@ -953,10 +955,19 @@ export default function Home() {
     // Set up friend gate with check author suggestion if applicable
     if (!friendGateInitRef.current) {
       friendGateInitRef.current = true;
-      if (pendingCheckId) {
-        (async () => {
-          try {
-            const authorProfile = await db.getCheckAuthorProfile(pendingCheckId);
+      (async () => {
+        try {
+          // Use localStorage first, fall back to DB (survives PWA reinstall)
+          let checkId = pendingCheckId;
+          if (!checkId) {
+            checkId = await db.getReferralCheckId();
+          }
+          // Persist to DB so it survives PWA reinstall/re-auth
+          if (checkId && pendingCheckId) {
+            db.setReferralCheckId(checkId).catch(() => {});
+          }
+          if (checkId) {
+            const authorProfile = await db.getCheckAuthorProfile(checkId);
             if (authorProfile && authorProfile.id !== userId) {
               setOnboardingCheckAuthorId(authorProfile.id);
               friendsHook.setSuggestions((prev) => {
@@ -971,12 +982,10 @@ export default function Home() {
                 }, ...without];
               });
             }
-          } catch {}
-          setOnboardingFriendGate(true);
-        })();
-      } else {
+          }
+        } catch {}
         setOnboardingFriendGate(true);
-      }
+      })();
     }
     // Block rendering until friend gate is ready
     return null;

@@ -593,6 +593,32 @@ export async function getCheckAuthorProfile(checkId: string): Promise<Profile | 
   return data[0] as Profile;
 }
 
+export async function setReferralCheckId(checkId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Only set if not already set
+  await supabase
+    .from('profiles')
+    .update({ referred_by_check_id: checkId })
+    .eq('id', user.id)
+    .is('referred_by_check_id', null);
+}
+
+export async function getReferralCheckId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('referred_by_check_id')
+    .eq('id', user.id)
+    .single();
+
+  if (error || !data) return null;
+  return data.referred_by_check_id ?? null;
+}
+
 export async function getHiddenCheckIds(): Promise<string[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];

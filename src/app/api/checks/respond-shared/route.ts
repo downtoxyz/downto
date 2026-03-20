@@ -43,5 +43,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to respond' }, { status: 500 });
   }
 
+  // Persist referral check ID on profile (only if not already set)
+  await admin
+    .from('profiles')
+    .update({ referred_by_check_id: checkId })
+    .eq('id', user.id)
+    .is('referred_by_check_id', null);
+
   return NextResponse.json({ ok: true });
 }
