@@ -947,14 +947,14 @@ export async function getCheckCommentCounts(checkIds: string[]): Promise<Record<
 
   const { data, error } = await supabase
     .from('check_comments')
-    .select('check_id, count:id.count()', { count: 'exact' })
+    .select('check_id')
     .in('check_id', checkIds);
 
   if (error) throw error;
 
   const counts: Record<string, number> = {};
-  for (const row of (data ?? []) as { check_id: string; count: number }[]) {
-    counts[row.check_id] = row.count;
+  for (const row of (data ?? [])) {
+    counts[row.check_id] = (counts[row.check_id] ?? 0) + 1;
   }
   return counts;
 }
