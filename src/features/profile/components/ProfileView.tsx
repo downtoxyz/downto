@@ -703,7 +703,7 @@ const ProfileView = ({
           </span>
         </div>
       )}
-      {["Calendar Sync (Google/Apple)", "Privacy & Visibility"].map(
+      {["Privacy & Visibility"].map(
         (s) => (
           <div
             key={s}
