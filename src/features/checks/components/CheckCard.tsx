@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
-import { font, color } from "@/lib/styles";
 import type { InterestCheck, Friend } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
 import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
@@ -30,7 +29,7 @@ function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: b
           return (
             <a key={i} href={part} target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              style={{ color: dimmed ? color.dim : color.accent, textDecoration: "underline", textUnderlineOffset: 3, wordBreak: "break-all" }}
+              className={`underline underline-offset-2 break-all ${dimmed ? "text-neutral-500" : "text-dt"}`}
             >
               {display}
             </a>
@@ -39,7 +38,7 @@ function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: b
         if (/^@\S+/.test(part)) {
           const mention = part.slice(1).toLowerCase();
           const matched = coAuthors?.find(ca => ca.name.toLowerCase() === mention || ca.name.split(" ")[0]?.toLowerCase() === mention);
-          return <span key={i} style={{ color: color.accent, fontWeight: 600 }}>@{matched ? matched.name : part.slice(1)}</span>;
+          return <span key={i} className="text-dt font-semibold">@{matched ? matched.name : part.slice(1)}</span>;
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
       })}
@@ -137,53 +136,41 @@ export default function CheckCard({
         ref={check.id === newlyAddedCheckId ? (el) => {
           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         } : undefined}
-        style={{
-          background: (check.isYours || check.isCoAuthor) ? "rgba(232,255,90,0.05)" : color.card,
-          borderRadius: 14,
-          overflow: "hidden",
-          marginBottom: 8,
-          border: `1px solid ${check.id === newlyAddedCheckId ? "rgba(90,200,255,0.5)" : check.id === sharedCheckId ? "rgba(232,255,90,0.4)" : (check.isYours || check.isCoAuthor) ? "rgba(232,255,90,0.2)" : color.border}`,
-          ...(check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : {}),
-          WebkitUserSelect: (check.isYours || check.isCoAuthor) ? "none" : undefined,
-          userSelect: (check.isYours || check.isCoAuthor) ? "none" : undefined,
-        }}
+        className={`rounded-xl overflow-hidden mb-2 border ${(check.isYours || check.isCoAuthor) ? "bg-dt/5" : "bg-neutral-925"} ${
+          check.id === newlyAddedCheckId ? "border-sky-400/50" :
+          check.id === sharedCheckId ? "border-dt/40" :
+          (check.isYours || check.isCoAuthor) ? "border-dt/20" :
+          "border-neutral-900"
+        }`}
+        style={check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : undefined}
       >
         {check.expiresIn !== "open" && (
-          <div style={{ height: 3, background: color.border, position: "relative" }}>
-            <div style={{
-              position: "absolute", left: 0, top: 0, height: "100%",
-              width: `${100 - check.expiryPercent}%`,
-              background: check.expiryPercent > 75 ? "#ff6b6b" : check.expiryPercent > 50 ? "#ffaa5a" : "#4ade80",
-              transition: "width 1s ease",
-            }} />
+          <div className="h-0.75 bg-neutral-900 relative">
+            <div
+              className={`absolute inset-y-0 left-0 transition-all duration-1000 ease-in-out ${check.expiryPercent > 75 ? "bg-danger" : check.expiryPercent > 50 ? "bg-[#ffaa5a]" : "bg-green-400"}`}
+              style={{ width: `${100 - check.expiryPercent}%` }}
+            />
           </div>
         )}
-        <div style={{ padding: 14 }}>
+        <div className="p-3.5">
           {check.movieTitle && (
             <div
               onClick={(e) => { if (check.letterboxdUrl) { e.stopPropagation(); window.open(check.letterboxdUrl, "_blank", "noopener"); } }}
-              style={{
-                display: "flex", gap: 10, marginBottom: 12, padding: 10,
-                background: color.deep, borderRadius: 10, border: `1px solid ${color.borderLight}`,
-                cursor: check.letterboxdUrl ? "pointer" : undefined,
-              }}
+              className={`flex gap-2.5 mb-3 p-2.5 bg-neutral-950 rounded-lg border border-neutral-800 ${check.letterboxdUrl ? "cursor-pointer" : ""}`}
             >
               {check.thumbnail && (
                 <img src={check.thumbnail} alt={check.movieTitle}
-                  style={{ width: 48, height: 72, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                  className="w-12 h-18 object-cover rounded-md shrink-0" />
               )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: font.serif, fontSize: 15, color: color.text, lineHeight: 1.2, marginBottom: 2 }}>{check.movieTitle}</div>
-                <div style={{ fontFamily: font.mono, fontSize: 10, color: color.muted, marginBottom: 4 }}>
+              <div className="flex-1 min-w-0">
+                <div className="font-serif text-base text-white leading-tight mb-0.5">{check.movieTitle}</div>
+                <div className="font-mono text-tiny text-neutral-500 mb-1">
                   {check.year}{check.director && ` · ${check.director}`}
                 </div>
                 {check.vibes && check.vibes.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                  <div className="flex flex-wrap gap-1">
                     {check.vibes.slice(0, 3).map((v) => (
-                      <span key={v} style={{
-                        background: "#1f1f1f", color: color.accent, padding: "2px 6px", borderRadius: 12,
-                        fontFamily: font.mono, fontSize: 8, textTransform: "uppercase", letterSpacing: "0.08em",
-                      }}>{v}</span>
+                      <span key={v} className="bg-neutral-800 text-dt py-0.5 px-1.5 rounded-xl font-mono text-tiny uppercase tracking-widest">{v}</span>
                     ))}
                   </div>
                 )}
@@ -192,51 +179,35 @@ export default function CheckCard({
           )}
 
           {/* Header: author + expiry */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+          <div className="flex justify-between items-start mb-2.5">
             <div
-              style={{ display: "flex", alignItems: "center", gap: 8, cursor: !check.isYours && check.authorId ? "pointer" : undefined }}
+              className={`flex items-center gap-2 ${!check.isYours && check.authorId ? "cursor-pointer" : ""}`}
               onClick={(e) => { if (!check.isYours && check.authorId && onViewProfile) { e.stopPropagation(); onViewProfile(check.authorId); } }}
             >
-              <div style={{
-                width: 28, height: 28, borderRadius: "50%",
-                background: check.isYours ? color.accent : color.borderLight,
-                color: check.isYours ? "#000" : color.dim,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: font.mono, fontSize: 11, fontWeight: 700,
-              }}>
+              <div className={`size-7 rounded-full flex items-center justify-center font-mono text-xs font-bold ${check.isYours ? "bg-dt text-black" : "bg-neutral-800 text-neutral-500"}`}>
                 {check.author[0]}
               </div>
-              <span style={{ fontFamily: font.mono, fontSize: 11, color: (check.isYours || check.isCoAuthor) ? color.accent : color.muted }}>
+              <span className={`font-mono text-xs ${(check.isYours || check.isCoAuthor) ? "text-dt" : "text-neutral-500"}`}>
                 {check.author}
-                {check.viaFriendName && <span style={{ color: color.dim, fontWeight: 400 }}>{" "}via {check.viaFriendName}</span>}
+                {check.viaFriendName && <span className="text-neutral-500 font-normal">{" "}via {check.viaFriendName}</span>}
               </span>
               {check.coAuthors && check.coAuthors.filter(ca => ca.status === "accepted").length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", marginLeft: 4 }}>
-                  <span style={{ color: color.dim, fontFamily: font.mono, fontSize: 10, marginRight: 2 }}>+</span>
+                <div className="flex items-center ml-1">
+                  <span className="text-neutral-500 font-mono text-tiny mr-0.5">+</span>
                   {check.coAuthors.filter(ca => ca.status === "accepted").slice(0, 3).map((ca, i) => (
-                    <div key={ca.userId} style={{
-                      width: 18, height: 18, borderRadius: "50%",
-                      background: ca.userId === userId ? color.accent : color.borderLight,
-                      color: ca.userId === userId ? "#000" : color.dim,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: font.mono, fontSize: 7, fontWeight: 700,
-                      marginLeft: i > 0 ? -4 : 0, border: `1.5px solid ${color.card}`,
-                    }}>{ca.avatar}</div>
+                    <div key={ca.userId} className={`size-5 rounded-full flex items-center justify-center font-mono text-tiny font-bold border border-neutral-925 ${i > 0 ? "-ml-1" : ""} ${ca.userId === userId ? "bg-dt text-black" : "bg-neutral-800 text-neutral-500"}`}>{ca.avatar}</div>
                   ))}
                 </div>
               )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{
-                fontFamily: font.mono, fontSize: 10,
-                color: check.expiresIn === "open" ? color.dim : check.expiryPercent > 75 ? "#ff6b6b" : color.faint,
-              }}>
+            <div className="flex items-center gap-1.5">
+              <span className={`font-mono text-tiny ${check.expiresIn === "open" ? "text-neutral-500" : check.expiryPercent > 75 ? "text-danger" : "text-neutral-700"}`}>
                 {check.expiresIn === "open" ? "open" : check.expiresIn === "expired" ? "expired" : `${check.expiresIn} left`}
               </span>
               {!check.isYours && !check.isCoAuthor && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onHideCheck(check.id); }}
-                  style={{ background: "transparent", border: "none", color: color.faint, padding: "2px 4px", fontFamily: font.mono, fontSize: 12, cursor: "pointer", lineHeight: 1 }}
+                  className="bg-transparent border-none text-neutral-700 py-0.5 px-1 font-mono text-xs cursor-pointer leading-none"
                   title="Hide this check"
                 >✕</button>
               )}
@@ -245,35 +216,31 @@ export default function CheckCard({
 
           {/* Co-author tag prompt */}
           {check.pendingTagForYou && (
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "8px 16px", marginBottom: 0,
-              background: "rgba(232,255,90,0.06)", borderBottom: "1px solid rgba(232,255,90,0.15)",
-            }}>
-              <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent }}>You were tagged as co-author</span>
-              <div style={{ display: "flex", gap: 6 }}>
+            <div className="flex items-center justify-between py-2 px-4 bg-dt/6 border-b border-dt/15">
+              <span className="font-mono text-xs text-dt">You were tagged as co-author</span>
+              <div className="flex gap-1.5">
                 <button
                   onClick={(e) => { e.stopPropagation(); acceptCoAuthorTag(check.id); }}
-                  style={{ background: color.accent, color: "#000", border: "none", borderRadius: 8, padding: "4px 10px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}
+                  className="bg-dt text-black border-none rounded-lg py-1 px-2.5 font-mono text-tiny font-bold cursor-pointer uppercase"
                 >Accept</button>
                 <button
                   onClick={(e) => { e.stopPropagation(); declineCoAuthorTag(check.id); }}
-                  style={{ background: "transparent", color: color.dim, border: `1px solid ${color.borderMid}`, borderRadius: 8, padding: "4px 8px", fontFamily: font.mono, fontSize: 10, cursor: "pointer" }}
+                  className="bg-transparent text-neutral-500 border border-neutral-800 rounded-lg py-1 px-2 font-mono text-tiny cursor-pointer"
                 >Decline</button>
               </div>
             </div>
           )}
 
           {/* Check text + actions button */}
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-              <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, margin: 0, fontWeight: 400, lineHeight: 1.4, flex: 1 }}>
+          <div className="mb-3">
+            <div className="flex items-start gap-1.5">
+              <p className="font-serif text-lg text-white m-0 font-normal leading-snug flex-1">
                 <Linkify coAuthors={check.coAuthors}>{check.text}</Linkify>
               </p>
               {(check.isYours || check.isCoAuthor) && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setActionsSheetOpen(true); }}
-                  style={{ background: "transparent", border: `1px solid ${color.border}`, borderRadius: 8, color: color.dim, padding: "6px 10px", fontFamily: font.mono, fontSize: 13, cursor: "pointer", lineHeight: 1, flexShrink: 0, marginTop: 2 }}
+                  className="bg-transparent border border-neutral-900 rounded-lg text-neutral-500 py-1.5 px-2.5 font-mono text-sm cursor-pointer leading-none shrink-0 mt-0.5"
                 >⚙</button>
               )}
             </div>
@@ -281,72 +248,53 @@ export default function CheckCard({
               const when = [check.eventDateLabel, check.eventTime].filter(Boolean).join(" ");
               const parts = [when, check.location].filter(Boolean);
               if (parts.length === 0) return null;
-              return <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, margin: 0, marginTop: 8 }}>{parts.join(" · ")}</p>;
+              return <p className="font-mono text-xs text-neutral-500 m-0 mt-2">{parts.join(" · ")}</p>;
             })()}
             {(check.isYours || check.isCoAuthor) && !check.squadId && check.responses.some(r => r.status === "down") && (
               <button
                 onClick={(e) => { e.stopPropagation(); startSquadFromCheck(check); }}
-                style={{ background: "transparent", color: color.accent, border: `1px solid ${color.accent}`, borderRadius: 6, padding: "4px 8px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", marginTop: 6 }}
+                className="bg-transparent text-dt border border-dt rounded-md py-1 px-2 font-mono text-tiny font-bold cursor-pointer mt-1.5"
               >Squad →</button>
             )}
           </div>
 
           {/* Responses + comment toggle + down button */}
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px" }}>
+          <div className="mt-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               {check.responses.length > 0 ? (
                 <div
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(prev => !prev); }}
-                  style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", minWidth: 0 }}
+                  className="flex items-center gap-2 cursor-pointer min-w-0"
                 >
-                  <div style={{ display: "flex", flexShrink: 0 }}>
+                  <div className="flex shrink-0">
                     {check.responses.slice(0, 6).map((r, i) => (
-                      <div key={r.name} style={{
-                        width: 24, height: 24, borderRadius: "50%",
-                        background: r.status === "down" ? color.accent : color.faint,
-                        color: r.status === "down" ? "#000" : color.dim,
-                        opacity: r.status === "waitlist" ? 0.5 : 1,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: font.mono, fontSize: 9, fontWeight: 700,
-                        marginLeft: i > 0 ? -6 : 0, border: `2px solid ${color.card}`,
-                      }}>{r.avatar}</div>
+                      <div key={r.name} className={`size-6 rounded-full flex items-center justify-center font-mono text-tiny font-bold border-2 border-neutral-925 ${i > 0 ? "-ml-1.5" : ""} ${r.status === "down" ? "bg-dt text-black" : "bg-neutral-700 text-neutral-500"} ${r.status === "waitlist" ? "opacity-50" : ""}`}>{r.avatar}</div>
                     ))}
                     {check.responses.length > 6 && (
-                      <div style={{
-                        width: 24, height: 24, borderRadius: "50%",
-                        background: color.faint, color: color.dim,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: font.mono, fontSize: 8, fontWeight: 700,
-                        marginLeft: -6, border: `2px solid ${color.card}`,
-                      }}>+{check.responses.length - 6}</div>
+                      <div className="-ml-1.5 size-6 rounded-full bg-neutral-700 text-neutral-500 flex items-center justify-center font-mono text-tiny font-bold border-2 border-neutral-925">+{check.responses.length - 6}</div>
                     )}
                   </div>
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: color.accent, whiteSpace: "nowrap" }}>
+                  <span className="font-mono text-tiny text-dt whitespace-nowrap">
                     {check.responses.filter(r => r.status === "down").length} down
                     {check.responses.some(r => r.status === "waitlist") && (
-                      <span style={{ color: color.dim }}>{" "}{check.responses.filter(r => r.status === "waitlist").length} waitlist</span>
+                      <span className="text-neutral-500">{" "}{check.responses.filter(r => r.status === "waitlist").length} waitlist</span>
                     )}
-                    {" "}<span style={{ color: color.faint, fontSize: 8, paddingRight: 4 }}>{isExpanded ? "▴" : "▾"}</span>
+                    {" "}<span className="text-neutral-700 text-tiny pr-1">{isExpanded ? "▴" : "▾"}</span>
                   </span>
                 </div>
               ) : (
-                <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>no responses yet</span>
+                <span className="font-mono text-tiny text-neutral-700">no responses yet</span>
               )}
 
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleComments(); }}
-                style={{
-                  background: "transparent", border: "none",
-                  color: isCommentsOpen ? color.accent : color.faint,
-                  fontFamily: font.mono, fontSize: 10, cursor: "pointer",
-                  padding: "4px 6px", display: "flex", alignItems: "center", gap: 3,
-                }}
+                className={`bg-transparent border-none font-mono text-tiny cursor-pointer py-1 px-1.5 flex items-center gap-1 ${isCommentsOpen ? "text-dt" : "text-neutral-700"}`}
               >
                 <span>{commentCount > 0 ? `💬 ${commentCount}` : "💬"}</span>
               </button>
 
               {!check.isYours && (
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
+                <div className="flex gap-1.5 items-center ml-auto">
                   <button
                     onClick={() => {
                       if (myCheckResponses[check.id] === "down" || myCheckResponses[check.id] === "waitlist") {
@@ -361,12 +309,13 @@ export default function CheckCard({
                         respondToCheck(check.id);
                       }
                     }}
-                    style={{
-                      background: myCheckResponses[check.id] === "down" ? color.accent : "transparent",
-                      color: myCheckResponses[check.id] === "down" ? "#000" : myCheckResponses[check.id] === "waitlist" ? color.dim : color.text,
-                      border: myCheckResponses[check.id] === "down" ? "none" : myCheckResponses[check.id] === "waitlist" ? `1px dashed ${color.borderMid}` : `1px solid ${color.borderMid}`,
-                      borderRadius: 8, padding: "6px 10px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const,
-                    }}
+                    className={`rounded-lg py-1.5 px-2.5 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap ${
+                      myCheckResponses[check.id] === "down"
+                        ? "bg-dt text-black border-none"
+                        : myCheckResponses[check.id] === "waitlist"
+                        ? "bg-transparent text-neutral-500 border border-dashed border-neutral-800"
+                        : "bg-transparent text-white border border-neutral-800"
+                    }`}
                   >
                     {myCheckResponses[check.id] === "down" ? "✓ Down" : myCheckResponses[check.id] === "waitlist" ? "✓ Waitlisted" : "Down"}
                   </button>
@@ -379,12 +328,12 @@ export default function CheckCard({
                     return (
                       check.inSquad ? (
                         <button onClick={(e) => { e.stopPropagation(); onNavigateToGroups(check.squadId!); }}
-                          style={{ background: "rgba(175, 82, 222, 0.1)", color: "#AF52DE", border: "none", borderRadius: 8, padding: "6px 8px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const }}
-                        >💬 Squad →{check.squadId && <span style={{ color: "rgba(175, 82, 222, 0.6)", marginLeft: 4, fontWeight: 400 }}>{capacityLabel}</span>}</button>
+                          className="bg-purple-500/10 text-purple-500 border-none rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
+                        >💬 Squad →{check.squadId && <span className="text-purple-500/60 ml-1 font-normal">{capacityLabel}</span>}</button>
                       ) : check.isWaitlisted ? (
                         <button onClick={(e) => { e.stopPropagation(); onNavigateToGroups(check.squadId!); }}
-                          style={{ background: "transparent", color: color.faint, border: `1px solid ${color.border}`, borderRadius: 8, padding: "6px 8px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const }}
-                        >Waitlisted<span style={{ fontWeight: 400, marginLeft: 4 }}>{capacityLabel}</span></button>
+                          className="bg-transparent text-neutral-700 border border-neutral-900 rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
+                        >Waitlisted<span className="font-normal ml-1">{capacityLabel}</span></button>
                       ) : check.squadId && !isFull ? (
                         <button onClick={async (e) => {
                           e.stopPropagation();
@@ -399,8 +348,8 @@ export default function CheckCard({
                           await loadRealData();
                           onNavigateToGroups(check.squadId!);
                         }}
-                          style={{ background: "transparent", color: "#AF52DE", border: "1px solid #AF52DE", borderRadius: 8, padding: "6px 8px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const }}
-                        >Join Squad →<span style={{ color: color.dim, marginLeft: 4, fontWeight: 400 }}>{capacityLabel}</span></button>
+                          className="bg-transparent text-purple-500 border border-purple-500 rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
+                        >Join Squad →<span className="text-neutral-500 ml-1 font-normal">{capacityLabel}</span></button>
                       ) : check.squadId && isFull ? (
                         <button onClick={async (e) => {
                           e.stopPropagation();
@@ -411,13 +360,13 @@ export default function CheckCard({
                             if (result === "joined") onNavigateToGroups(check.squadId!);
                           } catch (err: unknown) { logError("waitlistSquad", err, { squadId: check.squadId }); showToast("Failed to join waitlist"); }
                         }}
-                          style={{ background: "transparent", color: color.faint, border: `1px solid ${color.border}`, borderRadius: 8, padding: "6px 8px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const }}
-                        >Waitlist →<span style={{ fontWeight: 400, marginLeft: 4 }}>{capacityLabel}</span></button>
+                          className="bg-transparent text-neutral-700 border border-neutral-900 rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
+                        >Waitlist →<span className="font-normal ml-1">{capacityLabel}</span></button>
                       ) : pendingDownCheckIds.has(check.id) ? (
-                        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, padding: "6px 8px" }}>...</span>
+                        <span className="font-mono text-tiny text-neutral-500 py-1.5 px-2">...</span>
                       ) : (
                         <button onClick={(e) => { e.stopPropagation(); startSquadFromCheck(check); }}
-                          style={{ background: "transparent", color: color.accent, border: `1px solid ${color.accent}`, borderRadius: 8, padding: "6px 8px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const }}
+                          className="bg-transparent text-dt border border-dt rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
                         >Squad →</button>
                       )
                     );
@@ -425,33 +374,33 @@ export default function CheckCard({
                 </div>
               )}
               {(check.isYours || check.isCoAuthor) && check.squadId && (
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                <div className="flex justify-end mt-1">
                   <button onClick={(e) => { e.stopPropagation(); onNavigateToGroups(check.squadId!); }}
-                    style={{ background: "rgba(175, 82, 222, 0.1)", color: "#AF52DE", border: "none", borderRadius: 8, padding: "6px 8px", fontFamily: font.mono, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const }}
-                  >💬 Squad →<span style={{ color: "rgba(175, 82, 222, 0.6)", marginLeft: 4, fontWeight: 400 }}>{check.squadMemberCount ?? 0}{check.maxSquadSize != null ? `/${check.maxSquadSize}` : `/∞`}</span></button>
+                    className="bg-purple-500/10 text-purple-500 border-none rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
+                  >💬 Squad →<span className="text-purple-500/60 ml-1 font-normal">{check.squadMemberCount ?? 0}{check.maxSquadSize != null ? `/${check.maxSquadSize}` : `/∞`}</span></button>
                 </div>
               )}
             </div>
 
             {/* Expanded responders */}
             {isExpanded && check.responses.length > 0 && (
-              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="mt-2 flex flex-col gap-1.5">
                 {check.responses.filter(r => r.status === "down").length > 0 && (
                   <div>
-                    <span style={{ fontFamily: font.mono, fontSize: 9, color: color.accent, textTransform: "uppercase", letterSpacing: "0.1em" }}>Down</span>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                    <span className="font-mono text-tiny text-dt uppercase tracking-widest">Down</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {check.responses.filter(r => r.status === "down").map(r => (
-                        <span key={r.name} style={{ fontFamily: font.mono, fontSize: 11, color: "#000", background: color.accent, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>{r.name}</span>
+                        <span key={r.name} className="font-mono text-tiny text-black bg-dt py-0.75 px-2 rounded-md font-semibold">{r.name}</span>
                       ))}
                     </div>
                   </div>
                 )}
                 {check.responses.filter(r => r.status === "waitlist").length > 0 && (
                   <div>
-                    <span style={{ fontFamily: font.mono, fontSize: 9, color: color.dim, textTransform: "uppercase", letterSpacing: "0.1em" }}>Waitlist</span>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                    <span className="font-mono text-tiny text-neutral-500 uppercase tracking-widest">Waitlist</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {check.responses.filter(r => r.status === "waitlist").map(r => (
-                        <span key={r.name} style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, background: color.borderLight, padding: "3px 8px", borderRadius: 6, borderStyle: "dashed" }}>{r.name}</span>
+                        <span key={r.name} className="font-mono text-tiny text-neutral-500 bg-neutral-800 py-0.75 px-2 rounded-md border border-dashed">{r.name}</span>
                       ))}
                     </div>
                   </div>

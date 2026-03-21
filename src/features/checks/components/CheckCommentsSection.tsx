@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { font, color } from "@/lib/styles";
 import { formatTimeAgo } from "@/lib/utils";
 import type { CommentUI } from "@/features/checks/hooks/useCheckComments";
 
@@ -46,37 +45,29 @@ export default function CheckCommentsSection({
   };
 
   return (
-    <div style={{ marginTop: 10, borderTop: `1px solid ${color.border}`, paddingTop: 10 }}>
+    <div className="mt-2.5 border-t border-neutral-900 pt-2.5">
       {comments.length === 0 ? (
-        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>no comments yet</span>
+        <span className="font-mono text-tiny text-neutral-700">no comments yet</span>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+        <div className="flex flex-col gap-2 mb-2">
           {comments.map((c) => (
-            <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-              <div
-                style={{
-                  width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-                  background: c.isYours ? color.accent : color.borderLight,
-                  color: c.isYours ? "#000" : color.dim,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: font.mono, fontSize: 9, fontWeight: 700,
-                }}
-              >
+            <div key={c.id} className="flex gap-2 items-start">
+              <div className={`size-5 rounded-full shrink-0 flex items-center justify-center font-mono text-tiny font-bold ${c.isYours ? "bg-dt text-black" : "bg-neutral-800 text-neutral-500"}`}>
                 {c.userAvatar}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: c.isYours ? color.accent : color.muted, fontWeight: 600 }}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5 mb-0.5">
+                  <span className={`font-mono text-tiny font-semibold ${c.isYours ? "text-dt" : "text-neutral-500"}`}>
                     {c.userName}
                   </span>
-                  <span style={{ fontFamily: font.mono, fontSize: 9, color: color.faint }}>
+                  <span className="font-mono text-tiny text-neutral-700">
                     {formatTimeAgo(new Date(c.createdAt))}
                   </span>
                 </div>
-                <p style={{ fontFamily: font.mono, fontSize: 11, color: color.text, margin: 0, lineHeight: 1.4 }}>
+                <p className="font-mono text-xs text-white m-0 leading-[1.4]">
                   {c.text.split(/(@\S+)/g).map((part, pi) =>
                     part.startsWith("@") ? (
-                      <span key={pi} style={{ color: color.accent, fontWeight: 700 }}>{part}</span>
+                      <span key={pi} className="text-dt font-bold">{part}</span>
                     ) : part
                   )}
                 </p>
@@ -85,7 +76,7 @@ export default function CheckCommentsSection({
           ))}
         </div>
       )}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, minWidth: 0 }}>
+      <div className="flex gap-2 items-center mt-2 min-w-0">
         <input
           ref={inputRef}
           value={text}
@@ -112,20 +103,11 @@ export default function CheckCommentsSection({
             if (e.key === "Enter") handleSubmit();
           }}
           placeholder="Add a comment…"
-          style={{
-            flex: 1, minWidth: 0,
-            background: color.deep, border: `1px solid ${color.border}`,
-            borderRadius: 8, padding: "6px 10px",
-            fontFamily: font.mono, fontSize: 11, color: color.text, outline: "none",
-          }}
+          className="flex-1 min-w-0 bg-neutral-950 border border-neutral-900 rounded-lg py-1.5 px-2.5 font-mono text-xs text-white outline-none"
         />
         <button
           onClick={handleSubmit}
-          style={{
-            flexShrink: 0, background: color.accent, color: "#000",
-            border: "none", borderRadius: 8, padding: "6px 12px",
-            fontFamily: font.mono, fontSize: 11, fontWeight: 700, cursor: "pointer",
-          }}
+          className="shrink-0 bg-dt text-black rounded-lg py-1.5 px-3 font-mono text-xs font-bold cursor-pointer"
         >
           Post
         </button>
@@ -134,10 +116,7 @@ export default function CheckCommentsSection({
         const filtered = mentionCandidates.filter(c => c.name.toLowerCase().includes(mentionQuery));
         if (filtered.length === 0) return null;
         return (
-          <div style={{
-            background: color.deep, border: `1px solid ${color.borderMid}`,
-            borderRadius: 8, marginTop: 4, maxHeight: 100, overflowY: "auto",
-          }}>
+          <div className="bg-neutral-950 border border-neutral-800 rounded-lg mt-1 max-h-25 overflow-y-auto">
             {filtered.slice(0, 5).map(c => (
               <button
                 key={c.id}
@@ -151,22 +130,12 @@ export default function CheckCommentsSection({
                   setMentionIdx(-1);
                   inputRef.current?.focus();
                 }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  width: "100%", padding: "6px 10px",
-                  background: "transparent", border: "none", cursor: "pointer",
-                  borderBottom: `1px solid ${color.border}`,
-                }}
+                className="flex items-center gap-1.5 w-full py-1.5 px-2.5 bg-transparent cursor-pointer border-b border-neutral-900"
               >
-                <div style={{
-                  width: 20, height: 20, borderRadius: "50%",
-                  background: color.borderLight, color: color.dim,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: font.mono, fontSize: 8, fontWeight: 700,
-                }}>
+                <div className="size-5 rounded-full bg-neutral-800 text-neutral-500 flex items-center justify-center font-mono text-tiny font-bold">
                   {c.avatar}
                 </div>
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.text }}>{c.name}</span>
+                <span className="font-mono text-xs text-white">{c.name}</span>
               </button>
             ))}
           </div>
