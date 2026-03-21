@@ -1418,8 +1418,8 @@ export default function Home() {
             }
             setOnboardingFriendGate(false);
             setOnboardingCheckAuthorId(null);
-            // Skip first check screen for shared check flow — they already have one to respond to
-            if (!localStorage.getItem("pendingCheckId") && !activeSharedCheckId) {
+            // Skip first check screen if user already has checks or came from shared check
+            if (!localStorage.getItem("pendingCheckId") && !activeSharedCheckId && checksHook.checks.length === 0) {
               setShowFirstCheck(true);
             } else {
               // Shared check flow: show glow on + button to prompt first check
