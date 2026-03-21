@@ -937,10 +937,19 @@ export default function Home() {
 
     // Shared check in browser: persist referral to DB then show install prompt
     if (pendingCheckId && !isInPWA && !installDismissed) {
-      // Persist to DB early so it survives PWA install/re-auth (localStorage is lost)
+      // Persist to DB via API (service role) so it survives PWA install/re-auth
       if (!referralPersistedRef.current) {
         referralPersistedRef.current = true;
-        db.setReferralCheckId(pendingCheckId).catch(() => {});
+        (async () => {
+          const token = (await supabase.auth.getSession()).data.session?.access_token;
+          if (token) {
+            fetch("/api/checks/respond-shared", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ checkId: pendingCheckId, response: "down" }),
+            }).catch(() => {});
+          }
+        })();
       }
       return (
         <IOSInstallScreen
