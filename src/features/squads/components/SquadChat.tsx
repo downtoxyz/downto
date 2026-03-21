@@ -150,7 +150,7 @@ const SquadChat = ({
         chatContainerRef.current.style.transition = "none";
         chatContainerRef.current.style.height = `${vv.height}px`;
         window.scrollTo(0, 0);
-        messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+        { const p = messagesEndRef.current?.parentElement; if (p) p.scrollTop = p.scrollHeight; }
       } else {
         chatContainerRef.current.style.transition = "height 0.15s ease-out";
         chatContainerRef.current.style.height = "100dvh";
@@ -190,10 +190,10 @@ const SquadChat = ({
     };
   }, []);
 
-  // Scroll to bottom when chat opens or messages change
+  // Scroll to bottom when chat opens, messages change, or confirm bar appears
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
-  }, [squad.id, messages.length]);
+    { const p = messagesEndRef.current?.parentElement; if (p) p.scrollTop = p.scrollHeight; }
+  }, [squad.id, messages.length, dateConfirmStatus]);
 
   // Load date confirm status when entering a squad with a proposed date
   useEffect(() => {
