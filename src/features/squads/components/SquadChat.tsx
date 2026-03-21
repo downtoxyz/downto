@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import * as db from "@/lib/db";
 import { font, color } from "@/lib/styles";
 import type { Squad } from "@/lib/ui-types";
@@ -76,7 +76,7 @@ const SquadChat = ({
   const [timeLocked, setTimeLocked] = useState(false);
   const [dateDismissed, setDateDismissed] = useState(false);
   const [timeDismissed, setTimeDismissed] = useState(false);
-  const [dateConfirmStatus, setDateConfirmStatus] = useState<'yes' | 'no' | 'pending' | 'none'>('none');
+  const [dateConfirmStatus, setDateConfirmStatus] = useState<'yes' | 'no' | 'pending' | 'none' | 'loading'>('loading');
   const [dateConfirms, setDateConfirms] = useState<Map<string, 'yes' | 'no' | null>>(new Map());
   const [confirmLoading, setConfirmLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -190,9 +190,10 @@ const SquadChat = ({
     };
   }, []);
 
-  // Scroll to bottom when chat opens, messages change, or confirm bar appears
-  useEffect(() => {
-    { const p = messagesEndRef.current?.parentElement; if (p) p.scrollTop = p.scrollHeight; }
+  // Scroll to bottom before paint when chat opens, messages change, or confirm bar appears
+  useLayoutEffect(() => {
+    const p = messagesEndRef.current?.parentElement;
+    if (p) p.scrollTop = p.scrollHeight;
   }, [squad.id, messages.length, dateConfirmStatus]);
 
   // Load date confirm status when entering a squad with a proposed date
@@ -209,7 +210,7 @@ const SquadChat = ({
       const mine = confirms.find((c) => c.userId === userId);
       if (!mine) { setDateConfirmStatus('none'); return; }
       setDateConfirmStatus(mine.response ?? 'pending');
-    }).catch(() => {});
+    }).catch(() => { setDateConfirmStatus('none'); });
   }, [localSquad.id, localSquad.dateStatus, userId]);
 
   // Load active poll when entering a squad
@@ -959,7 +960,7 @@ const SquadChat = ({
       ) : (
       <div style={{ borderTop: `1px solid ${color.border}` }}>
         {/* Sticky date confirm bar */}
-        {dateConfirmStatus === 'pending' && !confirmLoading && (
+        {(dateConfirmStatus === 'pending' || (dateConfirmStatus === 'loading' && localSquad.dateStatus === 'proposed')) && !confirmLoading && (
           <div style={{
             borderTop: `1px solid ${color.border}`,
             padding: '12px 20px',
