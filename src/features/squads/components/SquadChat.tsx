@@ -147,10 +147,12 @@ const SquadChat = ({
     const apply = () => {
       if (!chatContainerRef.current) return;
       if (inputFocused) {
+        chatContainerRef.current.style.transition = "none";
         chatContainerRef.current.style.height = `${vv.height}px`;
         window.scrollTo(0, 0);
         messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
       } else {
+        chatContainerRef.current.style.transition = "height 0.15s ease-out";
         chatContainerRef.current.style.height = "100dvh";
       }
     };
@@ -395,7 +397,11 @@ const SquadChat = ({
   return (
     <>
     {/* Full-screen backdrop so iOS keyboard gap shows bg color, not content behind */}
-    <div style={{ position: "fixed", inset: 0, background: color.bg, zIndex: 49 }} />
+    <div style={{
+      position: "fixed", inset: 0, background: color.bg, zIndex: 49,
+      transform: (closing || entering) ? "translateX(100%)" : `translateX(${dragX}px)`,
+      transition: closing ? "transform 0.25s ease-in" : (entering || dragX === 0) ? "transform 0.3s ease-out" : "none",
+    }} />
     <div
       ref={chatContainerRef}
       style={{
