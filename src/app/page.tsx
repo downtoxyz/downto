@@ -105,6 +105,7 @@ export default function Home() {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [onboardingFriendGate, setOnboardingFriendGate] = useState(false);
   const friendGateInitRef = useRef(false);
+  const referralPersistedRef = useRef(false);
   const [onboardingCheckAuthorId, setOnboardingCheckAuthorId] = useState<string | null>(null);
   const [profileSetupDone, setProfileSetupDone] = useState(false);
   const [notificationsDone, setNotificationsDone] = useState(false);
@@ -934,13 +935,13 @@ export default function Home() {
       window.matchMedia('(display-mode: standalone)').matches
     );
 
-    // Persist referral to DB early so it survives PWA install/re-auth
-    if (pendingCheckId) {
-      db.setReferralCheckId(pendingCheckId).catch(() => {});
-    }
-
-    // Shared check in browser: show install prompt, skip friends for now
+    // Shared check in browser: persist referral to DB then show install prompt
     if (pendingCheckId && !isInPWA && !installDismissed) {
+      // Persist to DB early so it survives PWA install/re-auth (localStorage is lost)
+      if (!referralPersistedRef.current) {
+        referralPersistedRef.current = true;
+        db.setReferralCheckId(pendingCheckId).catch(() => {});
+      }
       return (
         <IOSInstallScreen
           onComplete={() => {
