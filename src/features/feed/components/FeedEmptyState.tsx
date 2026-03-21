@@ -1,7 +1,5 @@
 "use client";
 
-import { font, color } from "@/lib/styles";
-
 interface FeedEmptyStateProps {
   onOpenAdd: () => void;
   onOpenFriends: (tab?: "friends" | "add") => void;
@@ -12,51 +10,24 @@ export default function FeedEmptyState({
   onOpenFriends,
 }: FeedEmptyStateProps) {
   return (
-    <div
-      style={{
-        background: color.card,
-        border: `1px dashed ${color.borderMid}`,
-        borderRadius: 16,
-        padding: "40px 24px",
-        textAlign: "center",
-      }}
-    >
-      <p style={{ fontFamily: font.serif, fontSize: 22, color: color.text, marginBottom: 8 }}>
+    <div className="bg-neutral-925 border border-dashed border-neutral-800 rounded-2xl py-10 px-6 text-center">
+      <p className="font-serif text-2xl text-white mb-2">
         Your feed is empty
       </p>
-      <p style={{ fontFamily: font.mono, fontSize: 12, color: color.dim, marginBottom: 24, lineHeight: 1.6 }}>
+      <p className="font-mono text-xs text-neutral-500 mb-6 leading-relaxed">
         Save events or add friends
       </p>
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+      <div className="flex gap-2 justify-center flex-wrap">
         <button
           onClick={() => onOpenAdd()}
-          style={{
-            background: color.accent,
-            color: "#000",
-            border: "none",
-            borderRadius: 20,
-            padding: "10px 16px",
-            fontFamily: font.mono,
-            fontSize: 11,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
+          className="bg-dt text-black border-none rounded-2xl py-2.5 px-4 font-mono text-xs font-bold cursor-pointer"
         >
           + Add Event
         </button>
         <button
           onClick={() => onOpenFriends()}
-          style={{
-            background: "transparent",
-            color: color.text,
-            border: `1px solid ${color.borderMid}`,
-            borderRadius: 20,
-            padding: "10px 16px",
-            fontFamily: font.mono,
-            fontSize: 11,
-            cursor: "pointer",
-          }}
+          className="bg-transparent text-white border border-neutral-800 rounded-2xl py-2.5 px-4 font-mono text-xs cursor-pointer"
         >
           Find Friends
         </button>
