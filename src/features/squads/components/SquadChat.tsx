@@ -94,10 +94,27 @@ const SquadChat = ({
   const [pollCreating, setPollCreating] = useState(false);
   const pollMessageRef = useRef<HTMLDivElement>(null);
 
-  // Notify parent when chat opens/closes
+  // Notify parent when chat opens/closes + block scroll-through on iOS PWA
   useEffect(() => {
     onChatOpen?.(true);
-    return () => { onChatOpen?.(false); };
+    const blockTouch = (e: TouchEvent) => {
+      const target = e.target as Node;
+      // Find the nearest scrollable ancestor inside the chat
+      let el = target instanceof Element ? target : target.parentElement;
+      while (el && el !== chatContainerRef.current) {
+        const style = window.getComputedStyle(el);
+        const isScrollable = (style.overflowY === "auto" || style.overflowY === "scroll") && el.scrollHeight > el.clientHeight;
+        if (isScrollable) return; // allow scroll inside scrollable areas (messages list)
+        el = el.parentElement;
+      }
+      // No scrollable ancestor found — block to prevent underlying page scroll
+      e.preventDefault();
+    };
+    document.addEventListener("touchmove", blockTouch, { passive: false });
+    return () => {
+      onChatOpen?.(false);
+      document.removeEventListener("touchmove", blockTouch);
+    };
   }, [onChatOpen]);
 
   // Prevent pinch-to-zoom in PWA
@@ -376,6 +393,9 @@ const SquadChat = ({
   };
 
   return (
+    <>
+    {/* Full-screen backdrop so iOS keyboard gap shows bg color, not content behind */}
+    <div style={{ position: "fixed", inset: 0, background: color.bg, zIndex: 49 }} />
     <div
       ref={chatContainerRef}
       style={{
@@ -1675,6 +1695,7 @@ const SquadChat = ({
         </div>
       )}
     </div>
+    </>
   );
 };
 
