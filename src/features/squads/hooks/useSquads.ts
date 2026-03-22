@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
+import { useState, useCallback, useEffect, type Dispatch, type SetStateAction, type MutableRefObject } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { Person, Event, InterestCheck, Squad } from "@/lib/ui-types";
@@ -100,9 +100,10 @@ interface UseSquadsParams {
   showToast: (msg: string) => void;
   onSquadCreated?: (squadId: string) => void;
   onAutoDown?: (eventId: string) => Promise<void>;
+  openSquadIdRef?: MutableRefObject<string | null>;
 }
 
-export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, onSquadCreated, onAutoDown }: UseSquadsParams) {
+export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, onSquadCreated, onAutoDown, openSquadIdRef }: UseSquadsParams) {
   const [squads, setSquads] = useState<Squad[]>([]);
   const [socialEvent, setSocialEvent] = useState<Event | null>(null);
   const [squadPoolMembers, setSquadPoolMembers] = useState<Person[]>([]);
@@ -194,9 +195,10 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
     transformedSquads.sort((a, b) =>
       new Date(b.lastActivityAt!).getTime() - new Date(a.lastActivityAt!).getTime()
     );
-    // Preserve hasUnread flags from previous state
+    // Preserve hasUnread flags from previous state (skip currently-open squad)
     setSquads((prev) => {
       const unreadMap = new Map(prev.filter((s) => s.hasUnread).map((s) => [s.id, true]));
+      if (openSquadIdRef?.current) unreadMap.delete(openSquadIdRef.current);
       if (unreadMap.size === 0) return transformedSquads;
       return transformedSquads.map((s) => unreadMap.has(s.id) ? { ...s, hasUnread: true } : s);
     });

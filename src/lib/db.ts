@@ -1295,7 +1295,8 @@ export async function getUnreadSquadIds(): Promise<string[]> {
     .eq('user_id', user.id)
     .eq('is_read', false)
     .in('type', ['squad_message', 'squad_mention'])
-    .not('related_squad_id', 'is', null);
+    .not('related_squad_id', 'is', null)
+    .neq('related_user_id', user.id);  // exclude self-notifications
 
   if (error) return [];
   const ids = new Set(data.map((n) => n.related_squad_id as string));

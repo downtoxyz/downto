@@ -104,6 +104,7 @@ export default function Home() {
   const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
   const selectedSquadIdRef = useRef<string | null>(null);
   selectedSquadIdRef.current = selectedSquad?.id ?? null;
+  const readSquadIdsRef = useRef<Set<string>>(new Set());
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [onboardingFriendGate, setOnboardingFriendGate] = useState(false);
   const friendGateInitRef = useRef(false);
@@ -169,6 +170,7 @@ export default function Home() {
     profile,
     setChecks: checksHook.setChecks,
     showToast,
+    openSquadIdRef: selectedSquadIdRef,
     onSquadCreated: (squadId: string) => {
       setSquadChatOrigin(tab);
       squadsHook.setAutoSelectSquadId(squadId);
@@ -188,8 +190,13 @@ export default function Home() {
     isDemoMode,
     onUnreadSquadIds: (ids) => {
       const openId = selectedSquadIdRef.current;
+      const recentlyRead = readSquadIdsRef.current;
+      // Remove confirmed-read squads from the suppression set
+      for (const id of recentlyRead) {
+        if (!ids.includes(id)) recentlyRead.delete(id);
+      }
       squadsHook.setSquads((prev) => prev.map((s) =>
-        ids.includes(s.id) && s.id !== openId ? { ...s, hasUnread: true } : s
+        ids.includes(s.id) && s.id !== openId && !recentlyRead.has(s.id) ? { ...s, hasUnread: true } : s
       ));
     },
   });
@@ -508,8 +515,15 @@ export default function Home() {
           ));
         }
       } else {
-        notificationsHook.setNotifications((prev) => [newNotif, ...prev]);
-        notificationsHook.setUnreadCount((prev) => prev + 1);
+        // Auto-mark read if this notification is for the currently-open squad
+        const isOpenSquad = newNotif.related_squad_id && newNotif.related_squad_id === selectedSquadIdRef.current;
+        if (isOpenSquad) {
+          db.markNotificationRead(newNotif.id).catch(() => {});
+          notificationsHook.setNotifications((prev) => [{ ...newNotif, is_read: true }, ...prev]);
+        } else {
+          notificationsHook.setNotifications((prev) => [newNotif, ...prev]);
+          notificationsHook.setUnreadCount((prev) => prev + 1);
+        }
       }
 
       if (newNotif.type === "friend_request" && newNotif.related_user_id) {
@@ -629,6 +643,17 @@ export default function Home() {
     if (squad) {
       setSelectedSquad({ ...squad, hasUnread: false });
       squadsHook.setAutoSelectSquadId(null);
+      readSquadIdsRef.current.add(squad.id);
+      db.markSquadNotificationsRead(squad.id).catch(() => {});
+      if (squad.hasUnread) {
+        squadsHook.setSquads((prev) => prev.map((s) => s.id === squad.id ? { ...s, hasUnread: false } : s));
+        notificationsHook.setUnreadSquadCount((prev) => Math.max(0, prev - 1));
+      }
+      const updatedNotifs = notificationsHook.notifications.map((n) =>
+        n.related_squad_id === squad.id ? { ...n, is_read: true } : n
+      );
+      notificationsHook.setNotifications(updatedNotifs);
+      notificationsHook.setUnreadCount(updatedNotifs.filter((n) => !n.is_read).length);
     }
   }, [squadsHook.autoSelectSquadId, squadsHook.squads]);
 
@@ -1203,11 +1228,19 @@ export default function Home() {
             onSelectSquad={(squad) => {
               setSelectedSquad(squad);
               setSquadChatOrigin("groups");
+              readSquadIdsRef.current.add(squad.id);
+              // Clear all notification state for this squad
+              db.markSquadNotificationsRead(squad.id).catch(() => {});
               if (squad.hasUnread) {
                 squadsHook.setSquads((prev) => prev.map((s) => s.id === squad.id ? { ...s, hasUnread: false } : s));
-                db.markSquadNotificationsRead(squad.id).catch(() => {});
                 notificationsHook.setUnreadSquadCount((prev) => Math.max(0, prev - 1));
               }
+              // Clear bell badge: mark squad notifications read locally and recompute count
+              const updatedNotifs = notificationsHook.notifications.map((n) =>
+                n.related_squad_id === squad.id ? { ...n, is_read: true } : n
+              );
+              notificationsHook.setNotifications(updatedNotifs);
+              notificationsHook.setUnreadCount(updatedNotifs.filter((n) => !n.is_read).length);
               if ("serviceWorker" in navigator) {
                 navigator.serviceWorker.getRegistration().then((reg) => {
                   reg?.getNotifications({ tag: `squad_message-${squad.id}` }).then((notifs) => {
