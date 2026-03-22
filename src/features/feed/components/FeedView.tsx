@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
-import { font, color } from "@/lib/styles";
 import type { Event, InterestCheck, Friend } from "@/lib/ui-types";
 import EventCard from "@/features/events/components/EventCard";
 import CheckCard from "@/features/checks/components/CheckCard";
@@ -28,14 +27,14 @@ function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: b
           return (
             <a key={i} href={part} target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              style={{ color: dimmed ? color.dim : color.accent, textDecoration: "underline", textUnderlineOffset: 3, wordBreak: "break-all" }}
+              className={`underline underline-offset-2 break-all ${dimmed ? "text-neutral-500" : "text-dt"}`}
             >{display}</a>
           );
         }
         if (/^@\S+/.test(part)) {
           const mention = part.slice(1).toLowerCase();
           const matched = coAuthors?.find(ca => ca.name.toLowerCase() === mention || ca.name.split(" ")[0]?.toLowerCase() === mention);
-          return <span key={i} style={{ color: color.accent, fontWeight: 600 }}>@{matched ? matched.name : part.slice(1)}</span>;
+          return <span key={i} className="text-dt font-semibold">@{matched ? matched.name : part.slice(1)}</span>;
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
       })}
@@ -134,10 +133,10 @@ export default function FeedView({
 
   return (
     <>
-      <div style={{ padding: "8px 16px 0" }}>
+      <div className="pt-2 px-4">
         {checks.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontFamily: font.mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: color.dim, marginBottom: 12, padding: "0 4px" }}>
+          <div className="mb-6">
+            <div className="font-mono text-tiny uppercase tracking-[0.15em] text-neutral-500 mb-3 px-1">
               Pulse
             </div>
             {visibleChecks.map(check => (
@@ -171,34 +170,34 @@ export default function FeedView({
               <div>
                 <button
                   onClick={() => setShowHidden(prev => !prev)}
-                  style={{ background: "transparent", border: "none", color: color.faint, fontFamily: font.mono, fontSize: 10, cursor: "pointer", padding: "6px 4px", display: "flex", alignItems: "center", gap: 4 }}
+                  className="bg-transparent border-none text-neutral-700 font-mono text-tiny cursor-pointer py-1.5 px-1 flex items-center gap-1"
                 >
-                  <span style={{ fontSize: 8 }}>{showHidden ? "▼" : "▶"}</span>
+                  <span className="text-tiny">{showHidden ? "▼" : "▶"}</span>
                   Hidden ({hiddenChecks.length})
                 </button>
                 {showHidden && hiddenChecks.map(check => (
-                  <div key={check.id} style={{ background: color.card, borderRadius: 14, overflow: "hidden", marginBottom: 8, border: `1px solid ${color.border}`, opacity: 0.6 }}>
-                    <div style={{ padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                  <div key={check.id} className="bg-neutral-925 rounded-xl overflow-hidden mb-2 border border-neutral-900 opacity-60">
+                    <div className="p-3.5 flex justify-between items-center">
+                      <div className="flex-1 min-w-0">
                         <div
-                          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: check.authorId ? "pointer" : undefined }}
+                          className={`flex items-center gap-2 mb-1.5 ${check.authorId ? "cursor-pointer" : ""}`}
                           onClick={(e) => { if (check.authorId && onViewProfile) { e.stopPropagation(); onViewProfile(check.authorId); } }}
                         >
-                          <div style={{ width: 24, height: 24, borderRadius: "50%", background: color.borderLight, color: color.dim, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font.mono, fontSize: 10, fontWeight: 700 }}>
+                          <div className="size-6 rounded-full bg-neutral-800 text-neutral-500 flex items-center justify-center font-mono text-tiny font-bold">
                             {check.author[0]}
                           </div>
-                          <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
+                          <span className="font-mono text-xs text-neutral-500">
                             {check.author}
-                            {check.viaFriendName && <span style={{ color: color.dim, fontWeight: 400 }}>{" "}via {check.viaFriendName}</span>}
+                            {check.viaFriendName && <span className="text-neutral-500 font-normal">{" "}via {check.viaFriendName}</span>}
                           </span>
                         </div>
-                        <p style={{ fontFamily: font.serif, fontSize: 16, color: color.dim, margin: 0, lineHeight: 1.4 }}>
+                        <p className="font-serif text-base text-neutral-500 m-0 leading-snug">
                           <Linkify dimmed coAuthors={check.coAuthors}>{check.text}</Linkify>
                         </p>
                       </div>
                       <button
                         onClick={() => onUnhideCheck(check.id)}
-                        style={{ background: "transparent", border: `1px solid ${color.borderMid}`, borderRadius: 8, padding: "6px 10px", fontFamily: font.mono, fontSize: 10, color: color.dim, cursor: "pointer", flexShrink: 0, marginLeft: 12 }}
+                        className="bg-transparent border border-neutral-800 rounded-lg py-1.5 px-2.5 font-mono text-tiny text-neutral-500 cursor-pointer shrink-0 ml-3"
                       >Unhide</button>
                     </div>
                   </div>
@@ -210,7 +209,7 @@ export default function FeedView({
 
         {events.length > 0 ? (
           <>
-            <div style={{ fontFamily: font.mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: color.dim, marginBottom: 12, padding: "0 4px" }}>
+            <div className="font-mono text-tiny uppercase tracking-[0.15em] text-neutral-500 mb-3 px-1">
               Events
             </div>
             {events.map(e => (
