@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import type { Squad } from "@/lib/ui-types";
 
 const formatExpiryShort = (expiresAt?: string): string | null => {
@@ -63,76 +63,33 @@ export default function ChatHeader({
     (squad.expiresAt && new Date(squad.expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000);
 
   return (
-    <div
-      style={{
-        padding: "0 20px 12px",
-        borderBottom: `1px solid ${color.border}`,
-        position: "relative",
-        zIndex: hasOpenModal ? 10000 : "auto",
-        background: color.bg,
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-      >
+    <div className={`px-5 pb-3 border-b border-neutral-900 relative bg-neutral-950 shrink-0 ${hasOpenModal ? "z-10000" : "z-auto"}`}>
+      <div className="flex items-center justify-between cursor-pointer">
         <button
           onClick={(e) => { e.stopPropagation(); onBack(); }}
-          style={{
-            background: "none",
-            border: "none",
-            color: color.accent,
-            fontSize: 18,
-            cursor: "pointer",
-            padding: 0,
-            marginRight: 8,
-            flexShrink: 0,
-            alignSelf: hasDetails ? "flex-start" : "center",
-          }}
+          className={`bg-transparent border-none text-dt text-lg cursor-pointer p-0 mr-2 shrink-0 ${hasDetails ? "self-start" : "self-center"}`}
         >
           ‹
         </button>
         <div
           onClick={onOpenSettings}
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1, minWidth: 0 }}
+          className="flex items-center justify-between flex-1 min-w-0"
         >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h2
-              style={{
-                fontFamily: font.serif,
-                fontSize: 18,
-                color: color.text,
-                fontWeight: 400,
-                margin: 0,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
-              }}
-            >
+          <div className="min-w-0 flex-1">
+            <h2 className="font-serif text-lg text-white font-normal m-0 line-clamp-2">
               {squad.name}
             </h2>
             {hasDetails && (
-              <p
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 10,
-                  color: color.dim,
-                  margin: "2px 0 0",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
+              <p className="font-mono text-tiny text-neutral-500 m-0 mt-0.5 truncate">
                 {detailParts.length > 0 ? detailParts.join(" · ") : squad.event}
               </p>
             )}
           </div>
           <div
             onClick={onOpenSettings}
-            style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center", marginLeft: 12, flexShrink: 0, cursor: "pointer", paddingTop: 4 }}
+            className="flex flex-col items-end justify-center ml-3 shrink-0 cursor-pointer pt-1"
           >
-            <div style={{ display: "flex", alignItems: "center" }}>
+            <div className="flex items-center">
               {squad.members.slice(0, 4).map((m, idx) => {
                 const isLocked = squad.dateStatus === "locked";
                 const isProposed = squad.dateStatus === "proposed";
@@ -152,40 +109,21 @@ export default function ChatHeader({
                 return (
                   <div
                     key={m.name}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      background: avatarBg,
-                      color: avatarColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      marginLeft: idx === 0 ? 0 : -6,
-                      border: `2px solid ${color.card}`,
-                      position: "relative",
-                      zIndex: 4 - idx,
-                    }}
+                    className={`size-6 rounded-full flex items-center justify-center font-mono text-tiny font-bold border-2 border-neutral-925 ${idx === 0 ? "" : "-ml-1.5"}`}
+                    style={{ background: avatarBg, color: avatarColor, zIndex: 4 - idx, position: "relative" }}
                   >
                     {m.avatar}
                   </div>
                 );
               })}
               {squad.members.length > 4 && (
-                <span style={{ fontFamily: font.mono, fontSize: 8, fontWeight: 700, color: color.dim, marginLeft: 4 }}>
+                <span className="font-mono text-tiny font-bold text-neutral-500 ml-1">
                   +{squad.members.length - 4}
                 </span>
               )}
             </div>
             {expiryLabel && (
-              <span style={{
-                fontFamily: font.mono, fontSize: 9,
-                color: expiryUrgent ? color.accent : color.faint,
-                marginTop: 2,
-              }}>
+              <span className={`font-mono text-tiny mt-0.5 ${expiryUrgent ? "text-dt" : "text-neutral-700"}`}>
                 {expiryLabel}
               </span>
             )}

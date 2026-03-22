@@ -9,6 +9,7 @@ import { parseNaturalDate, parseNaturalTime, parseDateToISO, formatTimeAgo } fro
 import ChatHeader from "./ChatHeader";
 import MessageComposer from "./MessageComposer";
 import ChatMessage from "./ChatMessage";
+import SquadSettingsModal from "./SquadSettingsModal";
 
 
 interface SquadChatProps {
@@ -66,9 +67,7 @@ const SquadChat = ({
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showImOutConfirm, setShowImOutConfirm] = useState(false);
   const [kickTarget, setKickTarget] = useState<{ name: string; userId: string } | null>(null);
-  const [memberMenu, setMemberMenu] = useState<{ name: string; userId: string } | null>(null);
   const [showSquadPopup, setShowSquadPopup] = useState(false);
-  const [squadPopupView, setSquadPopupView] = useState<'menu' | 'members'>('menu');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState("");
   const [settingDate, setSettingDate] = useState(false);
@@ -1119,443 +1118,34 @@ const SquadChat = ({
       )}
       </div>{/* end blur wrapper */}
 
+
       {/* Squad popup modal */}
       {showSquadPopup && (
-        <div
-          onClick={() => { setShowSquadPopup(false); setSquadPopupView('menu'); }}
-          style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: color.deep,
-              border: `1px solid ${color.border}`,
-              borderRadius: 16,
-              padding: "24px 20px",
-              maxWidth: 300,
-              width: "90%",
-              maxHeight: "70vh",
-              overflowY: "auto",
-            }}
-          >
-            {squadPopupView === 'menu' ? (
-              <>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                    {localSquad.members.slice(0, 4).map((m, idx) => {
-                      const isLocked = localSquad.dateStatus === 'locked';
-                      const isProposed = localSquad.dateStatus === 'proposed';
-                      const confirmResponse = m.userId ? dateConfirms.get(m.userId) : undefined;
-                      const isConfirmed = isLocked || (isProposed && dateConfirms.size > 0 && confirmResponse === 'yes');
-                      const isPending = isProposed && dateConfirms.size > 0 && confirmResponse !== 'yes';
-                      const avatarBg = isConfirmed ? color.accent : isPending ? color.borderLight : m.name === "You" ? color.accent : color.borderLight;
-                      const avatarColor = isConfirmed ? "#000" : isPending ? color.dim : m.name === "You" ? "#000" : color.dim;
-                      return (
-                        <div key={m.name} style={{
-                          width: 24, height: 24, borderRadius: "50%",
-                          background: avatarBg, color: avatarColor,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontFamily: font.mono, fontSize: 10, fontWeight: 700,
-                          marginLeft: idx === 0 ? 0 : -6,
-                          border: `2px solid ${color.deep}`,
-                          position: "relative", zIndex: 4 - idx,
-                        }}>
-                          {m.avatar}
-                        </div>
-                      );
-                    })}
-                    {localSquad.members.length > 4 && (
-                      <span style={{ fontFamily: font.mono, fontSize: 8, fontWeight: 700, color: color.dim, marginLeft: 4 }}>
-                        +{localSquad.members.length - 4}
-                      </span>
-                    )}
-                  </div>
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>
-                    {localSquad.members.length}{localSquad.maxSquadSize != null ? `/${localSquad.maxSquadSize}` : ''} member{localSquad.members.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  <button
-                    onClick={() => setSquadPopupView('members')}
-                    style={{
-                      background: "none", border: "none",
-                      borderBottom: `1px solid ${color.border}`,
-                      color: color.text, fontFamily: font.mono, fontSize: 12,
-                      padding: "12px 0", cursor: "pointer", textAlign: "center",
-                    }}
-                  >
-                    See members
-                  </button>
-                  {localSquad.checkId && onUpdateSquadSize && (
-                    <div style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      gap: 12, padding: "12px 0",
-                      borderBottom: `1px solid ${color.border}`,
-                    }}>
-                      <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>Squad size</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <button
-                          onClick={() => {
-                            const newSize = (localSquad.maxSquadSize ?? 5) - 1;
-                            if (newSize >= localSquad.members.length) {
-                              onUpdateSquadSize(localSquad.checkId!, newSize);
-                              setLocalSquad((prev) => ({ ...prev, maxSquadSize: newSize }));
-                              onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === localSquad.id ? { ...s, maxSquadSize: newSize } : s));
-                            }
-                          }}
-                          disabled={(localSquad.maxSquadSize ?? 5) <= localSquad.members.length}
-                          style={{
-                            width: 24, height: 24, borderRadius: 6,
-                            border: `1px solid ${color.borderMid}`, background: "none",
-                            color: (localSquad.maxSquadSize ?? 5) <= localSquad.members.length ? color.faint : color.text,
-                            fontFamily: font.mono, fontSize: 14,
-                            cursor: (localSquad.maxSquadSize ?? 5) <= localSquad.members.length ? "default" : "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                          }}
-                        >
-                          −
-                        </button>
-                        <span style={{ fontFamily: font.mono, fontSize: 13, color: color.accent, fontWeight: 700, minWidth: 20, textAlign: "center" }}>
-                          {localSquad.maxSquadSize ?? 5}
-                        </span>
-                        <button
-                          onClick={() => {
-                            const newSize = (localSquad.maxSquadSize ?? 5) + 1;
-                            if (newSize <= 20) {
-                              onUpdateSquadSize(localSquad.checkId!, newSize);
-                              setLocalSquad((prev) => ({ ...prev, maxSquadSize: newSize }));
-                              onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === localSquad.id ? { ...s, maxSquadSize: newSize } : s));
-                            }
-                          }}
-                          disabled={(localSquad.maxSquadSize ?? 5) >= 20}
-                          style={{
-                            width: 24, height: 24, borderRadius: 6,
-                            border: `1px solid ${color.borderMid}`, background: "none",
-                            color: (localSquad.maxSquadSize ?? 5) >= 20 ? color.faint : color.text,
-                            fontFamily: font.mono, fontSize: 14,
-                            cursor: (localSquad.maxSquadSize ?? 5) >= 20 ? "default" : "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {onSetSquadDate && (
-                    <button
-                      onClick={() => {
-                        setShowSquadPopup(false);
-                        setSquadPopupView('menu');
-                        setShowDatePicker(true);
-                        const dateLabel = localSquad.eventIsoDate
-                          ? new Date(localSquad.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-                          : "";
-                        setDatePickerValue(dateLabel);
-                        setDateLocked(false);
-                        setTimeLocked(false);
-                        setDateDismissed(false);
-                        setTimeDismissed(false);
-                      }}
-                      style={{
-                        background: "none", border: "none",
-                        borderBottom: `1px solid ${color.border}`,
-                        color: color.text, fontFamily: font.mono, fontSize: 12,
-                        padding: "12px 0", cursor: "pointer", textAlign: "center",
-                      }}
-                    >
-                      Set plans
-                    </button>
-                  )}
-                  <button
-                    onClick={async () => {
-                      try {
-                        const newExpiry = await db.extendSquad(localSquad.id);
-                        onSquadUpdate((prev) => prev.map((s) =>
-                          s.id === localSquad.id ? { ...s, expiresAt: newExpiry } : s
-                        ));
-                        setLocalSquad((prev) => ({ ...prev, expiresAt: newExpiry }));
-                      } catch {}
-                      setShowSquadPopup(false);
-                      setSquadPopupView('menu');
-                    }}
-                    style={{
-                      background: "none", border: "none",
-                      borderBottom: `1px solid ${color.border}`,
-                      color: color.text, fontFamily: font.mono, fontSize: 12,
-                      padding: "12px 0", cursor: "pointer", textAlign: "center",
-                    }}
-                  >
-                    Extend +7 days
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowSquadPopup(false);
-                      setSquadPopupView('menu');
-                      setShowLeaveConfirm(true);
-                    }}
-                    style={{
-                      background: "none", border: "none", color: "#ff4444",
-                      fontFamily: font.mono, fontSize: 12,
-                      padding: "12px 0", cursor: "pointer", textAlign: "center",
-                    }}
-                  >
-                    Leave
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setSquadPopupView('menu')}
-                  style={{
-                    background: "none", border: "none", color: color.accent,
-                    fontFamily: font.mono, fontSize: 12, cursor: "pointer",
-                    padding: 0, marginBottom: 16,
-                  }}
-                >
-                  ← Back
-                </button>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {localSquad.members.map((m) => {
-                    const isLocked = localSquad.dateStatus === 'locked';
-                    const isProposed = localSquad.dateStatus === 'proposed';
-                    const confirmResponse = m.userId ? dateConfirms.get(m.userId) : undefined;
-                    const isConfirmed = isLocked || (isProposed && dateConfirms.size > 0 && confirmResponse === 'yes');
-                    const isGrayed = isProposed && dateConfirms.size > 0 && !isConfirmed;
-                    return (
-                    <React.Fragment key={m.name}>
-                    <div
-                      onClick={() => {
-                        if (m.name !== "You" && m.userId) {
-                          setShowSquadPopup(false);
-                          setSquadPopupView('menu');
-                          onViewProfile?.(m.userId);
-                        }
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        cursor: m.name !== "You" && m.userId ? "pointer" : "default",
-                        opacity: isGrayed ? 0.35 : 1,
-                      }}
-                    >
-                      <div style={{
-                        width: 28, height: 28, borderRadius: "50%",
-                        background: isConfirmed ? color.accent : (m.name === "You" && !isGrayed) ? color.accent : color.borderLight,
-                        color: isConfirmed || (m.name === "You" && !isGrayed) ? "#000" : color.dim,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: font.mono, fontSize: 11, fontWeight: 700, flexShrink: 0,
-                      }}>
-                        {m.avatar}
-                      </div>
-                      <span style={{ fontFamily: font.mono, fontSize: 12, color: isGrayed ? color.faint : color.text }}>
-                        {m.name}
-                      </span>
-                      {m.name === "You" && (
-                        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>you</span>
-                      )}
-                      {(m.name === "You" || !(onSetMemberRole || onKickMember)) && (isLocked || (isProposed && dateConfirms.size > 0)) && (
-                        <span style={{ fontFamily: font.mono, fontSize: 10, color: isConfirmed ? color.accent : color.faint, marginLeft: "auto" }}>
-                          {isConfirmed ? "down" : confirmResponse === 'no' ? "out" : "pending"}
-                        </span>
-                      )}
-                      {m.name !== "You" && m.userId && (onSetMemberRole || onKickMember) && (
-                        <div style={{ display: "flex", gap: 8, marginLeft: "auto", alignItems: "center" }}>
-                          {(isLocked || (isProposed && dateConfirms.size > 0)) && (
-                            <span style={{ fontFamily: font.mono, fontSize: 10, color: isConfirmed ? color.accent : color.faint }}>
-                              {isConfirmed ? "down" : confirmResponse === 'no' ? "out" : "pending"}
-                            </span>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMemberMenu(memberMenu?.userId === m.userId ? null : { name: m.name, userId: m.userId! });
-                            }}
-                            style={{
-                              background: "none", border: "none", color: color.faint,
-                              fontFamily: font.mono, fontSize: 14, cursor: "pointer",
-                              padding: "2px 4px", letterSpacing: "0.1em",
-                            }}
-                          >
-                            •••
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    {memberMenu?.userId === m.userId && (
-                      <div style={{
-                        background: color.deep, border: `1px solid ${color.border}`,
-                        borderRadius: 10, padding: "4px 0", marginTop: 4, marginLeft: 38,
-                      }}>
-                        {onSetMemberRole && (
-                          <button
-                            onClick={async () => {
-                              setMemberMenu(null);
-                              setShowSquadPopup(false);
-                              setSquadPopupView('menu');
-                              await onSetMemberRole(localSquad.id, m.userId!, 'waitlist');
-                              const updated = {
-                                ...localSquad,
-                                members: localSquad.members.filter((x) => x.userId !== m.userId),
-                                waitlistedMembers: [...(localSquad.waitlistedMembers ?? []), { name: m.name, avatar: m.avatar, userId: m.userId! }],
-                              };
-                              setLocalSquad(updated);
-                              onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === localSquad.id ? updated : s));
-                            }}
-                            style={{
-                              display: "block", width: "100%", background: "none", border: "none",
-                              color: color.muted, fontFamily: font.mono, fontSize: 11,
-                              padding: "8px 14px", cursor: "pointer", textAlign: "left",
-                            }}
-                          >
-                            Move to waitlist
-                          </button>
-                        )}
-                        {onKickMember && (
-                          <button
-                            onClick={() => {
-                              setMemberMenu(null);
-                              setShowSquadPopup(false);
-                              setSquadPopupView('menu');
-                              setKickTarget({ name: m.name, userId: m.userId! });
-                            }}
-                            style={{
-                              display: "block", width: "100%", background: "none", border: "none",
-                              color: "#ff4444", fontFamily: font.mono, fontSize: 11,
-                              padding: "8px 14px", cursor: "pointer", textAlign: "left",
-                            }}
-                          >
-                            Kick from squad
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    </React.Fragment>
-                    );
-                  })}
-                </div>
-
-                {localSquad.waitlistedMembers && localSquad.waitlistedMembers.length > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <span style={{ fontFamily: font.mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: color.dim }}>
-                      Waitlist
-                    </span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
-                      {localSquad.waitlistedMembers.map((m) => (
-                        <div
-                          key={m.userId}
-                          onClick={() => {
-                            if (m.userId) {
-                              setShowSquadPopup(false);
-                              setSquadPopupView('menu');
-                              onViewProfile?.(m.userId);
-                            }
-                          }}
-                          style={{ display: "flex", alignItems: "center", gap: 10, cursor: m.userId ? "pointer" : "default" }}
-                        >
-                          <div style={{
-                            width: 28, height: 28, borderRadius: "50%",
-                            background: color.borderLight, color: color.dim,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontFamily: font.mono, fontSize: 11, fontWeight: 700, flexShrink: 0,
-                          }}>
-                            {m.avatar}
-                          </div>
-                          <span style={{ fontFamily: font.mono, fontSize: 12, color: color.muted, flex: 1 }}>{m.name}</span>
-                          {onSetMemberRole && (
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                const isFull = localSquad.members.length >= (localSquad.maxSquadSize ?? Infinity);
-                                if (isFull) return;
-                                await onSetMemberRole(localSquad.id, m.userId, 'member');
-                                const updated = {
-                                  ...localSquad,
-                                  members: [...localSquad.members, { name: m.name, avatar: m.avatar, userId: m.userId }],
-                                  waitlistedMembers: (localSquad.waitlistedMembers ?? []).filter((x) => x.userId !== m.userId),
-                                };
-                                setLocalSquad(updated);
-                                onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === localSquad.id ? updated : s));
-                              }}
-                              disabled={localSquad.members.length >= (localSquad.maxSquadSize ?? Infinity)}
-                              style={{
-                                background: "none", border: `1px solid ${color.borderMid}`,
-                                borderRadius: 8,
-                                color: localSquad.members.length >= (localSquad.maxSquadSize ?? Infinity) ? color.faint : color.accent,
-                                fontFamily: font.mono, fontSize: 11, fontWeight: 700,
-                                padding: "4px 10px",
-                                cursor: localSquad.members.length >= (localSquad.maxSquadSize ?? Infinity) ? "default" : "pointer",
-                              }}
-                            >
-                              Promote
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {localSquad.downResponders && localSquad.downResponders.length > 0 &&
-                  localSquad.members.length < (localSquad.maxSquadSize ?? Infinity) && (
-                  <div style={{ marginTop: 16 }}>
-                    <span style={{ fontFamily: font.mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: color.dim }}>
-                      Down on check
-                    </span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
-                      {localSquad.downResponders.map((p) => (
-                        <div key={p.userId} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            width: 28, height: 28, borderRadius: "50%",
-                            background: color.borderLight, color: color.dim,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontFamily: font.mono, fontSize: 11, fontWeight: 700, flexShrink: 0,
-                          }}>
-                            {p.avatar}
-                          </div>
-                          <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text, flex: 1 }}>{p.name}</span>
-                          {onAddMember && (
-                            <button
-                              onClick={async () => {
-                                await onAddMember(localSquad.id, p.userId);
-                                const newMember = { name: p.name, avatar: p.avatar, userId: p.userId };
-                                const updated = {
-                                  ...localSquad,
-                                  members: [...localSquad.members, newMember],
-                                  downResponders: localSquad.downResponders?.filter((d) => d.userId !== p.userId),
-                                };
-                                setLocalSquad(updated);
-                                onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === localSquad.id ? updated : s));
-                              }}
-                              style={{
-                                background: "none", border: `1px solid ${color.borderMid}`,
-                                borderRadius: 8, color: color.accent,
-                                fontFamily: font.mono, fontSize: 11, fontWeight: 700,
-                                padding: "4px 10px", cursor: "pointer",
-                              }}
-                            >
-                              Add
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+        <SquadSettingsModal
+          squad={localSquad}
+          dateConfirms={dateConfirms}
+          onClose={() => setShowSquadPopup(false)}
+          onRequestLeave={() => setShowLeaveConfirm(true)}
+          onRequestKick={(target) => setKickTarget(target)}
+          onOpenDatePicker={onSetSquadDate ? () => {
+            setShowSquadPopup(false);
+            const dateLabel = localSquad.eventIsoDate
+              ? new Date(localSquad.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+              : "";
+            setDatePickerValue(dateLabel);
+            setDateLocked(false);
+            setTimeLocked(false);
+            setDateDismissed(false);
+            setTimeDismissed(false);
+            setShowDatePicker(true);
+          } : undefined}
+          onViewProfile={onViewProfile}
+          onUpdateSquadSize={onUpdateSquadSize}
+          onSetMemberRole={onSetMemberRole}
+          onAddMember={onAddMember}
+          onSquadUpdate={onSquadUpdate}
+          onLocalSquadUpdate={setLocalSquad}
+        />
       )}
 
       {/* Poll creation modal */}
