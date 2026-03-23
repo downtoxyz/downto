@@ -20,6 +20,7 @@ import EventLobby from "@/features/events/components/EventLobby";
 import AddModal from "@/features/events/components/CreateModal";
 import UserProfileOverlay from "@/features/friends/components/UserProfileOverlay";
 import FeedView from "@/features/feed/components/FeedView";
+import { FeedContext } from "@/features/checks/context/FeedContext";
 import FriendsModal from "@/features/friends/components/FriendsModal";
 import OnboardingFriendsPopup from "@/features/friends/components/OnboardingFriendsPopup";
 import CalendarView from "@/features/calendar/components/CalendarView";
@@ -1064,6 +1065,24 @@ export default function Home() {
 
 
   return (
+    <FeedContext.Provider value={{
+      checks: checksHook.checks,
+      myCheckResponses: checksHook.myCheckResponses,
+      hiddenCheckIds: checksHook.hiddenCheckIds,
+      pendingDownCheckIds: checksHook.pendingDownCheckIds,
+      newlyAddedCheckId: checksHook.newlyAddedCheckId,
+      leftChecks: checksHook.leftChecks,
+      respondToCheck: checksHook.respondToCheck,
+      acceptCoAuthorTag: checksHook.acceptCoAuthorTag,
+      declineCoAuthorTag: checksHook.declineCoAuthorTag,
+      hideCheck: checksHook.hideCheck,
+      unhideCheck: checksHook.unhideCheck,
+      redownFromLeft: checksHook.redownFromLeft,
+      events: eventsHook.events,
+      newlyAddedEventId: eventsHook.newlyAddedId,
+      toggleSave: eventsHook.toggleSave,
+      toggleDown: eventsHook.toggleDown,
+    }}>
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh" }}>
       <div>
         <Header
@@ -1165,21 +1184,11 @@ export default function Home() {
         )}
         {feedLoaded && tab === "feed" && (
           <FeedView
-            checks={checksHook.checks}
-            setChecks={checksHook.setChecks}
-            myCheckResponses={checksHook.myCheckResponses}
-            setMyCheckResponses={checksHook.setMyCheckResponses}
-            events={events}
-            newlyAddedId={newlyAddedId}
-            newlyAddedCheckId={checksHook.newlyAddedCheckId}
             sharedCheckId={sharedCheckGlowId}
             friends={friendsHook.friends}
             userId={userId}
             isDemoMode={isDemoMode}
             profile={profile}
-            toggleSave={toggleSave}
-            toggleDown={toggleDown}
-            respondToCheck={checksHook.respondToCheck}
             startSquadFromCheck={squadsHook.startSquadFromCheck}
             loadRealData={loadRealData}
             showToast={showToast}
@@ -1198,12 +1207,6 @@ export default function Home() {
                 setTab("groups");
               }
             }}
-            hiddenCheckIds={checksHook.hiddenCheckIds}
-            pendingDownCheckIds={checksHook.pendingDownCheckIds}
-            onHideCheck={checksHook.hideCheck}
-            onUnhideCheck={checksHook.unhideCheck}
-            acceptCoAuthorTag={checksHook.acceptCoAuthorTag}
-            declineCoAuthorTag={checksHook.declineCoAuthorTag}
             onViewProfile={(uid) => setViewingUserId(uid)}
           />
         )}
@@ -1498,5 +1501,6 @@ export default function Home() {
         />
       )}
     </div>
+    </FeedContext.Provider>
   );
 }

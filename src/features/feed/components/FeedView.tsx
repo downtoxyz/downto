@@ -7,6 +7,7 @@ import type { Event, InterestCheck, Friend } from "@/lib/ui-types";
 import EventCard from "@/features/events/components/EventCard";
 import CheckCard from "@/features/checks/components/CheckCard";
 import FeedEmptyState from "./FeedEmptyState";
+import { useFeedContext } from "@/features/checks/context/FeedContext";
 
 function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: boolean; coAuthors?: { name: string }[] }) {
   const tokenRe = /(https?:\/\/[^\s),]+|@\S+)/g;
@@ -43,21 +44,11 @@ function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: b
 }
 
 export interface FeedViewProps {
-  checks: InterestCheck[];
-  setChecks: React.Dispatch<React.SetStateAction<InterestCheck[]>>;
-  myCheckResponses: Record<string, "down" | "waitlist">;
-  setMyCheckResponses: React.Dispatch<React.SetStateAction<Record<string, "down" | "waitlist">>>;
-  events: Event[];
-  newlyAddedId: string | null;
-  newlyAddedCheckId: string | null;
   sharedCheckId?: string | null;
   friends: Friend[];
   userId: string | null;
   isDemoMode: boolean;
   profile: Profile | null;
-  toggleSave: (id: string) => void;
-  toggleDown: (id: string) => void;
-  respondToCheck: (checkId: string) => void;
   startSquadFromCheck: (check: InterestCheck) => Promise<void>;
   loadRealData: () => Promise<void>;
   showToast: (msg: string) => void;
@@ -66,31 +57,15 @@ export interface FeedViewProps {
   onOpenAdd: () => void;
   onOpenFriends: (tab?: "friends" | "add") => void;
   onNavigateToGroups: (squadId?: string) => void;
-  hiddenCheckIds: Set<string>;
-  pendingDownCheckIds: Set<string>;
-  onHideCheck: (checkId: string) => void;
-  onUnhideCheck: (checkId: string) => void;
-  acceptCoAuthorTag: (checkId: string) => Promise<void>;
-  declineCoAuthorTag: (checkId: string) => Promise<void>;
   onViewProfile?: (userId: string) => void;
 }
 
 export default function FeedView({
-  checks,
-  setChecks,
-  myCheckResponses,
-  setMyCheckResponses,
-  events,
-  newlyAddedId,
-  newlyAddedCheckId,
   sharedCheckId,
   friends,
   userId,
   isDemoMode,
   profile,
-  toggleSave,
-  toggleDown,
-  respondToCheck,
   startSquadFromCheck,
   loadRealData,
   showToast,
@@ -99,14 +74,18 @@ export default function FeedView({
   onOpenAdd,
   onOpenFriends,
   onNavigateToGroups,
-  hiddenCheckIds,
-  pendingDownCheckIds,
-  onHideCheck,
-  onUnhideCheck,
-  acceptCoAuthorTag,
-  declineCoAuthorTag,
   onViewProfile,
 }: FeedViewProps) {
+  const {
+    checks,
+    hiddenCheckIds,
+    events,
+    newlyAddedEventId,
+    unhideCheck,
+    toggleSave,
+    toggleDown,
+  } = useFeedContext();
+
   const [showHidden, setShowHidden] = useState(false);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
@@ -147,18 +126,9 @@ export default function FeedView({
                 isDemoMode={isDemoMode}
                 profile={profile}
                 friends={friends}
-                myCheckResponses={myCheckResponses}
-                setMyCheckResponses={setMyCheckResponses}
-                setChecks={setChecks}
-                pendingDownCheckIds={pendingDownCheckIds}
-                newlyAddedCheckId={newlyAddedCheckId}
                 sharedCheckId={sharedCheckId}
                 initialCommentCount={commentCounts[check.id] ?? 0}
-                respondToCheck={respondToCheck}
                 startSquadFromCheck={startSquadFromCheck}
-                acceptCoAuthorTag={acceptCoAuthorTag}
-                declineCoAuthorTag={declineCoAuthorTag}
-                onHideCheck={onHideCheck}
                 onNavigateToGroups={onNavigateToGroups}
                 onViewProfile={onViewProfile}
                 showToast={showToast}
@@ -196,7 +166,7 @@ export default function FeedView({
                         </p>
                       </div>
                       <button
-                        onClick={() => onUnhideCheck(check.id)}
+                        onClick={() => unhideCheck(check.id)}
                         className="bg-transparent border border-neutral-800 rounded-lg py-1.5 px-2.5 font-mono text-tiny text-neutral-500 cursor-pointer shrink-0 ml-3"
                       >Unhide</button>
                     </div>
@@ -220,7 +190,7 @@ export default function FeedView({
                 onToggleDown={() => toggleDown(e.id)}
                 onOpenSocial={() => onOpenSocial(e)}
                 onLongPress={(e.createdBy === userId || !e.createdBy || isDemoMode) ? () => onEditEvent(e) : undefined}
-                isNew={e.id === newlyAddedId}
+                isNew={e.id === newlyAddedEventId}
               />
             ))}
           </>

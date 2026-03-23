@@ -9,6 +9,7 @@ import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
 import CheckCommentsSection from "./CheckCommentsSection";
 import EditCheckModal from "./EditCheckModal";
 import CheckActionsSheet from "./CheckActionsSheet";
+import { useFeedContext } from "@/features/checks/context/FeedContext";
 
 function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: boolean; coAuthors?: { name: string }[] }) {
   const tokenRe = /(https?:\/\/[^\s),]+|@\S+)/g;
@@ -52,18 +53,9 @@ export interface CheckCardProps {
   isDemoMode: boolean;
   profile: Profile | null;
   friends: Friend[];
-  myCheckResponses: Record<string, "down" | "waitlist">;
-  setMyCheckResponses: React.Dispatch<React.SetStateAction<Record<string, "down" | "waitlist">>>;
-  setChecks: React.Dispatch<React.SetStateAction<InterestCheck[]>>;
-  pendingDownCheckIds: Set<string>;
-  newlyAddedCheckId: string | null;
   sharedCheckId?: string | null;
   initialCommentCount: number;
-  respondToCheck: (checkId: string) => void;
   startSquadFromCheck: (check: InterestCheck) => Promise<void>;
-  acceptCoAuthorTag: (checkId: string) => Promise<void>;
-  declineCoAuthorTag: (checkId: string) => Promise<void>;
-  onHideCheck: (checkId: string) => void;
   onNavigateToGroups: (squadId?: string) => void;
   onViewProfile?: (userId: string) => void;
   showToast: (msg: string) => void;
@@ -76,23 +68,23 @@ export default function CheckCard({
   isDemoMode,
   profile,
   friends,
-  myCheckResponses,
-  setMyCheckResponses,
-  setChecks,
-  pendingDownCheckIds,
-  newlyAddedCheckId,
   sharedCheckId,
   initialCommentCount,
-  respondToCheck,
   startSquadFromCheck,
-  acceptCoAuthorTag,
-  declineCoAuthorTag,
-  onHideCheck,
   onNavigateToGroups,
   onViewProfile,
   showToast,
   loadRealData,
 }: CheckCardProps) {
+  const {
+    myCheckResponses,
+    pendingDownCheckIds,
+    newlyAddedCheckId,
+    respondToCheck,
+    acceptCoAuthorTag,
+    declineCoAuthorTag,
+    hideCheck,
+  } = useFeedContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -206,7 +198,7 @@ export default function CheckCard({
               </span>
               {!check.isYours && !check.isCoAuthor && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onHideCheck(check.id); }}
+                  onClick={(e) => { e.stopPropagation(); hideCheck(check.id); }}
                   className="bg-transparent border-none text-neutral-700 py-0.5 px-1 font-mono text-xs cursor-pointer leading-none"
                   title="Hide this check"
                 >✕</button>
@@ -298,8 +290,6 @@ export default function CheckCard({
                   <button
                     onClick={() => {
                       if (myCheckResponses[check.id] === "down" || myCheckResponses[check.id] === "waitlist") {
-                        setMyCheckResponses(prev => { const next = { ...prev }; delete next[check.id]; return next; });
-                        setChecks(prev => prev.map(c => c.id === check.id ? { ...c, responses: c.responses.filter(r => r.name !== "You"), inSquad: undefined } : c));
                         if (!isDemoMode && check.id) {
                           db.removeCheckResponse(check.id)
                             .then(() => loadRealData())
@@ -429,19 +419,19 @@ export default function CheckCard({
         onEdit={() => { setActionsSheetOpen(false); setEditModalOpen(true); }}
         onArchive={async () => {
           setActionsSheetOpen(false);
-          setChecks(prev => prev.filter(c => c.id !== check.id));
           if (!isDemoMode) {
             try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
           }
           showToast("Check archived");
+          await loadRealData();
         }}
         onDelete={async () => {
           setActionsSheetOpen(false);
-          setChecks(prev => prev.filter(c => c.id !== check.id));
           if (!isDemoMode) {
             try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
           }
           showToast("Check removed");
+          await loadRealData();
         }}
       />
 
@@ -451,10 +441,6 @@ export default function CheckCard({
         onClose={() => setEditModalOpen(false)}
         friends={friendsList}
         onSave={async (updates) => {
-          setChecks(prev => prev.map(c => c.id === check.id
-            ? { ...c, text: updates.text, eventDate: updates.eventDate ?? undefined, eventDateLabel: updates.eventDateLabel ?? undefined, eventTime: updates.eventTime ?? undefined, dateFlexible: updates.dateFlexible, timeFlexible: updates.timeFlexible }
-            : c
-          ));
           setEditModalOpen(false);
           if (!isDemoMode) {
             try {
@@ -464,6 +450,7 @@ export default function CheckCard({
             } catch (err) { logError("updateCheck", err, { checkId: check.id }); showToast("Failed to save changes"); return; }
           }
           showToast("Check updated");
+          await loadRealData();
         }}
       />
     </>
