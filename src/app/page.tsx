@@ -9,12 +9,9 @@ import * as db from "@/lib/db";
 import { font, color } from "@/lib/styles";
 import { sanitize, sanitizeVibes, parseDateToISO, toLocalISODate } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
-import type { Person, Event, Tab, ScrapedEvent, Squad, InterestCheck } from "@/lib/ui-types";
+import type { Person, Event, Tab, ScrapedEvent, Squad } from "@/lib/ui-types";
 import { DEMO_EVENTS, DEMO_CHECKS, DEMO_SQUADS, DEMO_FRIENDS, DEMO_SUGGESTIONS, DEMO_NOTIFICATIONS } from "@/lib/demo-data";
-import Grain from "@/app/components/Grain";
-import AuthScreen from "@/features/auth/components/AuthScreen";
-import ProfileSetupScreen from "@/features/auth/components/ProfileSetupScreen";
-import EnableNotificationsScreen, { IOSInstallScreen } from "@/features/auth/components/EnableNotificationsScreen";
+import { useOnboarding } from "@/features/auth/hooks/useOnboarding";
 import EditEventModal from "@/features/events/components/EditEventModal";
 import EventLobby from "@/features/events/components/EventLobby";
 import AddModal from "@/features/events/components/CreateModal";
@@ -30,9 +27,7 @@ import ProfileView from "@/features/profile/components/ProfileView";
 import Header from "@/app/components/Header";
 import BottomNav from "@/app/components/BottomNav";
 import Toast from "@/app/components/Toast";
-import { isIOSNotStandalone } from "@/lib/pushNotifications";
 import NotificationsPanel from "@/features/notifications/components/NotificationsPanel";
-import FirstCheckScreen from "@/features/checks/components/FirstCheckScreen";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useToast } from "@/app/hooks/useToast";
 import { usePushNotifications } from "@/features/auth/hooks/usePushNotifications";
@@ -42,23 +37,6 @@ import { useFriends } from "@/features/friends/hooks/useFriends";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { logError, logWarn } from "@/lib/logger";
 
-
-function computeExpiry(expiresAt: string | null, createdAt: string): { expiresIn: string; expiryPercent: number } {
-  if (!expiresAt) return { expiresIn: "open", expiryPercent: 0 };
-  const now = Date.now();
-  const expires = new Date(expiresAt).getTime();
-  const created = new Date(createdAt).getTime();
-  const total = expires - created;
-  const elapsed = now - created;
-  const remaining = expires - now;
-  if (remaining <= 0) return { expiresIn: "expired", expiryPercent: 100 };
-  const hours = Math.floor(remaining / (1000 * 60 * 60));
-  const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-  return {
-    expiresIn: hours > 0 ? `${hours}h` : `${mins}m`,
-    expiryPercent: Math.min(100, (elapsed / total) * 100),
-  };
-}
 
 // ─── Main App ───────────────────────────────────────────────────────────────
 
@@ -93,39 +71,15 @@ export default function Home() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addModalDefaultMode, setAddModalDefaultMode] = useState<"paste" | "idea" | "manual" | null>(null);
 
-  // ─── PWA install gate (iOS Safari, pre-auth) ───────────────────────────
-  const [installDismissed, setInstallDismissed] = useState(true); // default true to avoid flash
-  useEffect(() => {
-    setInstallDismissed(
-      !isIOSNotStandalone() || localStorage.getItem("pwa-install-dismissed") === "1"
-    );
-  }, []);
-
   // ─── Misc page-level state ──────────────────────────────────────────────
   const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
   const selectedSquadIdRef = useRef<string | null>(null);
   selectedSquadIdRef.current = selectedSquad?.id ?? null;
   const readSquadIdsRef = useRef<Set<string>>(new Set());
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
-  const [onboardingFriendGate, setOnboardingFriendGate] = useState(false);
-  const friendGateInitRef = useRef(false);
-  const referralPersistedRef = useRef(false);
-  const [onboardingCheckAuthorId, setOnboardingCheckAuthorId] = useState<string | null>(null);
-  const [profileSetupDone, setProfileSetupDone] = useState(false);
-  const [notificationsDone, setNotificationsDone] = useState(false);
-  const [showFirstCheck, setShowFirstCheck] = useState(false);
-  const [pendingSharedCheckId, setPendingSharedCheckId] = useState<string | null>(null);
-  const [activeSharedCheckId, setActiveSharedCheckId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem("activeSharedCheckId");
-    return null;
-  });
-  const [sharedCheckGlowId, setSharedCheckGlowId] = useState<string | null>(null);
-  const [showAddGlow, setShowAddGlow] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("showAddGlow") === "true";
-    }
-    return false;
-  });
+
+  // ─── Ref for onboarding hook's setShowAddGlow (declared after checksHook) ──
+  const clearAddGlowRef = useRef(() => {});
 
   // ─── Domain hooks ───────────────────────────────────────────────────────
   const friendsHook = useFriends({
@@ -141,7 +95,7 @@ export default function Home() {
     profile,
     friendCount: friendsHook.friends.length,
     showToast,
-    onCheckCreated: () => { setTab("feed"); setShowAddGlow(false); localStorage.removeItem("showAddGlow"); },
+    onCheckCreated: () => { setTab("feed"); clearAddGlowRef.current(); },
     onDownResponse: () => { loadRealDataRef.current(); },
     onAutoSquad: (checkId: string) => {
       // Use latest checks state via ref to avoid stale closure
@@ -201,6 +155,22 @@ export default function Home() {
       ));
     },
   });
+
+  // ─── Onboarding hook ───────────────────────────────────────────────────
+  const onboarding = useOnboarding({
+    isLoggedIn, isLoading, userId, profile, isDemoMode, feedLoaded,
+    setIsLoggedIn, setProfile, setTab,
+    checks: checksHook.checks,
+    setChecks: checksHook.setChecks,
+    setMyCheckResponses: checksHook.setMyCheckResponses,
+    setNewlyAddedCheckId: checksHook.setNewlyAddedCheckId,
+    handleCreateCheck: checksHook.handleCreateCheck,
+    suggestions: friendsHook.suggestions,
+    setSuggestions: friendsHook.setSuggestions,
+  });
+
+  // Wire up the ref now that the hook is initialized
+  clearAddGlowRef.current = () => { onboarding.setShowAddGlow(false); localStorage.removeItem("showAddGlow"); };
 
   // ─── loadRealData (thin coordinator) ────────────────────────────────────
 
@@ -364,118 +334,6 @@ export default function Home() {
       }
     })();
   }, [isLoggedIn, userId, profile?.onboarded]);
-
-  // Process pendingCheck after auth + onboarding complete
-  useEffect(() => {
-    if (!isLoggedIn || !userId || !profile?.onboarded) return;
-    const checkId = localStorage.getItem("pendingCheckId");
-    if (!checkId) return;
-    localStorage.removeItem("pendingCheckId");
-    setPendingSharedCheckId(checkId);
-    setTab("feed");
-    checksHook.setNewlyAddedCheckId(checkId);
-    setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
-  }, [isLoggedIn, userId, profile?.onboarded]);
-
-  // Inject shared check into feed once feedLoaded is true
-  useEffect(() => {
-    if (!pendingSharedCheckId || !feedLoaded) return;
-    const checkId = pendingSharedCheckId;
-    setPendingSharedCheckId(null);
-
-    (async () => {
-      // Check if already in feed (e.g. already friends)
-      const alreadyInFeed = checksHook.checks.some((c) => c.id === checkId);
-      if (!alreadyInFeed) {
-        const shared = await db.getSharedCheck(checkId);
-        if (shared) {
-          const { formatTimeAgo } = await import("@/lib/utils");
-          const myResponses: Record<string, "down" | "waitlist"> = {};
-          if (shared.myResponse === "down" || shared.myResponse === "waitlist") {
-            myResponses[shared.id] = shared.myResponse;
-            checksHook.setMyCheckResponses((prev) => ({ ...prev, ...myResponses }));
-          }
-          checksHook.setChecks((prev) => {
-            if (prev.some((c) => c.id === checkId)) return prev;
-            return [{
-              id: shared.id,
-              text: shared.text,
-              author: shared.author_name,
-              authorId: shared.author_id,
-              timeAgo: formatTimeAgo(new Date(shared.created_at)),
-              ...computeExpiry(shared.expires_at, shared.created_at),
-              responses: shared.myResponse === "down" ? [{ name: "You", avatar: profile?.avatar_letter ?? "?", status: "down" as const }] : [],
-              eventDate: shared.event_date ?? undefined,
-              eventTime: shared.event_time ?? undefined,
-              location: shared.location ?? undefined,
-              viaFriendName: "shared link",
-              squadId: shared.squadId ?? undefined,
-              squadMemberCount: shared.squadMemberCount,
-              inSquad: shared.inSquad,
-            }, ...prev];
-          });
-        }
-      }
-      setActiveSharedCheckId(checkId);
-      localStorage.setItem("activeSharedCheckId", checkId);
-      setSharedCheckGlowId(checkId);
-      setTimeout(() => setSharedCheckGlowId(null), 5000);
-      checksHook.setNewlyAddedCheckId(checkId);
-      setTimeout(() => checksHook.setNewlyAddedCheckId(null), 5000);
-    })();
-  }, [pendingSharedCheckId, feedLoaded]);
-
-  // Re-inject shared check if it gets removed by a data reload or page refresh
-  const sharedCheckCache = useRef<InterestCheck | null>(null);
-  useEffect(() => {
-    if (!activeSharedCheckId || !feedLoaded) return;
-    // Cache the shared check when it exists
-    const found = checksHook.checks.find((c) => c.id === activeSharedCheckId);
-    if (found) { sharedCheckCache.current = found; return; }
-    // Re-inject from cache
-    if (sharedCheckCache.current) {
-      checksHook.setChecks((prev) => {
-        if (prev.some((c) => c.id === activeSharedCheckId)) return prev;
-        return [sharedCheckCache.current!, ...prev];
-      });
-      return;
-    }
-    // Cache is empty (page refresh) — fetch from DB and inject
-    (async () => {
-      const shared = await db.getSharedCheck(activeSharedCheckId);
-      if (!shared) {
-        // Check no longer exists or was unshared — clean up
-        setActiveSharedCheckId(null);
-        localStorage.removeItem("activeSharedCheckId");
-        return;
-      }
-      const { formatTimeAgo } = await import("@/lib/utils");
-      if (shared.myResponse === "down" || shared.myResponse === "waitlist") {
-        checksHook.setMyCheckResponses((prev) => ({ ...prev, [shared.id]: shared.myResponse as "down" | "waitlist" }));
-      }
-      const injected: InterestCheck = {
-        id: shared.id,
-        text: shared.text,
-        author: shared.author_name,
-        authorId: shared.author_id,
-        timeAgo: formatTimeAgo(new Date(shared.created_at)),
-        ...computeExpiry(shared.expires_at, shared.created_at),
-        responses: shared.myResponse === "down" ? [{ name: "You", avatar: profile?.avatar_letter ?? "?", status: "down" as const }] : [],
-        eventDate: shared.event_date ?? undefined,
-        eventTime: shared.event_time ?? undefined,
-        location: shared.location ?? undefined,
-        viaFriendName: "shared link",
-        squadId: shared.squadId ?? undefined,
-        squadMemberCount: shared.squadMemberCount,
-        inSquad: shared.inSquad,
-      };
-      sharedCheckCache.current = injected;
-      checksHook.setChecks((prev) => {
-        if (prev.some((c) => c.id === activeSharedCheckId)) return prev;
-        return [injected, ...prev];
-      });
-    })();
-  }, [activeSharedCheckId, feedLoaded, checksHook.checks]);
 
   // Trigger data load when logged in
   useEffect(() => {
@@ -922,146 +780,7 @@ export default function Home() {
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
-  if (isLoading) {
-    return <div style={{ minHeight: "100vh", background: color.bg }} />;
-  }
-
-  // Normal visit (no shared check): show install prompt before auth
-  const hasPendingCheck = typeof window !== 'undefined' && (
-    !!localStorage.getItem("pendingCheckId") ||
-    new URLSearchParams(window.location.search).has("pendingCheck")
-  );
-  if (!installDismissed && !hasPendingCheck) {
-    return (
-      <IOSInstallScreen
-        onComplete={() => {
-          localStorage.setItem("pwa-install-dismissed", "1");
-          setInstallDismissed(true);
-        }}
-      />
-    );
-  }
-
-  if (!isLoggedIn) {
-    return (
-      <AuthScreen
-        onLogin={() => setIsLoggedIn(true)}
-      />
-    );
-  }
-
-  if (profile && !profile.onboarded && !profileSetupDone && !profile.display_name) {
-    return (
-      <ProfileSetupScreen
-        profile={profile}
-        onComplete={(updated) => {
-          setProfile(updated);
-          setProfileSetupDone(true);
-        }}
-      />
-    );
-  }
-
-  // After profile setup: shared check flow → install prompt; normal flow → friends
-  if (profile && !profile.onboarded && (profileSetupDone || !!profile.display_name) && !onboardingFriendGate) {
-    const pendingCheckId = localStorage.getItem("pendingCheckId");
-    const isInPWA = typeof window !== 'undefined' && (
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-      window.matchMedia('(display-mode: standalone)').matches
-    );
-
-    // Shared check in browser: persist referral to DB then show install prompt
-    if (pendingCheckId && !isInPWA && !installDismissed) {
-      // Persist to DB via API (service role) so it survives PWA install/re-auth
-      if (!referralPersistedRef.current) {
-        referralPersistedRef.current = true;
-        (async () => {
-          const token = (await supabase.auth.getSession()).data.session?.access_token;
-          if (token) {
-            fetch("/api/checks/respond-shared", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ checkId: pendingCheckId, response: "down" }),
-            }).catch(() => {});
-          }
-        })();
-      }
-      return (
-        <IOSInstallScreen
-          onComplete={() => {
-            localStorage.setItem("pwa-install-dismissed", "1");
-            setInstallDismissed(true);
-          }}
-        />
-      );
-    }
-
-    // Show notifications screen (PWA or after dismissing install prompt)
-    if (!notificationsDone && (isInPWA || (pendingCheckId && installDismissed))) {
-      return (
-        <EnableNotificationsScreen
-          onComplete={async () => {
-            localStorage.setItem("pushAutoPrompted", "1");
-            setNotificationsDone(true);
-          }}
-        />
-      );
-    }
-
-    // Wait for loadRealData to finish hydrating suggestions before setting up
-    // the friend gate — otherwise hydrateFriends overwrites the check author
-    if (!feedLoaded) return null;
-
-    // Set up friend gate with check author suggestion if applicable
-    if (!friendGateInitRef.current) {
-      friendGateInitRef.current = true;
-      (async () => {
-        try {
-          // Use localStorage first, fall back to DB (survives PWA reinstall)
-          let checkId = pendingCheckId;
-          if (!checkId) {
-            checkId = await db.getReferralCheckId();
-          }
-          if (checkId) {
-            const authorProfile = await db.getCheckAuthorProfile(checkId);
-            if (authorProfile && authorProfile.id !== userId) {
-              setOnboardingCheckAuthorId(authorProfile.id);
-              friendsHook.setSuggestions((prev) => {
-                const without = prev.filter((s) => s.id !== authorProfile.id);
-                return [{
-                  id: authorProfile.id,
-                  name: authorProfile.display_name,
-                  username: authorProfile.username,
-                  avatar: authorProfile.avatar_letter,
-                  status: "none" as const,
-                  igHandle: authorProfile.ig_handle ?? undefined,
-                }, ...without];
-              });
-            }
-          }
-        } catch {}
-        setOnboardingFriendGate(true);
-      })();
-    }
-    // Block rendering until friend gate is ready
-    return null;
-  }
-
-  if (showFirstCheck) {
-    return (
-      <FirstCheckScreen
-        onComplete={(idea, expiresInHours, eventDate, maxSquadSize, eventTime, dateFlexible, timeFlexible, location) => {
-          checksHook.handleCreateCheck(idea, expiresInHours, eventDate, maxSquadSize, undefined, eventTime, dateFlexible, timeFlexible, undefined, location);
-          setShowFirstCheck(false);
-        }}
-        onSkip={() => {
-          setShowFirstCheck(false);
-          setShowAddGlow(true);
-          localStorage.setItem("showAddGlow", "true");
-        }}
-      />
-    );
-  }
+  if (onboarding.onboardingScreen) return onboarding.onboardingScreen;
 
 
   return (
@@ -1097,8 +816,8 @@ export default function Home() {
               notificationsHook.setUnreadCount(0);
             }
           }}
-          onOpenAdd={() => { setAddModalOpen(true); setShowAddGlow(false); localStorage.removeItem("showAddGlow"); }}
-          glowAdd={showAddGlow}
+          onOpenAdd={() => { setAddModalOpen(true); clearAddGlowRef.current(); }}
+          glowAdd={onboarding.showAddGlow}
         />
       </div>
 
@@ -1184,7 +903,7 @@ export default function Home() {
         )}
         {feedLoaded && tab === "feed" && (
           <FeedView
-            sharedCheckId={sharedCheckGlowId}
+            sharedCheckId={onboarding.sharedCheckGlowId}
             friends={friendsHook.friends}
             userId={userId}
             isDemoMode={isDemoMode}
@@ -1441,37 +1160,14 @@ export default function Home() {
         onClose={() => setEditingEvent(null)}
         onSave={handleEditEvent}
       />
-      {onboardingFriendGate && (
+      {onboarding.friendGate.show && (
         <OnboardingFriendsPopup
           suggestions={friendsHook.suggestions}
-          checkAuthorId={onboardingCheckAuthorId}
+          checkAuthorId={onboarding.friendGate.checkAuthorId}
           onAddFriend={friendsHook.addFriend}
           onCancelRequest={friendsHook.cancelRequest}
           onSearchUsers={friendsHook.searchUsers}
-          onDone={async () => {
-            // Mark onboarded now that friend gate is passed
-            if (!isDemoMode) {
-              try {
-                const updated = await db.updateProfile({ onboarded: true } as Partial<Profile>);
-                setProfile(updated);
-              } catch (err) {
-                logError("finishOnboarding", err);
-                setProfile((prev) => prev ? { ...prev, onboarded: true } : prev);
-              }
-            } else {
-              setProfile((prev) => prev ? { ...prev, onboarded: true } : prev);
-            }
-            setOnboardingFriendGate(false);
-            setOnboardingCheckAuthorId(null);
-            // Skip first check screen if user already has checks or came from shared check
-            if (!localStorage.getItem("pendingCheckId") && !activeSharedCheckId && checksHook.checks.length === 0) {
-              setShowFirstCheck(true);
-            } else {
-              // Shared check flow: show glow on + button to prompt first check
-              setShowAddGlow(true);
-              localStorage.setItem("showAddGlow", "true");
-            }
-          }}
+          onDone={onboarding.friendGate.onDone}
         />
       )}
       <FriendsModal
