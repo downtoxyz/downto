@@ -927,6 +927,13 @@ export default function Home() {
               }
             }}
             onViewProfile={(uid) => setViewingUserId(uid)}
+            showInstallBanner={
+              !onboarding.installDismissed
+              || (onboarding.installDismissed && pushSupported && !pushEnabled && !onboarding.notifBannerDismissed)
+            }
+            installBannerVariant={!onboarding.installDismissed ? "install" : "notifications"}
+            onDismissInstallBanner={!onboarding.installDismissed ? onboarding.dismissInstall : onboarding.dismissNotifBanner}
+            onEnableNotifications={handleTogglePush}
           />
         )}
         {feedLoaded && tab === "calendar" && (

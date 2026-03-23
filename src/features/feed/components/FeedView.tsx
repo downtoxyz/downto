@@ -7,6 +7,7 @@ import type { Event, InterestCheck, Friend } from "@/lib/ui-types";
 import EventCard from "@/features/events/components/EventCard";
 import CheckCard from "@/features/checks/components/CheckCard";
 import FeedEmptyState from "./FeedEmptyState";
+import InstallBanner from "./InstallBanner";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
 
 function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: boolean; coAuthors?: { name: string }[] }) {
@@ -58,6 +59,10 @@ export interface FeedViewProps {
   onOpenFriends: (tab?: "friends" | "add") => void;
   onNavigateToGroups: (squadId?: string) => void;
   onViewProfile?: (userId: string) => void;
+  showInstallBanner?: boolean;
+  installBannerVariant?: "install" | "notifications";
+  onDismissInstallBanner?: () => void;
+  onEnableNotifications?: () => void;
 }
 
 export default function FeedView({
@@ -75,6 +80,10 @@ export default function FeedView({
   onOpenFriends,
   onNavigateToGroups,
   onViewProfile,
+  showInstallBanner,
+  installBannerVariant = "install",
+  onDismissInstallBanner,
+  onEnableNotifications,
 }: FeedViewProps) {
   const {
     checks,
@@ -112,6 +121,13 @@ export default function FeedView({
 
   return (
     <>
+      {showInstallBanner && onDismissInstallBanner && (
+        <InstallBanner
+          variant={installBannerVariant}
+          onDismiss={onDismissInstallBanner}
+          onEnableNotifications={onEnableNotifications}
+        />
+      )}
       <div className="pt-2 px-4">
         {checks.length > 0 && (
           <div className="mb-6">

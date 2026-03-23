@@ -105,6 +105,14 @@ interface UseOnboardingReturn {
     checkAuthorId: string | null;
     onDone: () => Promise<void>;
   };
+  /** Whether the install banner should show in feed */
+  installDismissed: boolean;
+  /** Dismiss the install banner */
+  dismissInstall: () => void;
+  /** Whether the notifications banner has been dismissed */
+  notifBannerDismissed: boolean;
+  /** Dismiss the notifications banner */
+  dismissNotifBanner: () => void;
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
@@ -135,6 +143,12 @@ export function useOnboarding({
       !isIOSNotStandalone() || localStorage.getItem("pwa-install-dismissed") === "1"
     );
   }, []);
+
+  // ─── Notifications banner ────────────────────────────────────────────
+  const [notifBannerDismissed, setNotifBannerDismissed] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("notif-banner-dismissed") === "1";
+    return true;
+  });
 
   // ─── Onboarding state ─────────────────────────────────────────────────
   const [profileSetupDone, setProfileSetupDone] = useState(false);
@@ -167,12 +181,24 @@ export function useOnboarding({
   useEffect(() => {
     if (!isLoggedIn || !userId || !profile?.onboarded) return;
     const checkId = localStorage.getItem("pendingCheckId");
-    if (!checkId) return;
-    localStorage.removeItem("pendingCheckId");
-    setPendingSharedCheckId(checkId);
-    setTab("feed");
-    setNewlyAddedCheckId(checkId);
-    setTimeout(() => setNewlyAddedCheckId(null), 3000);
+    if (checkId) {
+      localStorage.removeItem("pendingCheckId");
+      setPendingSharedCheckId(checkId);
+      setTab("feed");
+      setNewlyAddedCheckId(checkId);
+      setTimeout(() => setNewlyAddedCheckId(null), 3000);
+      return;
+    }
+    // PWA recovery: no localStorage, check DB for referred_by_check_id
+    if (!activeSharedCheckId) {
+      (async () => {
+        const referralId = await db.getReferralCheckId();
+        if (referralId) {
+          setPendingSharedCheckId(referralId);
+          setTab("feed");
+        }
+      })();
+    }
   }, [isLoggedIn, userId, profile?.onboarded]);
 
   // Inject shared check into feed once feedLoaded
@@ -253,9 +279,10 @@ export function useOnboarding({
     }
     setOnboardingFriendGate(false);
     setOnboardingCheckAuthorId(null);
-    if (!localStorage.getItem("pendingCheckId") && !activeSharedCheckId && checks.length === 0) {
+    const hasSharedCheck = !!localStorage.getItem("pendingCheckId") || !!activeSharedCheckId || !!pendingSharedCheckId;
+    if (!hasSharedCheck && checks.length === 0) {
       setShowFirstCheck(true);
-    } else {
+    } else if (!hasSharedCheck) {
       setShowAddGlow(true);
       localStorage.setItem("showAddGlow", "true");
     }
@@ -268,17 +295,27 @@ export function useOnboarding({
     setInstallDismissed(true);
   };
 
+  const dismissNotifBanner = () => {
+    localStorage.setItem("notif-banner-dismissed", "1");
+    setNotifBannerDismissed(true);
+  };
+
   const computeOnboardingScreen = (): ReactNode | null => {
     if (isLoading) {
       return <div style={{ minHeight: "100vh", background: "#111" }} />;
     }
 
+    // Eagerly persist pendingCheck from URL to localStorage (before any gate checks)
+    if (typeof window !== "undefined") {
+      const urlCheckId = new URLSearchParams(window.location.search).get("pendingCheck");
+      if (urlCheckId && !localStorage.getItem("pendingCheckId")) {
+        localStorage.setItem("pendingCheckId", urlCheckId);
+      }
+    }
+
     // Normal visit (no shared check): show install prompt before auth
-    const hasPendingCheck = typeof window !== "undefined" && (
-      !!localStorage.getItem("pendingCheckId") ||
-      new URLSearchParams(window.location.search).has("pendingCheck")
-    );
-    if (!installDismissed && !hasPendingCheck) {
+    const hasPendingCheck = typeof window !== "undefined" && !!localStorage.getItem("pendingCheckId");
+    if (!isLoggedIn && !installDismissed && !hasPendingCheck) {
       return <IOSInstallScreen onComplete={dismissInstall} />;
     }
 
@@ -301,13 +338,13 @@ export function useOnboarding({
     // After profile setup: onboarding gates
     if (profile && !profile.onboarded && (profileSetupDone || !!profile.display_name) && !onboardingFriendGate) {
       const pendingCheckId = localStorage.getItem("pendingCheckId");
+      const isSharedCheckFlow = !!pendingCheckId;
       const isInPWA = typeof window !== "undefined" && (
         (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
         window.matchMedia("(display-mode: standalone)").matches
       );
-
-      // Shared check in browser: persist referral then show install prompt
-      if (pendingCheckId && !isInPWA && !installDismissed) {
+      // Shared check flow: fire-and-forget referral persist, skip install/notifications
+      if (isSharedCheckFlow) {
         if (!referralPersistedRef.current) {
           referralPersistedRef.current = true;
           (async () => {
@@ -321,19 +358,23 @@ export function useOnboarding({
             }
           })();
         }
-        return <IOSInstallScreen onComplete={dismissInstall} />;
-      }
+        // Fall through to feed wait → friend gate (no install/notifications screens)
+      } else {
+        // Normal flow: show install prompt and notifications screen
+        if (!isInPWA && !installDismissed) {
+          return <IOSInstallScreen onComplete={dismissInstall} />;
+        }
 
-      // Show notifications screen (PWA or after dismissing install prompt)
-      if (!notificationsDone && (isInPWA || (pendingCheckId && installDismissed))) {
-        return (
-          <EnableNotificationsScreen
-            onComplete={async () => {
-              localStorage.setItem("pushAutoPrompted", "1");
-              setNotificationsDone(true);
-            }}
-          />
-        );
+        if (!notificationsDone && isInPWA) {
+          return (
+            <EnableNotificationsScreen
+              onComplete={async () => {
+                localStorage.setItem("pushAutoPrompted", "1");
+                setNotificationsDone(true);
+              }}
+            />
+          );
+        }
       }
 
       // Wait for feed data before setting up friend gate
@@ -404,5 +445,9 @@ export function useOnboarding({
       checkAuthorId: onboardingCheckAuthorId,
       onDone: handleFriendGateDone,
     },
+    installDismissed,
+    dismissInstall,
+    notifBannerDismissed,
+    dismissNotifBanner,
   };
 }
