@@ -714,26 +714,6 @@ const ProfileView = ({
           </span>
         </div>
       )}
-      {["Privacy & Visibility"].map(
-        (s) => (
-          <div
-            key={s}
-            style={{
-              padding: "14px 0",
-              borderBottom: `1px solid ${color.border}`,
-              fontFamily: font.mono,
-              fontSize: 12,
-              color: color.muted,
-              display: "flex",
-              justifyContent: "space-between",
-              cursor: "pointer",
-            }}
-          >
-            {s}
-            <span style={{ color: color.borderMid }}>→</span>
-          </div>
-        )
-      )}
       {profile?.is_test && onUpdateProfile && (
         <div
           onClick={async () => {
