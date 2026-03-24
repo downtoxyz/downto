@@ -146,9 +146,18 @@ const SquadChat = ({
       if (inputFocused) {
         chatContainerRef.current.style.transition = "none";
         chatContainerRef.current.style.height = `${vv.height}px`;
+        // Pin body to prevent older iOS from scrolling behind the fixed container
+        document.body.style.position = "fixed";
+        document.body.style.width = "100%";
+        document.body.style.top = "0";
+        document.body.style.overflow = "hidden";
         window.scrollTo(0, 0);
         { const p = messagesEndRef.current?.parentElement; if (p) p.scrollTop = p.scrollHeight; }
       } else {
+        document.body.style.position = "";
+        document.body.style.width = "";
+        document.body.style.top = "";
+        document.body.style.overflow = "";
         chatContainerRef.current.style.transition = "height 0.15s ease-out";
         chatContainerRef.current.style.height = "100dvh";
       }
@@ -184,6 +193,11 @@ const SquadChat = ({
       document.removeEventListener("focusout", onFocusOut);
       vv.removeEventListener("resize", onResize);
       clearTimeout(timeoutId);
+      // Restore body scroll in case unmounted while input focused
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.top = "";
+      document.body.style.overflow = "";
     };
   }, []);
 
@@ -413,6 +427,7 @@ const SquadChat = ({
         zIndex: 50,
         background: color.bg,
         overflow: "hidden",
+        overscrollBehavior: "none",
         transform: (closing || entering) ? "translateX(100%)" : `translateX(${dragX}px)`,
         transition: closing ? "transform 0.25s ease-in" : (entering || dragX === 0) ? "transform 0.3s ease-out" : "none",
       }}
