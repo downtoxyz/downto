@@ -217,8 +217,8 @@ const EventCard = ({
           )}
         </div>
 
-        {/* Social preview */}
-        {(event.peopleDown.length > 0 || event.isDown) && (
+        {/* Social preview — only show once social data is hydrated (peopleDown populated or user in pool) */}
+        {(event.peopleDown.length > 0 || event.userInPool) && (
           <div
             onClick={onOpenSocial}
             style={{
