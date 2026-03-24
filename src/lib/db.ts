@@ -100,7 +100,7 @@ export async function getPublicEvents(date?: Date): Promise<Event[]> {
   const today = toLocalISODate(new Date());
   let query = supabase
     .from('events')
-    .select('*')
+    .select('*, creator:profiles!created_by(display_name, avatar_letter)')
     .eq('is_public', true)
     .order('date', { ascending: true });
 
@@ -135,7 +135,7 @@ export async function getFriendsEvents(): Promise<Event[]> {
   const today = toLocalISODate(new Date());
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select('*, creator:profiles!created_by(display_name, avatar_letter)')
     .in('created_by', friendIds)
     .gte('date', today)
     .order('date', { ascending: true });
@@ -144,7 +144,7 @@ export async function getFriendsEvents(): Promise<Event[]> {
   return data ?? [];
 }
 
-export async function createEvent(event: Omit<Event, 'id' | 'created_at'>): Promise<Event> {
+export async function createEvent(event: Omit<Event, 'id' | 'created_at' | 'creator'>): Promise<Event> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -218,7 +218,7 @@ export async function getSavedEvents(): Promise<(SavedEvent & { event: Event })[
 
   const { data, error } = await supabase
     .from('saved_events')
-    .select('*, event:events(*)')
+    .select('*, event:events(*, creator:profiles!created_by(display_name, avatar_letter))')
     .eq('user_id', user.id)
     .order('saved_at', { ascending: false });
 

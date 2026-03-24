@@ -30,6 +30,9 @@ export interface Event {
   isDown: boolean;
   peopleDown: Person[];
   isPublic?: boolean;
+  visibility?: 'public' | 'friends';
+  posterName?: string;
+  posterAvatar?: string;
   neighborhood?: string;
   rawDate?: string;
   poolCount?: number;

@@ -46,7 +46,7 @@ const AddModal = ({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (e: ScrapedEvent, sharePublicly: boolean) => void;
+  onSubmit: (e: ScrapedEvent, visibility: 'public' | 'friends') => void;
   onInterestCheck: (
     idea: string,
     expiresInHours: number | null,
@@ -121,7 +121,7 @@ const AddModal = ({
   const [mentionIdx, setMentionIdx] = useState(-1); // cursor position of @
   const [loading, setLoading] = useState(false);
   const [scraped, setScraped] = useState<ScrapedEvent | null>(null);
-  const [sharePublicly, setSharePublicly] = useState(false);
+  const [eventVisibility, setEventVisibility] = useState<'public' | 'friends'>('public');
   const [note, setNote] = useState('');
   const [manual, setManual] = useState({
     title: '',
@@ -175,7 +175,7 @@ const AddModal = ({
       setWhereInput('');
       setLoading(false);
       setScraped(null);
-      setSharePublicly(false);
+      setEventVisibility('public');
       setNote('');
       setMode('idea');
       setError(null);
@@ -236,7 +236,7 @@ const AddModal = ({
         igUrl: data.igUrl,
         diceUrl: data.diceUrl,
       });
-      setSharePublicly(data.isPublicPost || false);
+      setEventVisibility(data.isPublicPost ? 'public' : 'public');
 
       // Check for existing event with this IG/Dice URL → social signal
       if (data.igUrl || data.diceUrl) {
@@ -706,108 +706,80 @@ const AddModal = ({
                     </span>
                   </div>
                 )}
-                {/* Public post indicator and share toggle */}
-                {scraped.isPublicPost && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 14px',
-                      background: 'rgba(232,255,90,0.08)',
-                      borderRadius: 10,
-                      marginBottom: 14,
-                      border: `1px solid ${color.borderLight}`,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          fontFamily: font.mono,
-                          fontSize: 11,
-                          color: color.accent,
-                          marginBottom: 2,
-                        }}
-                      >
-                        {scraped.diceUrl
-                          ? 'Public Dice event detected'
-                          : 'Public IG post detected'}
-                      </div>
-                    </div>
+                {/* Visibility selector */}
+                <div
+                  style={{
+                    display: 'flex',
+                    borderRadius: 10,
+                    border: `1px solid ${color.borderMid}`,
+                    overflow: 'hidden',
+                    marginBottom: 14,
+                  }}
+                >
+                  {([
+                    { value: 'public' as const, label: 'Public', desc: 'Everyone on down to' },
+                    { value: 'friends' as const, label: 'Friends', desc: 'Friends & friends of friends' },
+                  ]).map((opt) => (
                     <button
-                      onClick={() => setSharePublicly(!sharePublicly)}
+                      key={opt.value}
+                      onClick={() => setEventVisibility(opt.value)}
                       style={{
-                        width: 44,
-                        height: 26,
-                        borderRadius: 13,
-                        background: sharePublicly
-                          ? color.accent
-                          : color.borderMid,
+                        flex: 1,
+                        padding: '10px 8px',
+                        background: eventVisibility === opt.value ? 'rgba(232,255,90,0.08)' : 'transparent',
                         border: 'none',
+                        borderRight: opt.value === 'public' ? `1px solid ${color.borderMid}` : 'none',
                         cursor: 'pointer',
-                        position: 'relative',
-                        transition: 'background 0.2s',
+                        textAlign: 'center',
                       }}
                     >
-                      <div
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
-                          background: '#fff',
-                          position: 'absolute',
-                          top: 3,
-                          left: sharePublicly ? 21 : 3,
-                          transition: 'left 0.2s',
-                        }}
-                      />
+                      <div style={{
+                        fontFamily: font.mono,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: eventVisibility === opt.value ? color.accent : color.dim,
+                        marginBottom: 2,
+                      }}>
+                        {opt.label}
+                      </div>
+                      <div style={{
+                        fontFamily: font.mono,
+                        fontSize: 9,
+                        color: color.faint,
+                      }}>
+                        {opt.desc}
+                      </div>
                     </button>
-                  </div>
-                )}
-                {sharePublicly && (
-                  <input
-                    type="text"
-                    placeholder="Add a note (e.g. DJ set starts at midnight)"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    maxLength={200}
-                    style={{
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      background: color.deep,
-                      color: color.text,
-                      border: `1px solid ${color.borderMid}`,
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      marginBottom: 14,
-                      outline: 'none',
-                    }}
-                  />
-                )}
-                {!scraped.isPublicPost && (
-                  <div
-                    style={{
-                      padding: '10px 14px',
-                      background: color.surface,
-                      borderRadius: 10,
-                      marginBottom: 14,
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      color: color.dim,
-                    }}
-                  >
-                    Private IG post — only visible to you
-                  </div>
-                )}
+                  ))}
+                </div>
+                {/* Note input */}
+                <input
+                  type="text"
+                  placeholder="Add a note (e.g. DJ set starts at midnight)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  maxLength={200}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    background: color.deep,
+                    color: color.text,
+                    border: `1px solid ${color.borderMid}`,
+                    borderRadius: 10,
+                    padding: '10px 12px',
+                    fontFamily: font.mono,
+                    fontSize: 12,
+                    marginBottom: 14,
+                    outline: 'none',
+                  }}
+                />
                 <button
                   onClick={async () => {
                     const submitted = {
                       ...scraped,
                       note: note.trim() || undefined,
                     };
-                    await onSubmit(submitted, sharePublicly);
+                    await onSubmit(submitted, eventVisibility);
                     close();
                   }}
                   style={{
@@ -825,9 +797,9 @@ const AddModal = ({
                     letterSpacing: '0.1em',
                   }}
                 >
-                  {sharePublicly
+                  {eventVisibility === 'public'
                     ? 'Save & Share Publicly →'
-                    : 'Save to Calendar →'}
+                    : 'Save & Share with Friends →'}
                 </button>
                 <button
                   onClick={() => {
@@ -1845,7 +1817,7 @@ const AddModal = ({
                           }
                         : {}),
                     },
-                    false
+                    'public'
                   );
                   close();
                 }
