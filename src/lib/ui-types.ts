@@ -37,6 +37,7 @@ export interface Event {
   rawDate?: string;
   poolCount?: number;
   userInPool?: boolean;
+  socialLoaded?: boolean;
   createdAt?: string;
 }
 

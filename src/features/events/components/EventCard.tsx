@@ -218,21 +218,34 @@ const EventCard = ({
         </div>
 
         {/* Social preview */}
-        {(event.peopleDown.length > 0 || event.userInPool || event.isDown) && (
+        {(event.socialLoaded || event.isDown) && (
           <div
-            onClick={onOpenSocial}
+            onClick={event.socialLoaded ? onOpenSocial : undefined}
             style={{
               background: color.deep,
               borderRadius: 14,
               padding: "12px 14px",
               marginBottom: 12,
-              cursor: "pointer",
+              cursor: event.socialLoaded ? "pointer" : "default",
               border: `1px solid ${color.border}`,
               transition: "border-color 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = color.borderLight)}
+            onMouseEnter={(e) => event.socialLoaded && (e.currentTarget.style.borderColor = color.borderLight)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = color.border)}
           >
+            {!event.socialLoaded ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: "50%",
+                  background: color.borderLight,
+                  animation: "pulse 1.5s ease-in-out infinite",
+                  flexShrink: 0,
+                }} />
+                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>
+                  Loading...
+                </span>
+              </div>
+            ) : (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 {event.peopleDown.length > 0 && (
@@ -265,8 +278,8 @@ const EventCard = ({
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
                   {event.peopleDown.length === 0 && !event.userInPool ? (
-                    <span style={{ fontFamily: font.mono, fontSize: 11, color: event.isDown ? color.accent : color.pool }}>
-                      {event.isDown ? "You're down" : "Looking for a squad?"}
+                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.pool }}>
+                      Looking for a squad?
                     </span>
                   ) : hasPool || event.userInPool ? (
                     <>
@@ -323,6 +336,7 @@ const EventCard = ({
               </div>
               <span style={{ color: color.faint, fontSize: 16, flexShrink: 0 }}>→</span>
             </div>
+            )}
           </div>
         )}
 
