@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   // Run queries in parallel
-  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauPingsRes, pushSubscribersRes] = await Promise.all([
+  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauRpcRes, pushSubscribersRes] = await Promise.all([
     admin.from('profiles').select('*', { count: 'exact', head: true }),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', true),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', false),
@@ -55,26 +55,17 @@ export async function GET(request: NextRequest) {
       .gte('created_at', since7d)
       .order('created_at', { ascending: false })
       .limit(10000),
-    admin.from('version_pings')
-      .select('user_id, created_at')
-      .gte('created_at', since30d)
-      .limit(50000),
+    admin.rpc('get_dau', { p_since: since30d, p_tz: tz }),
     admin.from('push_subscriptions')
       .select('user_id'),
   ]);
 
-  // Compute DAU from version_pings (30 days), grouped by local date
-  const dauSets: Record<string, Set<string>> = {};
-  if (dauPingsRes.data) {
-    for (const row of dauPingsRes.data) {
-      const date = toLocalDate(row.created_at, tz);
-      if (!dauSets[date]) dauSets[date] = new Set();
-      dauSets[date].add(row.user_id);
-    }
-  }
+  // DAU from RPC — already grouped by date
   const dauByDate: Record<string, number> = {};
-  for (const [date, users] of Object.entries(dauSets)) {
-    dauByDate[date] = users.size;
+  if (dauRpcRes.data) {
+    for (const row of dauRpcRes.data as { date: string; unique_users: number }[]) {
+      dauByDate[row.date] = row.unique_users;
+    }
   }
 
   // Group signups by local date
