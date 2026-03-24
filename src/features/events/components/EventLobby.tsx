@@ -336,16 +336,32 @@ const EventLobby = ({
         >
           Who&rsquo;s down?
         </h3>
-        <p
-          style={{
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: poolCount > 0 ? 12 : 24 }}>
+          <p
+            style={{
+              fontFamily: font.mono,
+              fontSize: 11,
+              color: color.dim,
+              margin: 0,
+            }}
+          >
+            {event.title}
+          </p>
+          <span style={{
             fontFamily: font.mono,
-            fontSize: 11,
-            color: color.dim,
-            marginBottom: poolCount > 0 ? 12 : 24,
-          }}
-        >
-          {event.title}
-        </p>
+            fontSize: 9,
+            fontWeight: 700,
+            padding: "2px 6px",
+            borderRadius: 4,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            background: event.isPublic ? "rgba(255,255,255,0.08)" : "rgba(232,255,90,0.15)",
+            color: event.isPublic ? color.dim : color.accent,
+            flexShrink: 0,
+          }}>
+            {event.isPublic ? "public" : "friends & FoF"}
+          </span>
+        </div>
 
         {poolCount > 0 && (
           <div
