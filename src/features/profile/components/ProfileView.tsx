@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Profile } from "@/lib/types";
 import { font, color } from "@/lib/styles";
 import type { Friend, AvailabilityStatus } from "@/lib/ui-types";
@@ -37,6 +37,17 @@ const ProfileView = ({
     profile?.availability ?? "open"
   );
   const [expiry, setExpiry] = useState<string | null>(null);
+  const [isLatestBuild, setIsLatestBuild] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const buildId = process.env.NEXT_PUBLIC_BUILD_ID;
+    if (!buildId) return;
+    fetch("/api/version")
+      .then((r) => r.json())
+      .then(({ buildId: latest }) => setIsLatestBuild(!latest || latest === buildId))
+      .catch(() => {});
+  }, []);
+
   const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customExpiry, setCustomExpiry] = useState("");
@@ -749,6 +760,19 @@ const ProfileView = ({
         </div>
       )}
       <div
+        onContextMenu={(e) => e.preventDefault()}
+        onPointerDown={(e) => {
+          const el = e.currentTarget;
+          const timer = setTimeout(() => {
+            const buildId = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
+            navigator.clipboard.writeText(buildId).then(() => {
+              showToast?.("Build ID copied");
+            }).catch(() => {});
+          }, 500);
+          const cancel = () => { clearTimeout(timer); el.removeEventListener("pointerup", cancel); el.removeEventListener("pointerleave", cancel); };
+          el.addEventListener("pointerup", cancel);
+          el.addEventListener("pointerleave", cancel);
+        }}
         style={{
           padding: "14px 0",
           borderBottom: `1px solid ${color.border}`,
@@ -757,11 +781,30 @@ const ProfileView = ({
           color: color.muted,
           display: "flex",
           justifyContent: "space-between",
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
         <span>About</span>
-        <span style={{ color: color.faint, fontSize: 11 }}>
-          v{(process.env.NEXT_PUBLIC_BUILD_ID ?? "dev").slice(0, 7)}
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {isLatestBuild && (
+            <span style={{
+              background: "rgba(232,255,90,0.15)",
+              color: color.accent,
+              fontFamily: font.mono,
+              fontSize: 9,
+              fontWeight: 700,
+              padding: "2px 6px",
+              borderRadius: 4,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+            }}>
+              latest
+            </span>
+          )}
+          <span style={{ color: color.faint, fontSize: 11 }}>
+            v{(process.env.NEXT_PUBLIC_BUILD_ID ?? "dev").slice(0, 7)}
+          </span>
         </span>
       </div>
       <div
