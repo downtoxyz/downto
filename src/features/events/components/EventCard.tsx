@@ -302,7 +302,19 @@ const EventCard = ({
                 <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
                   {event.peopleDown.length === 0 && !event.userInPool ? (
                     <span style={{ fontFamily: font.mono, fontSize: 11, color: color.pool }}>
-                      Looking for a squad?
+                      Looking for a squad?{" "}
+                      <span style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        padding: "1px 4px",
+                        borderRadius: 3,
+                        background: event.isPublic ? "rgba(255,255,255,0.06)" : "rgba(232,255,90,0.12)",
+                        color: event.isPublic ? color.faint : color.accent,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                      }}>
+                        {event.isPublic ? "public" : "friends"}
+                      </span>
                     </span>
                   ) : hasPool || event.userInPool ? (
                     <>
