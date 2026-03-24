@@ -122,8 +122,8 @@ const EventCard = ({
           )}
         </div>
 
-        {/* Metadata line: date · time · venue */}
-        <div className="flex items-baseline gap-1 mb-2 flex-wrap">
+        {/* Metadata line: date · time · venue · visibility */}
+        <div className="flex items-center gap-1 mb-2 flex-wrap">
           <span style={{ fontFamily: font.mono, fontSize: 12, color: color.accent }}>
             {event.date}
             {event.time && event.time !== "TBD" && ` · ${event.time}`}
@@ -133,6 +133,20 @@ const EventCard = ({
               {" "}· {event.venue}
             </span>
           )}
+          <span style={{
+            fontFamily: font.mono,
+            fontSize: 9,
+            fontWeight: 700,
+            padding: "1px 5px",
+            borderRadius: 3,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginLeft: 4,
+            background: event.isPublic ? "rgba(255,255,255,0.06)" : "rgba(232,255,90,0.12)",
+            color: event.isPublic ? color.faint : color.accent,
+          }}>
+            {event.isPublic ? "public" : "friends"}
+          </span>
         </div>
 
         {/* Poster attribution */}
