@@ -643,7 +643,7 @@ export default function Home() {
 
   // ─── AddModal submit handler ──────────────────────────────────────────────
 
-  const handleAddModalSubmit = async (e: ScrapedEvent, sharePublicly: boolean) => {
+  const handleAddModalSubmit = async (e: ScrapedEvent, visibility: 'public' | 'friends') => {
     const rawTitle = e.type === "movie" ? (e.movieTitle || e.title) : e.title;
     const title = sanitize(rawTitle, 100);
     if (!title) { showToast("Event needs a title"); return; }
@@ -696,7 +696,8 @@ export default function Home() {
             letterboxd_url: letterboxdUrl,
             movie_metadata: movieMetadata,
             note: eventNote,
-            is_public: sharePublicly,
+            is_public: visibility === 'public',
+            visibility,
             created_by: userId,
           });
         }
@@ -730,7 +731,8 @@ export default function Home() {
           note: dbEvent.note ?? eventNote ?? undefined,
           saved: true,
           isDown: true,
-          isPublic: dbEvent.is_public ?? sharePublicly,
+          isPublic: dbEvent.is_public ?? (visibility === 'public'),
+          visibility: dbEvent.visibility ?? visibility,
           peopleDown: [],
         };
         setEvents((prev) => [newEvent, ...prev]);
@@ -761,7 +763,8 @@ export default function Home() {
         note: eventNote ?? undefined,
         saved: true,
         isDown: true,
-        isPublic: sharePublicly,
+        isPublic: visibility === 'public',
+        visibility,
         peopleDown: [],
       };
       setEvents((prev) => [newEvent, ...prev]);

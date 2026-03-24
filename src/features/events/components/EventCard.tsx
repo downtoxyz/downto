@@ -6,6 +6,7 @@ import type { Event } from "@/lib/ui-types";
 
 const EventCard = ({
   event,
+  userId,
   onToggleSave,
   onToggleDown,
   onOpenSocial,
@@ -13,6 +14,7 @@ const EventCard = ({
   isNew,
 }: {
   event: Event;
+  userId?: string | null;
   onToggleSave: () => void;
   onToggleDown: () => void;
   onOpenSocial: () => void;
@@ -109,6 +111,33 @@ const EventCard = ({
             </span>
           )}
         </div>
+
+        {/* Poster attribution */}
+        {event.posterName && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                background: event.createdBy === userId ? color.accent : color.borderLight,
+                color: event.createdBy === userId ? "#000" : color.dim,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: font.mono,
+                fontSize: 8,
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              {event.posterAvatar || event.posterName[0]?.toUpperCase()}
+            </div>
+            <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
+              {event.createdBy === userId ? "You" : event.posterName}
+            </span>
+          </div>
+        )}
 
         {/* Note */}
         {event.note && (

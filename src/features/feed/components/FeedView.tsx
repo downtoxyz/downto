@@ -220,6 +220,7 @@ export default function FeedView({
                 <EventCard
                   key={item.data.id}
                   event={item.data}
+                  userId={userId}
                   onToggleSave={() => toggleSave(item.data.id)}
                   onToggleDown={() => toggleDown(item.data.id)}
                   onOpenSocial={() => onOpenSocial(item.data)}

@@ -545,6 +545,7 @@ const CalendarView = ({
             />
             <EventCard
               event={selectedEvent}
+              userId={userId}
               onToggleSave={() => onToggleSave?.(selectedEvent.id)}
               onToggleDown={() => onToggleDown?.(selectedEvent.id)}
               onOpenSocial={() => onOpenSocial?.(selectedEvent)}

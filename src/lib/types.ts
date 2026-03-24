@@ -39,8 +39,11 @@ export interface Event {
   } | null;
   note: string | null;
   is_public: boolean;
+  visibility: 'public' | 'friends';
   created_by: string | null;
   created_at: string;
+  // Joined data
+  creator?: { display_name: string; avatar_letter: string } | null;
 }
 
 export interface SavedEvent {
@@ -188,12 +191,13 @@ export interface SquadJoinRequest {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'friend_request' | 'friend_accepted' | 'check_response' | 'squad_message' | 'squad_invite' | 'friend_check' | 'date_confirm' | 'check_tag' | 'check_comment' | 'poll_created' | 'squad_join_request' | 'squad_mention' | 'comment_mention';
+  type: 'friend_request' | 'friend_accepted' | 'check_response' | 'squad_message' | 'squad_invite' | 'friend_check' | 'date_confirm' | 'check_tag' | 'check_comment' | 'poll_created' | 'squad_join_request' | 'squad_mention' | 'comment_mention' | 'friend_event';
   title: string;
   body: string | null;
   related_user_id: string | null;
   related_squad_id: string | null;
   related_check_id: string | null;
+  related_event_id: string | null;
   is_read: boolean;
   created_at: string;
   // Joined data
