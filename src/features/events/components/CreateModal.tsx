@@ -615,6 +615,7 @@ const AddModal = ({
                       placeholder="Date"
                       style={{
                         flex: 1,
+                        minWidth: 0,
                         background: color.surface,
                         border: `1px solid ${color.borderMid}`,
                         borderRadius: 10,
@@ -623,6 +624,7 @@ const AddModal = ({
                         fontFamily: font.mono,
                         fontSize: 12,
                         outline: 'none',
+                        boxSizing: 'border-box',
                       }}
                     />
                     <input
@@ -634,6 +636,7 @@ const AddModal = ({
                       placeholder="Time"
                       style={{
                         flex: 1,
+                        minWidth: 0,
                         background: color.surface,
                         border: `1px solid ${color.borderMid}`,
                         borderRadius: 10,
@@ -642,6 +645,7 @@ const AddModal = ({
                         fontFamily: font.mono,
                         fontSize: 12,
                         outline: 'none',
+                        boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -717,8 +721,8 @@ const AddModal = ({
                   }}
                 >
                   {([
-                    { value: 'public' as const, label: 'Public', desc: 'Everyone' },
-                    { value: 'friends' as const, label: 'Friends', desc: 'Friends & FoF' },
+                    { value: 'public' as const, label: 'Public', desc: 'Everyone on down to' },
+                    { value: 'friends' as const, label: 'Friends', desc: 'Friends & friends of friends' },
                   ]).map((opt) => (
                     <button
                       key={opt.value}
