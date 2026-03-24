@@ -123,6 +123,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
         peopleDown: enrichedPd,
         poolCount,
         userInPool: userPoolEventIds.has(e.id),
+        socialLoaded: true,
       };
     };
 
