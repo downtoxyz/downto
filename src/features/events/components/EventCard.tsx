@@ -201,9 +201,15 @@ const EventCard = ({
                 {event.time && event.time !== "TBD" && ` ${event.time}`}
               </span>
               {event.venue && event.venue !== "TBD" && (
-                <div style={{ fontFamily: font.mono, fontSize: 12, color: color.dim, marginTop: 2 }}>
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ fontFamily: font.mono, fontSize: 12, color: color.dim, marginTop: 2, display: "block", textDecoration: "none" }}
+                >
                   {event.venue}
-                </div>
+                </a>
               )}
             </div>
 
@@ -674,7 +680,15 @@ function SheetHero(props: SheetProps) {
           {event.date}{event.time && event.time !== "TBD" && ` ${event.time}`}
         </span>
         {event.venue && event.venue !== "TBD" && (
-          <span style={{ fontFamily: font.mono, fontSize: 12, color: color.dim }}>{event.venue}</span>
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{ fontFamily: font.mono, fontSize: 12, color: color.dim, textDecoration: "none" }}
+          >
+            {event.venue}
+          </a>
         )}
         <span style={{ fontFamily: font.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.06em", background: event.isPublic ? "rgba(255,255,255,0.06)" : "rgba(232,255,90,0.12)", color: event.isPublic ? color.faint : color.accent }}>
           {event.isPublic ? "public" : "friends"}

@@ -248,9 +248,24 @@ export default function CheckCard({
             </div>
             {(check.eventDateLabel || check.eventTime || check.location) && (() => {
               const when = [check.eventDateLabel, check.eventTime].filter(Boolean).join(" ");
-              const parts = [when, check.location].filter(Boolean);
-              if (parts.length === 0) return null;
-              return <p className="font-mono text-xs text-neutral-500 m-0 mt-2">{parts.join(" · ")}</p>;
+              if (!when && !check.location) return null;
+              return (
+                <p className="font-mono text-xs text-neutral-500 m-0 mt-2">
+                  {when}
+                  {when && check.location && " · "}
+                  {check.location && (
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(check.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ color: "inherit", textDecoration: "none" }}
+                    >
+                      {check.location}
+                    </a>
+                  )}
+                </p>
+              );
             })()}
             {(check.isYours || check.isCoAuthor) && !check.squadId && myCheckResponses[check.id] !== "down" && check.responses.some(r => r.status === "down") && (
               <button
