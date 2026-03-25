@@ -30,6 +30,7 @@ export interface Event {
   ig_url: string | null;
   dice_url: string | null;
   letterboxd_url: string | null;
+  ra_url: string | null;
   movie_metadata: {
     title: string;
     year?: string;
@@ -81,6 +82,7 @@ export interface InterestCheck {
   location: string | null;
   max_squad_size: number;
   letterboxd_url: string | null;
+  ra_url: string | null;
   movie_metadata: {
     title: string;
     year?: string;

@@ -239,13 +239,15 @@ const AddModal = ({
       setEventVisibility(data.isPublicPost ? 'public' : 'public');
 
       // Check for existing event with this IG/Dice URL → social signal
-      if (data.igUrl || data.diceUrl) {
+      if (data.igUrl || data.diceUrl || data.raUrl) {
         try {
           const existingEvent = data.igUrl
             ? await db.findEventByIgUrl(data.igUrl)
             : data.diceUrl
               ? await db.findEventByDiceUrl(data.diceUrl)
-              : null;
+              : data.raUrl
+                ? await db.findEventByRaUrl(data.raUrl)
+                : null;
           if (existingEvent) {
             const signal = await db.getEventSocialSignal(existingEvent.id);
             if (signal.totalDown > 0) {

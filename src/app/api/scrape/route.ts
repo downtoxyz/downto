@@ -237,6 +237,170 @@ async function scrapeLetterboxd(url: string) {
   };
 }
 
+// Scrape Resident Advisor event page via Apify
+async function scrapeRA(url: string) {
+  const apifyToken = process.env.APIFY_TOKEN;
+
+  // Try Apify RA scraper first
+  if (apifyToken) {
+    try {
+      const apifyRes = await fetch(
+        `https://api.apify.com/v2/acts/YdJ5E7Ofhy8QgcXUs/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            startUrls: [{ url }],
+            maxItems: 1,
+          }),
+        }
+      );
+
+      if (apifyRes.ok) {
+        const items = await apifyRes.json();
+        if (Array.isArray(items) && items.length > 0) {
+          const event = items[0];
+
+          const title = strip(event.title || event.name || "").slice(0, 100) || "Event";
+          const venue = strip(event.venue?.name || event.venueName || event.location || "TBD").slice(0, 100);
+
+          let date = "TBD";
+          let time = "TBD";
+          const startDate = event.startDate || event.date || event.startTime;
+          if (startDate) {
+            try {
+              const d = new Date(startDate);
+              if (!isNaN(d.getTime())) {
+                date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).toUpperCase();
+              }
+            } catch { /* use TBD */ }
+          }
+
+          const image = event.image || event.imageUrl || event.flyerFront || "";
+          const raSlug = url.match(/\/events\/(\d+)/i)?.[1] || url.match(/\/event\/(\d+)/i)?.[1] || 'ra-event';
+          const thumbnail = await uploadEventImage(image, `ra-${raSlug}`);
+
+          // Infer vibes from lineup, genres, or title
+          const fullText = `${title} ${event.lineup?.join(' ') || ''} ${event.genres?.join(' ') || ''} ${event.description || ''}`.toLowerCase();
+          const vibeKeywords: Record<string, string> = {
+            'techno': 'techno', 'house': 'house', 'drum and bass': 'drum & bass',
+            'drum & bass': 'drum & bass', 'dnb': 'drum & bass', 'trance': 'trance',
+            'ambient': 'ambient', 'electronic': 'electronic', 'disco': 'disco',
+            'garage': 'garage', 'bass': 'bass', 'minimal': 'minimal',
+            'dj': 'dj set', 'live': 'live music', 'jazz': 'jazz',
+          };
+          const vibes: string[] = [];
+          for (const [keyword, vibe] of Object.entries(vibeKeywords)) {
+            if (fullText.includes(keyword) && !vibes.includes(vibe)) {
+              vibes.push(vibe);
+              if (vibes.length >= 3) break;
+            }
+          }
+
+          return {
+            type: "event" as const,
+            title,
+            venue,
+            date: strip(date).slice(0, 50),
+            time: strip(time).slice(0, 50),
+            vibe: vibes.length > 0 ? vibes : ['event'],
+            igHandle: "",
+            thumbnail,
+            isPublicPost: true,
+            raUrl: url,
+          };
+        }
+      }
+    } catch (err) {
+      logError("scrape:ra:apify", err);
+    }
+  }
+
+  // Fallback: direct HTML fetch with JSON-LD / OG parsing
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not fetch RA event page");
+  }
+
+  const html = await response.text();
+
+  let title = "";
+  let venue = "TBD";
+  let date = "TBD";
+  let time = "TBD";
+  let image = "";
+
+  // Try JSON-LD
+  const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
+  if (jsonLdMatch) {
+    try {
+      const jsonLd = JSON.parse(jsonLdMatch[1]);
+      const eventData = Array.isArray(jsonLd)
+        ? jsonLd.find((item: Record<string, unknown>) => item['@type'] === 'MusicEvent' || item['@type'] === 'Event' || item['@type'] === 'DanceEvent')
+        : (['MusicEvent', 'Event', 'DanceEvent'].includes(jsonLd['@type']) ? jsonLd : null);
+
+      if (eventData) {
+        title = eventData.name || "";
+        if (eventData.location?.name) venue = eventData.location.name;
+        if (eventData.startDate) {
+          const d = new Date(eventData.startDate);
+          date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+          time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).toUpperCase();
+        }
+        if (eventData.image) {
+          image = Array.isArray(eventData.image) ? eventData.image[0] : eventData.image;
+        }
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Fallback: OG tags
+  if (!title) {
+    const ogTitle = html.match(/<meta property="og:title" content="([^"]+)"/i);
+    if (ogTitle) title = strip(ogTitle[1]);
+  }
+  if (!image) {
+    const ogImage = html.match(/<meta property="og:image" content="([^"]+)"/i);
+    if (ogImage) image = ogImage[1];
+  }
+
+  const raSlug = url.match(/\/events\/(\d+)/i)?.[1] || url.match(/\/event\/(\d+)/i)?.[1] || 'ra-event';
+  const thumbnail = await uploadEventImage(image, `ra-${raSlug}`);
+
+  const fullText = `${title} ${html.substring(0, 5000)}`.toLowerCase();
+  const vibeKeywords: Record<string, string> = {
+    'techno': 'techno', 'house': 'house', 'drum and bass': 'drum & bass',
+    'trance': 'trance', 'ambient': 'ambient', 'electronic': 'electronic',
+    'disco': 'disco', 'garage': 'garage', 'minimal': 'minimal',
+  };
+  const vibes: string[] = [];
+  for (const [keyword, vibe] of Object.entries(vibeKeywords)) {
+    if (fullText.includes(keyword) && !vibes.includes(vibe)) {
+      vibes.push(vibe);
+      if (vibes.length >= 3) break;
+    }
+  }
+
+  return {
+    type: "event" as const,
+    title: strip(title).slice(0, 100) || "Event",
+    venue: strip(venue).slice(0, 100),
+    date: strip(date).slice(0, 50),
+    time: strip(time).slice(0, 50),
+    vibe: vibes.length > 0 ? vibes : ['event'],
+    igHandle: "",
+    thumbnail,
+    isPublicPost: true,
+    raUrl: url,
+  };
+}
+
 // Scrape Dice.fm event page
 async function scrapeDice(url: string) {
   const response = await fetch(url, {
@@ -413,13 +577,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(diceData);
     }
 
+    // Check if it's a Resident Advisor URL
+    const raPattern = /ra\.co\/(events|event)\/\d+/i;
+    if (raPattern.test(url)) {
+      const raData = await scrapeRA(url);
+      return NextResponse.json(raData);
+    }
+
     // Check if it's an Instagram URL
     const igUrlPattern = /instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/;
     const igMatch = url.match(igUrlPattern);
 
     if (!igMatch) {
       return NextResponse.json({
-        error: "Unsupported URL. Try an Instagram, Letterboxd, or Dice link."
+        error: "Unsupported URL. Try an Instagram, Letterboxd, Dice, or RA link."
       }, { status: 400 });
     }
 

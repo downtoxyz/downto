@@ -92,6 +92,7 @@ export interface ScrapedEvent {
   thumbnail?: string;
   letterboxdUrl?: string;
   diceUrl?: string;
+  raUrl?: string;
   note?: string;
 }
 

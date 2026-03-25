@@ -222,6 +222,16 @@ export async function findEventByLetterboxdUrl(letterboxdUrl: string): Promise<i
   return data;
 }
 
+export async function findEventByRaUrl(raUrl: string): Promise<import('./types').Event | null> {
+  const { data } = await supabase
+    .from('events')
+    .select('*')
+    .eq('ra_url', raUrl)
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
 // ============================================================================
 // SAVED EVENTS
 // ============================================================================

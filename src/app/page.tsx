@@ -660,6 +660,7 @@ export default function Home() {
     const igUrl = e.igUrl || null;
     const diceUrl = e.diceUrl || null;
     const letterboxdUrl = e.letterboxdUrl || null;
+    const raUrl = e.raUrl || null;
     const eventNote = e.note ? sanitize(e.note, 200) : null;
     const movieMetadata = e.type === "movie" && e.movieTitle
       ? { title: e.movieTitle, year: e.year, director: e.director, thumbnail: e.thumbnail, vibes: e.vibe }
@@ -674,6 +675,8 @@ export default function Home() {
           dbEvent = await db.findEventByDiceUrl(diceUrl);
         } else if (letterboxdUrl) {
           dbEvent = await db.findEventByLetterboxdUrl(letterboxdUrl);
+        } else if (raUrl) {
+          dbEvent = await db.findEventByRaUrl(raUrl);
         }
 
         if (dbEvent && imageUrl && dbEvent.image_url !== imageUrl) {
@@ -699,6 +702,7 @@ export default function Home() {
             ig_url: igUrl,
             dice_url: diceUrl,
             letterboxd_url: letterboxdUrl,
+            ra_url: raUrl,
             movie_metadata: movieMetadata,
             note: eventNote,
             is_public: visibility === 'public',
