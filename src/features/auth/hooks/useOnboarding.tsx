@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck, Tab, Friend } from "@/lib/ui-types";
-import { isIOSNotStandalone } from "@/lib/pushNotifications";
+import { isIOSNotStandalone, isPushSupported } from "@/lib/pushNotifications";
 import AuthScreen from "@/features/auth/components/AuthScreen";
 import ProfileSetupScreen from "@/features/auth/components/ProfileSetupScreen";
 import EnableNotificationsScreen, { IOSInstallScreen } from "@/features/auth/components/EnableNotificationsScreen";
@@ -360,12 +360,15 @@ export function useOnboarding({
         }
         // Fall through to feed wait → friend gate (no install/notifications screens)
       } else {
-        // Normal flow: show install prompt and notifications screen
-        if (!isInPWA && !installDismissed) {
+        // Normal flow: show install prompt for iOS non-standalone, then notifications
+        if (!isInPWA && !installDismissed && isIOSNotStandalone()) {
           return <IOSInstallScreen onComplete={dismissInstall} />;
         }
 
-        if (!notificationsDone && isInPWA) {
+        // Show notifications screen for any browser that supports push
+        // (PWA on iOS, Chrome/Firefox/Safari on desktop or Android)
+        const canShowNotifications = isInPWA || isPushSupported();
+        if (!notificationsDone && canShowNotifications) {
           return (
             <EnableNotificationsScreen
               onComplete={async () => {
