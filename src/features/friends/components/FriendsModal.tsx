@@ -802,6 +802,9 @@ const FriendsModal = ({
                           }}
                         >
                           @{f.username}
+                          {f.mutualFriendName && (
+                            <span style={{ color: color.accent, marginLeft: 6 }}>via {f.mutualFriendName}</span>
+                          )}
                         </div>
                       </div>
                       <button

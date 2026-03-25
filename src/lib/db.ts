@@ -520,11 +520,27 @@ export async function getOutgoingPendingIds(): Promise<string[]> {
   return (data ?? []).map((r) => r.addressee_id);
 }
 
-export async function getSuggestedUsers(): Promise<Profile[]> {
+export async function getSuggestedUsers(): Promise<(Profile & { mutualFriendName?: string })[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // Get all users the current user has any friendship with (pending or accepted)
+  // Try friends-of-friends first
+  const { data: fofData } = await supabase.rpc('get_friends_of_friends');
+  if (fofData && fofData.length > 0) {
+    // Fetch profiles for the suggested users
+    const fofIds = fofData.map((r: { suggested_user_id: string }) => r.suggested_user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', fofIds);
+
+    if (profiles && profiles.length > 0) {
+      const nameMap = new Map(fofData.map((r: { suggested_user_id: string; mutual_friend_name: string }) => [r.suggested_user_id, r.mutual_friend_name]));
+      return profiles.map((p) => ({ ...p, mutualFriendName: nameMap.get(p.id) ?? undefined }));
+    }
+  }
+
+  // Fallback: random non-friend users (for users with no friends yet)
   const { data: friendships } = await supabase
     .from('friendships')
     .select('requester_id, addressee_id')

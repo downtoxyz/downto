@@ -25,7 +25,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
   const hydrateFriends = useCallback((
     friendsList: Awaited<ReturnType<typeof db.getFriends>>,
     pendingRequests: Awaited<ReturnType<typeof db.getPendingRequests>>,
-    suggestedUsers: Profile[],
+    suggestedUsers: (Profile & { mutualFriendName?: string })[],
     outgoingRequests: { profile: Profile; friendshipId: string }[] = []
   ) => {
     const transformedFriends: Friend[] = friendsList.map(({ profile: p, friendshipId }) => ({
@@ -65,6 +65,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
       avatar: p.avatar_letter,
       status: "none" as const,
       igHandle: p.ig_handle ?? undefined,
+      mutualFriendName: p.mutualFriendName,
     }));
     setSuggestions([...incomingFriends, ...outgoingFriends, ...suggestedFriends]);
   }, []);

@@ -135,6 +135,7 @@ export interface Friend {
   status: "friend" | "pending" | "incoming" | "none";
   availability?: "open" | "awkward" | "not-available";
   igHandle?: string;
+  mutualFriendName?: string;
 }
 
 export type AvailabilityStatus = "open" | "not-available" | "awkward";
