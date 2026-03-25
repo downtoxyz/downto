@@ -10,7 +10,7 @@ import FeedEmptyState from "./FeedEmptyState";
 import InstallBanner from "./InstallBanner";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
 
-function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: boolean; coAuthors?: { name: string }[] }) {
+function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: string; dimmed?: boolean; coAuthors?: { name: string; userId?: string }[]; onViewProfile?: (userId: string) => void }) {
   const tokenRe = /(https?:\/\/[^\s),]+|@\S+)/g;
   const parts = children.split(tokenRe);
   if (parts.length === 1) return <>{children}</>;
@@ -36,7 +36,17 @@ function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: b
         if (/^@\S+/.test(part)) {
           const mention = part.slice(1).toLowerCase();
           const matched = coAuthors?.find(ca => ca.name.toLowerCase() === mention || ca.name.split(" ")[0]?.toLowerCase() === mention);
-          return <span key={i} className="text-dt font-semibold">@{matched ? matched.name : part.slice(1)}</span>;
+          const canTap = matched?.userId && onViewProfile;
+          return (
+            <span
+              key={i}
+              className="text-dt font-semibold"
+              style={canTap ? { cursor: "pointer" } : undefined}
+              onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(matched!.userId!); } : undefined}
+            >
+              @{matched ? matched.name : part.slice(1)}
+            </span>
+          );
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
       })}
@@ -225,6 +235,7 @@ export default function FeedView({
                   onToggleDown={() => toggleDown(item.data.id)}
                   onOpenSocial={() => onOpenSocial(item.data)}
                   onLongPress={(item.data.createdBy === userId || !item.data.createdBy || isDemoMode) ? () => onEditEvent(item.data) : undefined}
+                  onViewProfile={onViewProfile}
                   isNew={item.data.id === newlyAddedEventId}
                 />
               )
@@ -257,7 +268,7 @@ export default function FeedView({
                           </span>
                         </div>
                         <p className="font-serif text-base text-neutral-500 m-0 leading-snug">
-                          <Linkify dimmed coAuthors={check.coAuthors}>{check.text}</Linkify>
+                          <Linkify dimmed coAuthors={check.coAuthors} onViewProfile={onViewProfile}>{check.text}</Linkify>
                         </p>
                       </div>
                       <button

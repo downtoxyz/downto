@@ -11,7 +11,7 @@ import EditCheckModal from "./EditCheckModal";
 import CheckActionsSheet from "./CheckActionsSheet";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
 
-function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: boolean; coAuthors?: { name: string }[] }) {
+function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: string; dimmed?: boolean; coAuthors?: { name: string; userId?: string }[]; onViewProfile?: (userId: string) => void }) {
   const tokenRe = /(https?:\/\/[^\s),]+|@\S+)/g;
   const parts = children.split(tokenRe);
   if (parts.length === 1) return <>{children}</>;
@@ -39,7 +39,17 @@ function Linkify({ children, dimmed, coAuthors }: { children: string; dimmed?: b
         if (/^@\S+/.test(part)) {
           const mention = part.slice(1).toLowerCase();
           const matched = coAuthors?.find(ca => ca.name.toLowerCase() === mention || ca.name.split(" ")[0]?.toLowerCase() === mention);
-          return <span key={i} className="text-dt font-semibold">@{matched ? matched.name : part.slice(1)}</span>;
+          const canTap = matched?.userId && onViewProfile;
+          return (
+            <span
+              key={i}
+              className="text-dt font-semibold"
+              style={canTap ? { cursor: "pointer" } : undefined}
+              onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(matched!.userId!); } : undefined}
+            >
+              @{matched ? matched.name : part.slice(1)}
+            </span>
+          );
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
       })}
@@ -227,7 +237,7 @@ export default function CheckCard({
           <div className="mb-3">
             <div className="flex items-start gap-1.5">
               <p className="font-serif text-lg text-white m-0 font-normal leading-snug flex-1">
-                <Linkify coAuthors={check.coAuthors}>{check.text}</Linkify>
+                <Linkify coAuthors={check.coAuthors} onViewProfile={onViewProfile}>{check.text}</Linkify>
               </p>
               {(check.isYours || check.isCoAuthor) && (
                 <button

@@ -12,6 +12,7 @@ const EventCard = ({
   onToggleDown,
   onOpenSocial,
   onLongPress,
+  onViewProfile,
   isNew,
 }: {
   event: Event;
@@ -20,6 +21,7 @@ const EventCard = ({
   onToggleDown: () => void;
   onOpenSocial: () => void;
   onLongPress?: () => void;
+  onViewProfile?: (userId: string) => void;
   isNew?: boolean;
 }) => {
   const [hovered, setHovered] = useState(false);
@@ -125,6 +127,7 @@ const EventCard = ({
           hasPool={hasPool}
           actionButtons={actionButtons}
           onOpenSocial={onOpenSocial}
+          onViewProfile={onViewProfile}
           onClose={() => setShowDetail(false)}
         />
       )}
@@ -254,7 +257,7 @@ interface Person { name: string; avatar: string; mutual?: boolean; inPool?: bool
 function EventDetailSheet({
   event, userId, sourceLink, hasDetails,
   poolPeople, poolFriends, poolStrangerCount, nonPoolFriends, mutuals, others, hasPool,
-  actionButtons, onOpenSocial, onClose,
+  actionButtons, onOpenSocial, onViewProfile, onClose,
 }: {
   event: Event;
   userId?: string | null;
@@ -264,6 +267,7 @@ function EventDetailSheet({
   nonPoolFriends: Person[]; mutuals: Person[]; others: Person[]; hasPool: boolean;
   actionButtons: React.ReactNode;
   onOpenSocial: () => void;
+  onViewProfile?: (userId: string) => void;
   onClose: () => void;
 }) {
   const { visible, entering, closing, close } = useModalTransition(true, onClose);
@@ -381,7 +385,7 @@ function EventDetailSheet({
             event={event} userId={userId} sourceLink={sourceLink}
             poolPeople={poolPeople} poolFriends={poolFriends} poolStrangerCount={poolStrangerCount}
             nonPoolFriends={nonPoolFriends} mutuals={mutuals} others={others} hasPool={hasPool}
-            actionButtons={actionButtons} onOpenSocial={onOpenSocial}
+            actionButtons={actionButtons} onOpenSocial={onOpenSocial} onViewProfile={onViewProfile}
           />
         </div>
       </div>
@@ -400,25 +404,35 @@ interface SheetProps {
   nonPoolFriends: Person[]; mutuals: Person[]; others: Person[]; hasPool: boolean;
   actionButtons: React.ReactNode;
   onOpenSocial: () => void;
+  onViewProfile?: (userId: string) => void;
 }
 
 // Poster inline element (with optional note flowing on same line)
-function PosterInline({ event, userId, note }: { event: Event; userId?: string | null; note?: boolean }) {
+function PosterInline({ event, userId, note, onViewProfile }: { event: Event; userId?: string | null; note?: boolean; onViewProfile?: (userId: string) => void }) {
   if (!event.posterName) return null;
   const name = event.createdBy === userId ? "You" : event.posterName;
+  const canTap = event.createdBy && event.createdBy !== userId && onViewProfile;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <div style={{
-        width: 20, height: 20, borderRadius: "50%",
-        background: event.createdBy === userId ? color.accent : color.borderLight,
-        color: event.createdBy === userId ? "#000" : color.dim,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: font.mono, fontSize: 8, fontWeight: 700, flexShrink: 0,
-      }}>
+      <div
+        onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(event.createdBy!); } : undefined}
+        style={{
+          width: 20, height: 20, borderRadius: "50%",
+          background: event.createdBy === userId ? color.accent : color.borderLight,
+          color: event.createdBy === userId ? "#000" : color.dim,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: font.mono, fontSize: 8, fontWeight: 700, flexShrink: 0,
+          cursor: canTap ? "pointer" : "default",
+        }}>
         {event.posterAvatar || event.posterName[0]?.toUpperCase()}
       </div>
       <div style={{ fontFamily: font.mono, fontSize: 11, lineHeight: 1.5, minWidth: 0 }}>
-        <span style={{ color: color.muted, fontWeight: 700 }}>{name}</span>
+        <span
+          onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(event.createdBy!); } : undefined}
+          style={{ color: color.muted, fontWeight: 700, cursor: canTap ? "pointer" : "default" }}
+        >
+          {name}
+        </span>
         {note && event.note && (
           <span style={{ color: color.dim }}>{" "}{event.note}</span>
         )}
@@ -621,7 +635,7 @@ function SheetHero(props: SheetProps) {
       {(event.posterName || event.note || sourceLink) && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <PosterInline event={event} userId={userId} note />
+            <PosterInline event={event} userId={userId} note onViewProfile={props.onViewProfile} />
             {!event.posterName && event.note && (
               <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, lineHeight: 1.5 }}>
                 {event.note}
