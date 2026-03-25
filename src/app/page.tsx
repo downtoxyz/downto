@@ -681,12 +681,17 @@ export default function Home() {
         }
 
         if (!dbEvent) {
+          const dateISO = parseDateToISO(dateDisplay);
+          // Compute date_display from ISO date to ensure correct day-of-week
+          const computedDateDisplay = dateISO
+            ? new Date(dateISO + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+            : dateDisplay;
           dbEvent = await db.createEvent({
             title,
             venue,
             neighborhood: null,
-            date: parseDateToISO(dateDisplay),
-            date_display: dateDisplay,
+            date: dateISO,
+            date_display: computedDateDisplay,
             time_display: timeDisplay,
             vibes,
             image_url: imageUrl,
