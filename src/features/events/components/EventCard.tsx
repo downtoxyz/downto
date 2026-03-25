@@ -207,8 +207,58 @@ const EventCard = ({
               )}
             </div>
 
-            {/* Inline social hint — avatar stack + count */}
-            {event.socialLoaded && event.peopleDown.length > 0 && (
+            {/* Inline social hint — placeholder while loading, avatar stack when loaded */}
+            {event.isDown && (
+              <div style={{ height: 22, marginBottom: 12 }}>
+                {!event.socialLoaded ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: "50%",
+                      background: color.borderLight,
+                      animation: "pulse 1.5s ease-in-out infinite",
+                    }} />
+                    <div style={{
+                      width: 60, height: 10, borderRadius: 4,
+                      background: color.borderLight,
+                      animation: "pulse 1.5s ease-in-out infinite",
+                    }} />
+                  </div>
+                ) : event.peopleDown.length > 0 ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", flexShrink: 0 }}>
+                      {event.peopleDown.slice(0, 3).map((p, i) => (
+                        <div
+                          key={p.name}
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: "50%",
+                            background: p.mutual ? color.accent : color.borderLight,
+                            color: p.mutual ? "#000" : color.dim,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: font.mono,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            marginLeft: i > 0 ? -6 : 0,
+                            border: `2px solid ${color.deep}`,
+                            position: "relative",
+                            zIndex: 3 - i,
+                          }}
+                        >
+                          {p.avatar}
+                        </div>
+                      ))}
+                    </div>
+                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                      {event.peopleDown.length} down →
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+            {!event.isDown && event.socialLoaded && event.peopleDown.length > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <div style={{ display: "flex", flexShrink: 0 }}>
                   {event.peopleDown.slice(0, 3).map((p, i) => (
