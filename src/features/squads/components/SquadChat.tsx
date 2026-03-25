@@ -94,6 +94,10 @@ const SquadChat = ({
   // Notify parent when chat opens/closes + block scroll-through on iOS PWA
   useEffect(() => {
     onChatOpen?.(true);
+    let touchStartY = 0;
+    const recordTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
     const blockTouch = (e: TouchEvent) => {
       const target = e.target as Node;
       // Find the nearest scrollable ancestor inside the chat
@@ -101,15 +105,26 @@ const SquadChat = ({
       while (el && el !== chatContainerRef.current) {
         const style = window.getComputedStyle(el);
         const isScrollable = (style.overflowY === "auto" || style.overflowY === "scroll") && el.scrollHeight > el.clientHeight;
-        if (isScrollable) return; // allow scroll inside scrollable areas (messages list)
+        if (isScrollable) {
+          // Block if at scroll boundary to prevent the whole container from moving
+          const atTop = el.scrollTop <= 0;
+          const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+          const deltaY = e.touches[0].clientY - touchStartY;
+          if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
+            e.preventDefault();
+          }
+          return;
+        }
         el = el.parentElement;
       }
       // No scrollable ancestor found — block to prevent underlying page scroll
       e.preventDefault();
     };
+    document.addEventListener("touchstart", recordTouchStart, { passive: true });
     document.addEventListener("touchmove", blockTouch, { passive: false });
     return () => {
       onChatOpen?.(false);
+      document.removeEventListener("touchstart", recordTouchStart);
       document.removeEventListener("touchmove", blockTouch);
     };
   }, [onChatOpen]);
@@ -905,6 +920,7 @@ const SquadChat = ({
         style={{
           flex: 1,
           overflowY: dragX > 0 ? "hidden" : "auto",
+          overscrollBehavior: "contain",
           padding: "12px 20px",
           display: "flex",
           flexDirection: "column",
