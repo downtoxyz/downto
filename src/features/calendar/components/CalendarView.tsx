@@ -196,9 +196,13 @@ const CalendarView = ({
   };
   const savedDateKeys = new Set(
     saved.map((e) => {
-      const match = e.date.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)/);
+      if (e.rawDate) {
+        const [, m, d] = e.rawDate.split("-").map(Number);
+        return `${m - 1}-${d}`;
+      }
+      const match = e.date.match(/(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d+)/i);
       if (!match) return "";
-      return `${MONTH_ABBREVS[match[1]]}-${parseInt(match[2])}`;
+      return `${MONTH_ABBREVS[match[1].slice(0, 3)]}-${parseInt(match[2])}`;
     }).filter(Boolean)
   );
 
@@ -228,9 +232,13 @@ const CalendarView = ({
   });
 
   const eventDateKey = (e: Event) => {
-    const match = e.date.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)/);
+    if (e.rawDate) {
+      const [, m, d] = e.rawDate.split("-").map(Number);
+      return `${m - 1}-${d}`;
+    }
+    const match = e.date.match(/(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d+)/i);
     if (!match) return "";
-    return `${MONTH_ABBREVS[match[1]]}-${parseInt(match[2])}`;
+    return `${MONTH_ABBREVS[match[1].slice(0, 3)]}-${parseInt(match[2])}`;
   };
 
   const filteredEvents = selectedDateKey
@@ -297,10 +305,19 @@ const CalendarView = ({
   };
 
   const formatEventCardDate = (e: Event) => {
+    // Prefer rawDate (ISO) for reliable day-of-week calculation
+    if (e.rawDate) {
+      const [y, m, day] = e.rawDate.split("-").map(Number);
+      const d = new Date(y, m - 1, day);
+      const key = `${d.getMonth()}-${d.getDate()}`;
+      return formatCardDate(key, d);
+    }
+    // Fallback: parse display date
     const key = eventDateKey(e);
-    const match = e.date.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)/);
+    const match = e.date.match(/(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d+)/i);
     if (!match) return { label: e.date.split(",")[0], day: e.date.split(" ").pop() || "" };
-    const d = new Date(today.getFullYear(), MONTH_ABBREVS[match[1]], parseInt(match[2]));
+    const monthStr = match[1].slice(0, 3);
+    const d = new Date(today.getFullYear(), MONTH_ABBREVS[monthStr], parseInt(match[2]));
     return formatCardDate(key, d);
   };
 
