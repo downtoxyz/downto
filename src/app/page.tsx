@@ -923,6 +923,7 @@ export default function Home() {
             startSquadFromCheck={squadsHook.startSquadFromCheck}
             loadRealData={loadRealData}
             showToast={showToast}
+            showToastWithAction={showToastWithAction}
             onOpenSocial={(e) => squadsHook.setSocialEvent(e)}
             onEditEvent={(e) => setEditingEvent(e)}
             onOpenAdd={() => setAddModalOpen(true)}

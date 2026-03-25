@@ -69,6 +69,7 @@ export interface CheckCardProps {
   onNavigateToGroups: (squadId?: string) => void;
   onViewProfile?: (userId: string) => void;
   showToast: (msg: string) => void;
+  showToastWithAction?: (msg: string, action: () => void) => void;
   loadRealData: () => Promise<void>;
 }
 
@@ -84,6 +85,7 @@ export default function CheckCard({
   onNavigateToGroups,
   onViewProfile,
   showToast,
+  showToastWithAction,
   loadRealData,
 }: CheckCardProps) {
   const {
@@ -447,16 +449,38 @@ export default function CheckCard({
           if (!isDemoMode) {
             try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
           }
-          showToast("Check archived");
           await loadRealData();
+          if (showToastWithAction && !isDemoMode) {
+            showToastWithAction("Check archived — undo?", async () => {
+              try { await db.unarchiveInterestCheck(check.id); } catch (err) { logError("unarchiveCheck", err, { checkId: check.id }); }
+              await loadRealData();
+            });
+          } else {
+            showToast("Check archived");
+          }
         }}
         onDelete={async () => {
           setActionsSheetOpen(false);
           if (!isDemoMode) {
-            try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
+            // Soft-delete: archive first so undo is possible, then hard-delete after timeout
+            try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
           }
-          showToast("Check removed");
           await loadRealData();
+          if (showToastWithAction && !isDemoMode) {
+            const timer = setTimeout(async () => {
+              try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
+            }, 4500);
+            showToastWithAction("Check removed — undo?", async () => {
+              clearTimeout(timer);
+              try { await db.unarchiveInterestCheck(check.id); } catch (err) { logError("unarchiveCheck", err, { checkId: check.id }); }
+              await loadRealData();
+            });
+          } else {
+            if (!isDemoMode) {
+              try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
+            }
+            showToast("Check removed");
+          }
         }}
       />
 

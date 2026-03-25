@@ -63,6 +63,7 @@ export interface FeedViewProps {
   startSquadFromCheck: (check: InterestCheck) => Promise<void>;
   loadRealData: () => Promise<void>;
   showToast: (msg: string) => void;
+  showToastWithAction?: (msg: string, action: () => void) => void;
   onOpenSocial: (event: Event) => void;
   onEditEvent: (event: Event) => void;
   onOpenAdd: () => void;
@@ -84,6 +85,7 @@ export default function FeedView({
   startSquadFromCheck,
   loadRealData,
   showToast,
+  showToastWithAction,
   onOpenSocial,
   onEditEvent,
   onOpenAdd,
@@ -182,6 +184,7 @@ export default function FeedView({
                 onNavigateToGroups={onNavigateToGroups}
                 onViewProfile={onViewProfile}
                 showToast={showToast}
+                showToastWithAction={showToastWithAction}
                 loadRealData={loadRealData}
               />
             ))}
