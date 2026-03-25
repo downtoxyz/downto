@@ -1354,10 +1354,27 @@ export async function markAllNotificationsRead(): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Skip pending friend_request notifications — they stay unread until actioned
   const { error } = await supabase
     .from('notifications')
     .update({ is_read: true })
     .eq('user_id', user.id)
+    .eq('is_read', false)
+    .neq('type', 'friend_request');
+
+  if (error) throw error;
+}
+
+export async function markFriendRequestNotificationsRead(friendUserId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', user.id)
+    .eq('type', 'friend_request')
+    .eq('related_user_id', friendUserId)
     .eq('is_read', false);
 
   if (error) throw error;

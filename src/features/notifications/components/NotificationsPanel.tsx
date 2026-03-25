@@ -182,8 +182,14 @@ const NotificationsPanel = ({
                 if (!isDemoMode && userId) {
                   db.markAllNotificationsRead();
                 }
-                setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-                setUnreadCount(0);
+                // Keep pending friend_request notifications unread
+                const pendingFriendRequestIds = new Set(
+                  notifications
+                    .filter((n) => !n.is_read && n.type === "friend_request" && n.related_user_id && !friends.some((f) => f.id === n.related_user_id))
+                    .map((n) => n.id)
+                );
+                setNotifications((prev) => prev.map((n) => pendingFriendRequestIds.has(n.id) ? n : { ...n, is_read: true }));
+                setUnreadCount(pendingFriendRequestIds.size);
               }}
               style={{
                 background: "none",
@@ -251,8 +257,11 @@ const NotificationsPanel = ({
                 onClick={() => {
                   // Navigate based on type
                   if (n.type === "friend_request" || n.type === "friend_accepted") {
-                    // Mark single notification as read
-                    if (!n.is_read) {
+                    // friend_accepted: mark read on click
+                    // friend_request: only mark read if already actioned (accepted/declined)
+                    const alreadyFriends = n.type === "friend_request" && n.related_user_id &&
+                      friends.some((f) => f.id === n.related_user_id);
+                    if (!n.is_read && (n.type === "friend_accepted" || alreadyFriends)) {
                       if (!isDemoMode && userId) db.markNotificationRead(n.id);
                       setNotifications((prev) =>
                         prev.map((notif) => notif.id === n.id ? { ...notif, is_read: true } : notif)
@@ -260,8 +269,6 @@ const NotificationsPanel = ({
                       setUnreadCount((prev) => Math.max(0, prev - 1));
                     }
                     onClose();
-                    const alreadyFriends = n.type === "friend_request" && n.related_user_id &&
-                      friends.some((f) => f.id === n.related_user_id);
                     onNavigate({
                       type: "friends",
                       tab: n.type === "friend_request" && !alreadyFriends ? "add" : "friends",

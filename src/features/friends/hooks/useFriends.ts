@@ -103,6 +103,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
 
     try {
       await db.acceptFriendRequest(person.friendshipId);
+      db.markFriendRequestNotificationsRead(id).catch(() => {});
       setFriends((prev) => [...prev, { ...person, status: "friend" as const, availability: "open" as const }]);
       setSuggestions((prev) => prev.filter((s) => s.id !== id));
       showToast(`${person.name} added! \u{1F389}`);
@@ -125,6 +126,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
 
     try {
       await db.removeFriend(person.friendshipId);
+      db.markFriendRequestNotificationsRead(id).catch(() => {});
       setFriends((prev) => prev.filter((f) => f.id !== id));
       showToast(`Removed ${person.name}`);
     } catch (err) {
