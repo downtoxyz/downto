@@ -504,6 +504,18 @@ export default function Home() {
       squadsHook.setAutoSelectSquadId(null);
       readSquadIdsRef.current.add(squad.id);
       db.markSquadNotificationsRead(squad.id).catch(() => {});
+      // Clear OS push notifications for this squad
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (!reg) return;
+          const tags = ["squad_message", "squad_invite", "squad_mention", "date_confirm", "poll_created"];
+          tags.forEach((tag) => {
+            reg.getNotifications({ tag: `${tag}-${squad.id}` }).then((notifs) => {
+              notifs.forEach((n) => n.close());
+            });
+          });
+        });
+      }
       if (squad.hasUnread) {
         squadsHook.setSquads((prev) => prev.map((s) => s.id === squad.id ? { ...s, hasUnread: false } : s));
         notificationsHook.setUnreadSquadCount((prev) => Math.max(0, prev - 1));
@@ -985,8 +997,13 @@ export default function Home() {
               notificationsHook.setUnreadCount(updatedNotifs.filter((n) => !n.is_read).length);
               if ("serviceWorker" in navigator) {
                 navigator.serviceWorker.getRegistration().then((reg) => {
-                  reg?.getNotifications({ tag: `squad_message-${squad.id}` }).then((notifs) => {
-                    notifs.forEach((n) => n.close());
+                  if (!reg) return;
+                  // Clear all push notification types related to this squad
+                  const tags = ["squad_message", "squad_invite", "squad_mention", "date_confirm", "poll_created"];
+                  tags.forEach((tag) => {
+                    reg.getNotifications({ tag: `${tag}-${squad.id}` }).then((notifs) => {
+                      notifs.forEach((n) => n.close());
+                    });
                   });
                 });
               }
