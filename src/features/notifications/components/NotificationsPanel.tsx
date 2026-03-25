@@ -240,7 +240,12 @@ const NotificationsPanel = ({
               </p>
             </div>
           ) : (
-            notifications.map((n) => (
+            [...notifications].sort((a, b) => {
+              // Pin unread friend_request notifications to the top
+              const aPin = !a.is_read && a.type === "friend_request" ? 1 : 0;
+              const bPin = !b.is_read && b.type === "friend_request" ? 1 : 0;
+              return bPin - aPin;
+            }).map((n) => (
               <button
                 key={n.id}
                 onClick={() => {

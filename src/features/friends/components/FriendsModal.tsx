@@ -449,22 +449,42 @@ const FriendsModal = ({
                         @{f.username}
                       </div>
                     </div>
-                    <button
-                      onClick={() => onAcceptRequest(f.id)}
-                      style={{
-                        background: color.accent,
-                        color: "#000",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "8px 14px",
-                        fontFamily: font.mono,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Accept
-                    </button>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {onRemoveFriend && (
+                        <button
+                          onClick={() => onRemoveFriend(f.id)}
+                          style={{
+                            background: "transparent",
+                            color: color.dim,
+                            border: `1px solid ${color.borderMid}`,
+                            borderRadius: 8,
+                            padding: "8px 12px",
+                            fontFamily: font.mono,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Decline
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onAcceptRequest(f.id)}
+                        style={{
+                          background: color.accent,
+                          color: "#000",
+                          border: "none",
+                          borderRadius: 8,
+                          padding: "8px 14px",
+                          fontFamily: font.mono,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Accept
+                      </button>
+                    </div>
                   </div>
                 ))}
                 <div style={{ height: 20 }} />
