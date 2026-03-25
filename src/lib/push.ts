@@ -22,6 +22,7 @@ interface NotificationPayload {
   related_squad_id?: string | null;
   related_check_id?: string | null;
   related_user_id?: string | null;
+  related_event_id?: string | null;
 }
 
 /** Send web-push to all of a user's subscriptions. Returns count sent. */
@@ -39,7 +40,7 @@ export async function sendPushToUser(notification: NotificationPayload): Promise
     title: notification.title,
     body: notification.body || '',
     type: notification.type,
-    relatedId: notification.related_squad_id || notification.related_check_id || notification.related_user_id,
+    relatedId: notification.related_squad_id || notification.related_check_id || notification.related_event_id || notification.related_user_id,
   });
 
   const staleEndpoints: string[] = [];
