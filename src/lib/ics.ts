@@ -115,9 +115,13 @@ function formatICSDateTime(isoDate: string, hours: number, minutes: number): str
 }
 
 function addDays(isoDate: string, days: number): string {
-  const d = new Date(isoDate + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  // Parse manually to avoid UTC timezone shift
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  const ry = date.getFullYear();
+  const rm = (date.getMonth() + 1).toString().padStart(2, "0");
+  const rd = date.getDate().toString().padStart(2, "0");
+  return `${ry}-${rm}-${rd}`;
 }
 
 function escapeICS(text: string): string {
@@ -126,9 +130,9 @@ function escapeICS(text: string): string {
 
 // ── Public API ───────────────────────────────────────────────────────────
 
-export function generateICSEvent(params: ICSEventParams): string {
+export function generateICSEvent(params: ICSEventParams, timezone?: string): string {
   const { uid, title, date, time, venue, description } = params;
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tz = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const parsed = parseTimeRange(time ?? "");
 
   const lines: string[] = [
@@ -162,14 +166,14 @@ export function generateICSEvent(params: ICSEventParams): string {
   return lines.join("\r\n");
 }
 
-export function generateICSCalendar(events: ICSEventParams[]): string {
+export function generateICSCalendar(events: ICSEventParams[], timezone?: string): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//downto//downto.app//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    ...events.map(generateICSEvent),
+    ...events.map((e) => generateICSEvent(e, timezone)),
     "END:VCALENDAR",
   ];
   return lines.join("\r\n");

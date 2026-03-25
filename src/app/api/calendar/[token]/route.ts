@@ -3,10 +3,12 @@ import { getServiceClient } from "@/lib/supabase-admin";
 import { generateICSCalendar, type ICSEventParams } from "@/lib/ics";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
+  const url = new URL(request.url);
+  const timezone = url.searchParams.get("tz") ?? "America/New_York";
 
   const supabase = getServiceClient();
 
@@ -62,7 +64,7 @@ export async function GET(
     });
   }
 
-  const icsContent = generateICSCalendar(icsEvents);
+  const icsContent = generateICSCalendar(icsEvents, timezone);
 
   return new NextResponse(icsContent, {
     headers: {

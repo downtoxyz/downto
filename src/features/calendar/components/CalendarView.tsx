@@ -149,11 +149,12 @@ const CalendarView = ({
     }
   };
 
+  const userTz = typeof window !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "America/New_York";
   const webcalUrl = calendarToken
-    ? `webcal://${typeof window !== "undefined" ? window.location.host : ""}/api/calendar/${calendarToken}`
+    ? `webcal://${typeof window !== "undefined" ? window.location.host : ""}/api/calendar/${calendarToken}?tz=${encodeURIComponent(userTz)}`
     : null;
   const httpsCalUrl = calendarToken
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/calendar/${calendarToken}`
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/calendar/${calendarToken}?tz=${encodeURIComponent(userTz)}`
     : null;
 
   const copySubscribeUrl = async () => {
