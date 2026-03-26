@@ -340,15 +340,12 @@ export default function FeedView({
                             </Linkify>
                           </p>
                         </div>
-                        <p className="m-0 font-serif text-base leading-snug text-neutral-500">
-                          <Linkify
-                            dimmed
-                            coAuthors={check.coAuthors}
-                            onViewProfile={onViewProfile}
-                          >
-                            {check.text}
-                          </Linkify>
-                        </p>
+                        <button
+                          onClick={() => unhideCheck(check.id)}
+                          className="ml-3 shrink-0 rounded-lg border border-neutral-800 px-3 py-1.5 font-mono text-xs text-neutral-500"
+                        >
+                          Unhide
+                        </button>
                       </div>
                     </div>
                   ))}
