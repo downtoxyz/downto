@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { font, color } from "@/lib/styles";
 import type { Event } from "@/lib/ui-types";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
+import EventActionsSheet from "./EventActionsSheet";
 
 const EventCard = ({
   event,
@@ -26,6 +27,7 @@ const EventCard = ({
 }) => {
   const [hovered, setHovered] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
   const touchMoved = useRef(false);
@@ -110,8 +112,24 @@ const EventCard = ({
 
   const hasDetails = !!(event.posterName || event.note || event.movieTitle || event.vibe.length > 0 || sourceLink);
 
+  const shareEvent = async () => {
+    const url = event.igUrl || event.diceUrl || event.letterboxdUrl || `${window.location.origin}`;
+    const text = `${event.title}${event.venue && event.venue !== "TBD" ? ` @ ${event.venue}` : ""}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: event.title, text, url }); } catch { /* cancelled */ }
+    } else {
+      try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch { /* fallback */ }
+    }
+  };
+
   return (
     <>
+      <EventActionsSheet
+        open={actionsOpen}
+        onClose={() => setActionsOpen(false)}
+        onShare={shareEvent}
+        onEdit={onLongPress}
+      />
       {showDetail && (
         <EventDetailSheet
           event={event}
@@ -184,14 +202,12 @@ const EventCard = ({
               >
                 {event.title}
               </h3>
-              {onLongPress && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onLongPress(); }}
-                  className="bg-transparent border-none text-neutral-600 font-mono text-tiny cursor-pointer p-1 shrink-0 ml-2"
-                >
-                  ✎
-                </button>
-              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); setActionsOpen(true); }}
+                className="bg-transparent border-none text-neutral-600 font-mono text-tiny cursor-pointer p-1 shrink-0 ml-2"
+              >
+                ⚙
+              </button>
             </div>
 
             {/* Date, time, venue */}
