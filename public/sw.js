@@ -66,6 +66,8 @@ self.addEventListener("notificationclick", (event) => {
     tab = relatedId ? `/?tab=groups&squadId=${relatedId}` : "/?tab=groups";
   } else if (type === "event_reminder") {
     tab = "/?tab=calendar";
+  } else if (type === "event_down" || type === "friend_event") {
+    tab = "/?tab=feed";
   }
 
   event.waitUntil(

@@ -296,6 +296,16 @@ const NotificationsPanel = ({
                     }
                     onClose();
                     onNavigate({ type: "groups", squadId: squadId ?? undefined });
+                  } else if (n.type === "event_down" || n.type === "friend_event") {
+                    if (!n.is_read) {
+                      if (!isDemoMode && userId) db.markNotificationRead(n.id);
+                      setNotifications((prev) =>
+                        prev.map((notif) => notif.id === n.id ? { ...notif, is_read: true } : notif)
+                      );
+                      setUnreadCount((prev) => Math.max(0, prev - 1));
+                    }
+                    onClose();
+                    onNavigate({ type: "feed" });
                   } else if (n.type === "check_response" || n.type === "friend_check" || n.type === "check_tag") {
                     // Mark single notification as read (except check_tag — cleared on accept/decline)
                     if (!n.is_read && n.type !== "check_tag") {
@@ -333,6 +343,8 @@ const NotificationsPanel = ({
                       : n.type === "date_confirm" ? "#E8FF5A22"
                       : n.type === "check_tag" ? "#E8FF5A22"
                       : n.type === "squad_join_request" ? "#AF52DE22"
+                      : n.type === "event_down" ? "#E8FF5A22"
+                      : n.type === "friend_event" ? "#E8FF5A22"
                       : "#5856D622",
                     display: "flex",
                     alignItems: "center",
@@ -348,6 +360,8 @@ const NotificationsPanel = ({
                     : n.type === "date_confirm" ? "📅"
                     : n.type === "check_tag" ? "🏷️"
                     : n.type === "squad_join_request" ? "🙋"
+                    : n.type === "event_down" ? "✋"
+                    : n.type === "friend_event" ? "🎉"
                     : "💬"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
