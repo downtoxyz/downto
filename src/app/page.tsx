@@ -1074,6 +1074,8 @@ export default function Home() {
           userId={userId}
           onClose={() => {
             const origin = squadChatOrigin;
+            // Allow future messages to show unread dot again
+            if (selectedSquad?.id) readSquadIdsRef.current.delete(selectedSquad.id);
             setSelectedSquad(null);
             setSquadChatOrigin(null);
             if (origin && origin !== tab) {
