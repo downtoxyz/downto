@@ -658,32 +658,46 @@ function SheetHero(props: SheetProps) {
   const hasImage = event.image && event.image !== "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80";
   return (
     <>
-      {/* Hero image */}
-      {hasImage && (
-        <div style={{
-          height: 140,
-          borderRadius: 14,
-          overflow: "hidden",
-          marginBottom: 14,
-          position: "relative",
-        }}>
-          <div style={{
-            position: "absolute", inset: 0,
-            backgroundImage: `url(${event.image})`,
-            backgroundSize: "cover", backgroundPosition: "center",
-          }} />
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
-          }} />
-          {/* Title over image */}
-          <div style={{ position: "absolute", bottom: 12, left: 14, right: 14 }}>
-            <h3 style={{ fontFamily: font.serif, fontSize: 22, color: color.text, margin: 0, lineHeight: 1.25, fontWeight: 400 }}>
-              {event.title}
-            </h3>
-          </div>
-        </div>
-      )}
+      {/* Hero image — tappable to open source link */}
+      {hasImage && (() => {
+        const heroUrl = sourceLink?.href || event.igUrl || event.diceUrl || event.letterboxdUrl;
+        const Wrapper = heroUrl ? "a" : "div";
+        const linkProps = heroUrl ? { href: heroUrl, target: "_blank" as const, rel: "noopener noreferrer" } : {};
+        return (
+          <Wrapper
+            {...linkProps}
+            style={{
+              display: "block",
+              height: 140,
+              borderRadius: 14,
+              overflow: "hidden",
+              marginBottom: 14,
+              position: "relative",
+              textDecoration: "none",
+              cursor: heroUrl ? "pointer" : "default",
+            }}
+          >
+            <div style={{
+              position: "absolute", inset: 0,
+              backgroundImage: `url(${event.image})`,
+              backgroundSize: "cover", backgroundPosition: "center",
+            }} />
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
+            }} />
+            {/* Title over image */}
+            <div style={{ position: "absolute", bottom: 12, left: 14, right: 14, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+              <h3 style={{ fontFamily: font.serif, fontSize: 22, color: color.text, margin: 0, lineHeight: 1.25, fontWeight: 400, flex: 1 }}>
+                {event.title}
+              </h3>
+              {heroUrl && (
+                <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, flexShrink: 0, marginLeft: 8 }}>↗</span>
+              )}
+            </div>
+          </Wrapper>
+        );
+      })()}
       {!hasImage && (
         <h3 style={{ fontFamily: font.serif, fontSize: 22, color: color.text, margin: "0 0 8px", lineHeight: 1.25, fontWeight: 400 }}>
           {event.title}
