@@ -32,6 +32,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useToast } from "@/app/hooks/useToast";
 import { usePushNotifications } from "@/features/auth/hooks/usePushNotifications";
 import { useChecks } from "@/features/checks/hooks/useChecks";
+import { CheckActionType } from "@/features/checks/reducers/checksReducer";
 import { useSquads } from "@/features/squads/hooks/useSquads";
 import { useFriends } from "@/features/friends/hooks/useFriends";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
@@ -119,11 +120,16 @@ export default function Home() {
     },
   });
 
+  // Keep a ref to the latest checks so useSquads can read current state without a stale closure
+  const checksRef = useRef(checksHook.checks);
+  checksRef.current = checksHook.checks;
+
   const squadsHook = useSquads({
     userId,
     isDemoMode,
     profile,
-    setChecks: checksHook.setChecks,
+    checksRef,
+    dispatch: checksHook.dispatch,
     showToast,
     openSquadIdRef: selectedSquadIdRef,
     onSquadCreated: (squadId: string) => {
@@ -161,9 +167,7 @@ export default function Home() {
     isLoggedIn, isLoading, userId, profile, isDemoMode, feedLoaded,
     setIsLoggedIn, setProfile, setTab,
     checks: checksHook.checks,
-    setChecks: checksHook.setChecks,
-    setMyCheckResponses: checksHook.setMyCheckResponses,
-    setNewlyAddedCheckId: checksHook.setNewlyAddedCheckId,
+    dispatch: checksHook.dispatch,
     handleCreateCheck: checksHook.handleCreateCheck,
     suggestions: friendsHook.suggestions,
     setSuggestions: friendsHook.setSuggestions,
@@ -293,8 +297,8 @@ export default function Home() {
     }
     const checkId = params.get("checkId");
     if (checkId) {
-      checksHook.setNewlyAddedCheckId(checkId);
-      setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
+      checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId });
+      setTimeout(() => checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 3000);
       window.history.replaceState({}, "", "/?tab=feed");
     }
   }, []);
@@ -308,7 +312,7 @@ export default function Home() {
       setIsDemoMode(true);
       setFeedLoaded(true);
       setEvents(DEMO_EVENTS);
-      checksHook.setChecks(DEMO_CHECKS);
+      checksHook.dispatch({ type: CheckActionType.SYNC_CHECKS, checks: DEMO_CHECKS });
       squadsHook.setSquads(DEMO_SQUADS);
       friendsHook.setFriends(DEMO_FRIENDS);
       friendsHook.setSuggestions(DEMO_SUGGESTIONS);
@@ -484,8 +488,8 @@ export default function Home() {
         } else if (nType === 'check_response' || nType === 'friend_check' || nType === 'check_tag') {
           setTab('feed');
           if (relatedId) {
-            checksHook.setNewlyAddedCheckId(relatedId);
-            setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
+            checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: relatedId });
+            setTimeout(() => checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 3000);
           }
         }
       }
@@ -554,14 +558,15 @@ export default function Home() {
     if (squad?.checkId) {
       const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const isProposal = date_status === 'proposed';
-      checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
-        ...c,
+      const check = checksHook.checks.find((c) => c.id === squad.checkId);
+      if (check) checksHook.dispatch({ type: CheckActionType.UPSERT_CHECK, check: {
+        ...check,
         eventDate: date,
         eventDateLabel: dateLabel,
-        eventTime: time ?? c.eventTime,
+        eventTime: time ?? check.eventTime,
         dateFlexible: isProposal,
         ...(time ? { timeFlexible: isProposal } : {}),
-      } : c));
+      }});
     }
   };
 
@@ -579,9 +584,10 @@ export default function Home() {
     } : s));
     const squad = squadsHook.squads.find((s) => s.id === squadDbId);
     if (squad?.checkId) {
-      checksHook.setChecks((prev) => prev.map((c) => c.id === squad.checkId ? {
-        ...c, eventDate: undefined, eventDateLabel: undefined, eventTime: undefined,
-      } : c));
+      const check = checksHook.checks.find((c) => c.id === squad.checkId);
+      if (check) checksHook.dispatch({ type: CheckActionType.UPSERT_CHECK, check: {
+        ...check, eventDate: undefined, eventDateLabel: undefined, eventTime: undefined,
+      }});
     }
   };
 
@@ -1111,7 +1117,7 @@ export default function Home() {
               if (!isDemoMode && userId) loadRealData();
             }
             if (t === "feed" && !isDemoMode && userId) loadRealData();
-            if (t !== "feed") checksHook.setNewlyAddedCheckId(null);
+            if (t !== "feed") checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null });
           }}
           hasGroupsUnread={squadsHook.squads.some((s) => s.hasUnread) || notificationsHook.notifications.some((n) => n.type === "squad_invite" && !n.is_read)}
         />
@@ -1184,8 +1190,8 @@ export default function Home() {
           } else if (action.type === "feed") {
             setTab("feed");
             if (action.checkId) {
-              checksHook.setNewlyAddedCheckId(action.checkId);
-              setTimeout(() => checksHook.setNewlyAddedCheckId(null), 3000);
+              checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: action.checkId });
+              setTimeout(() => checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 3000);
             }
           }
         }}

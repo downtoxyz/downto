@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect, type Dispatch, type SetStateAction, type MutableRefObject } from "react";
+import { useState, useCallback, useEffect, type Dispatch } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { Person, Event, InterestCheck, Squad } from "@/lib/ui-types";
+import { type ChecksAction, CheckActionType } from "@/features/checks/reducers/checksReducer";
 import { logError, logWarn } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -96,14 +97,15 @@ interface UseSquadsParams {
   userId: string | null;
   isDemoMode: boolean;
   profile: Profile | null;
-  setChecks: Dispatch<SetStateAction<InterestCheck[]>>;
+  checksRef: { current: InterestCheck[] };
+  dispatch: Dispatch<ChecksAction>;
   showToast: (msg: string) => void;
   onSquadCreated?: (squadId: string) => void;
   onAutoDown?: (eventId: string) => Promise<void>;
-  openSquadIdRef?: MutableRefObject<string | null>;
+  openSquadIdRef?: { current: string | null };
 }
 
-export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, onSquadCreated, onAutoDown, openSquadIdRef }: UseSquadsParams) {
+export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, showToast, onSquadCreated, onAutoDown, openSquadIdRef }: UseSquadsParams) {
   const [squads, setSquads] = useState<Squad[]>([]);
   const [socialEvent, setSocialEvent] = useState<Event | null>(null);
   const [squadPoolMembers, setSquadPoolMembers] = useState<Person[]>([]);
@@ -210,23 +212,24 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
         checkToSquad.set(sq.checkId, { squadId: sq.id, inSquad: !sq.isWaitlisted, isWaitlisted: !!sq.isWaitlisted, eventIsoDate: sq.eventIsoDate, dateStatus: sq.dateStatus });
       }
     }
-    setChecks((prev) => prev.map((c) => {
+    // Build patches from current checks — checksRef.current needed because date-backfill
+    // logic depends on each check's existing eventDate (can't be pre-computed without it)
+    const patches: Array<{ id: string; patch: Partial<InterestCheck> }> = [];
+    for (const c of checksRef.current) {
       const sq = checkToSquad.get(c.id);
       if (sq) {
-        // Backfill check date from squad locked_date if check has no date
         const datePatch: Partial<InterestCheck> = {};
         if (!c.eventDate && sq.eventIsoDate) {
-          const isProposed = sq.dateStatus === 'proposed';
           datePatch.eventDate = sq.eventIsoDate;
           datePatch.eventDateLabel = new Date(sq.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-          datePatch.dateFlexible = isProposed;
+          datePatch.dateFlexible = sq.dateStatus === 'proposed';
         }
-        return { ...c, squadId: sq.squadId, inSquad: sq.inSquad, isWaitlisted: sq.isWaitlisted, ...datePatch };
+        patches.push({ id: c.id, patch: { squadId: sq.squadId, inSquad: sq.inSquad, isWaitlisted: sq.isWaitlisted, ...datePatch } });
+      } else if (c.inSquad || c.isWaitlisted) {
+        patches.push({ id: c.id, patch: { inSquad: undefined, isWaitlisted: undefined } });
       }
-      // Clear stale inSquad/isWaitlisted for checks no longer in user's squads
-      if (c.inSquad || c.isWaitlisted) return { ...c, inSquad: undefined, isWaitlisted: undefined };
-      return c;
-    }));
+    }
+    if (patches.length > 0) dispatch({ type: CheckActionType.PATCH_CHECKS, patches });
 
     // Link events to their squads
     const newEventToSquad = new Map<string, string>();
@@ -234,7 +237,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
       if (sq.eventId) newEventToSquad.set(sq.eventId, sq.id);
     }
     setEventToSquad(newEventToSquad);
-  }, [userId, setChecks]);
+  }, [userId, checksRef, dispatch]);
 
   const startSquadFromCheck = async (check: InterestCheck) => {
     if (creatingSquad || check.squadId) return;
@@ -286,7 +289,7 @@ export function useSquads({ userId, isDemoMode, profile, setChecks, showToast, o
       time: "now",
     };
     setSquads((prev) => [newSquad, ...prev]);
-    setChecks((prev) => prev.map((c) => c.id === check.id ? { ...c, squadId: newSquad.id, inSquad: true, squadMemberCount: memberSet.size } : c));
+    dispatch({ type: CheckActionType.UPSERT_CHECK, check: { ...check, squadId: newSquad.id, inSquad: true, squadMemberCount: memberSet.size } });
 
     setCreatingSquad(false);
     onSquadCreated?.(newSquad.id);

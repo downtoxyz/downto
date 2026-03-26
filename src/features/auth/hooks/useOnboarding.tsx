@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, type Dispatch, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck, Tab, Friend } from "@/lib/ui-types";
+import { type ChecksAction, CheckActionType } from "@/features/checks/reducers/checksReducer";
 import { isIOSNotStandalone, isPushSupported } from "@/lib/pushNotifications";
 import AuthScreen from "@/features/auth/components/AuthScreen";
 import ProfileSetupScreen from "@/features/auth/components/ProfileSetupScreen";
@@ -71,9 +72,7 @@ interface UseOnboardingParams {
   setTab: (tab: Tab) => void;
   // Checks
   checks: InterestCheck[];
-  setChecks: React.Dispatch<React.SetStateAction<InterestCheck[]>>;
-  setMyCheckResponses: React.Dispatch<React.SetStateAction<Record<string, "down" | "waitlist">>>;
-  setNewlyAddedCheckId: (id: string | null) => void;
+  dispatch: Dispatch<ChecksAction>;
   handleCreateCheck: (
     idea: string,
     expiresInHours: number | null,
@@ -128,9 +127,7 @@ export function useOnboarding({
   setProfile,
   setTab,
   checks,
-  setChecks,
-  setMyCheckResponses,
-  setNewlyAddedCheckId,
+  dispatch,
   handleCreateCheck,
   suggestions,
   setSuggestions,
@@ -185,8 +182,8 @@ export function useOnboarding({
       localStorage.removeItem("pendingCheckId");
       setPendingSharedCheckId(checkId);
       setTab("feed");
-      setNewlyAddedCheckId(checkId);
-      setTimeout(() => setNewlyAddedCheckId(null), 3000);
+      dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId });
+      setTimeout(() => dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 3000);
       return;
     }
     // PWA recovery: no localStorage, check DB for referred_by_check_id
@@ -213,21 +210,20 @@ export function useOnboarding({
         const shared = await db.getSharedCheck(checkId);
         if (shared) {
           if (shared.myResponse === "down" || shared.myResponse === "waitlist") {
-            setMyCheckResponses((prev) => ({ ...prev, [shared.id]: shared.myResponse as "down" | "waitlist" }));
+            dispatch({ type: CheckActionType.MERGE_RESPONSES, responses: { [shared.id]: shared.myResponse as "down" | "waitlist" } });
           }
           const injected = await buildSharedCheck(shared, profile?.avatar_letter ?? "?");
-          setChecks((prev) => {
-            if (prev.some((c) => c.id === checkId)) return prev;
-            return [injected, ...prev];
-          });
+          if (!checks.some((c) => c.id === checkId)) {
+            dispatch({ type: CheckActionType.UPSERT_CHECK, check: injected });
+          }
         }
       }
       setActiveSharedCheckId(checkId);
       localStorage.setItem("activeSharedCheckId", checkId);
       setSharedCheckGlowId(checkId);
       setTimeout(() => setSharedCheckGlowId(null), 5000);
-      setNewlyAddedCheckId(checkId);
-      setTimeout(() => setNewlyAddedCheckId(null), 5000);
+      dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId });
+      setTimeout(() => dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 5000);
     })();
   }, [pendingSharedCheckId, feedLoaded]);
 
@@ -238,10 +234,9 @@ export function useOnboarding({
     const found = checks.find((c) => c.id === activeSharedCheckId);
     if (found) { sharedCheckCache.current = found; return; }
     if (sharedCheckCache.current) {
-      setChecks((prev) => {
-        if (prev.some((c) => c.id === activeSharedCheckId)) return prev;
-        return [sharedCheckCache.current!, ...prev];
-      });
+      if (!checks.some((c) => c.id === activeSharedCheckId)) {
+        dispatch({ type: CheckActionType.UPSERT_CHECK, check: sharedCheckCache.current });
+      }
       return;
     }
     (async () => {
@@ -252,14 +247,13 @@ export function useOnboarding({
         return;
       }
       if (shared.myResponse === "down" || shared.myResponse === "waitlist") {
-        setMyCheckResponses((prev) => ({ ...prev, [shared.id]: shared.myResponse as "down" | "waitlist" }));
+        dispatch({ type: CheckActionType.MERGE_RESPONSES, responses: { [shared.id]: shared.myResponse as "down" | "waitlist" } });
       }
       const injected = await buildSharedCheck(shared, profile?.avatar_letter ?? "?");
       sharedCheckCache.current = injected;
-      setChecks((prev) => {
-        if (prev.some((c) => c.id === activeSharedCheckId)) return prev;
-        return [injected, ...prev];
-      });
+      if (!checks.some((c) => c.id === activeSharedCheckId)) {
+        dispatch({ type: CheckActionType.UPSERT_CHECK, check: injected });
+      }
     })();
   }, [activeSharedCheckId, feedLoaded, checks]);
 

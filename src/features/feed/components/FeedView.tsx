@@ -1,16 +1,26 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import * as db from "@/lib/db";
-import type { Profile } from "@/lib/types";
-import type { Event, InterestCheck, Friend } from "@/lib/ui-types";
-import EventCard from "@/features/events/components/EventCard";
-import CheckCard from "@/features/checks/components/CheckCard";
-import FeedEmptyState from "./FeedEmptyState";
-import InstallBanner from "./InstallBanner";
-import { useFeedContext } from "@/features/checks/context/FeedContext";
+import React, { useState, useEffect } from 'react';
+import * as db from '@/lib/db';
+import type { Profile } from '@/lib/types';
+import type { Event, InterestCheck, Friend } from '@/lib/ui-types';
+import EventCard from '@/features/events/components/EventCard';
+import CheckCard from '@/features/checks/components/CheckCard';
+import FeedEmptyState from './FeedEmptyState';
+import InstallBanner from './InstallBanner';
+import { useFeedContext } from '@/features/checks/context/FeedContext';
 
-function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: string; dimmed?: boolean; coAuthors?: { name: string; userId?: string }[]; onViewProfile?: (userId: string) => void }) {
+function Linkify({
+  children,
+  dimmed,
+  coAuthors,
+  onViewProfile,
+}: {
+  children: string;
+  dimmed?: boolean;
+  coAuthors?: { name: string; userId?: string }[];
+  onViewProfile?: (userId: string) => void;
+}) {
   const tokenRe = /(https?:\/\/[^\s),]+|@\S+)/g;
   const parts = children.split(tokenRe);
   if (parts.length === 1) return <>{children}</>;
@@ -21,28 +31,48 @@ function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: str
           const display = (() => {
             try {
               const u = new URL(part);
-              let d = u.host.replace(/^www\./, "") + u.pathname.replace(/\/$/, "");
-              if (d.length > 40) d = d.slice(0, 37) + "…";
+              let d =
+                u.host.replace(/^www\./, '') + u.pathname.replace(/\/$/, '');
+              if (d.length > 40) d = d.slice(0, 37) + '…';
               return d;
-            } catch { return part; }
+            } catch {
+              return part;
+            }
           })();
           return (
-            <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className={`underline underline-offset-2 break-all ${dimmed ? "text-neutral-500" : "text-dt"}`}
-            >{display}</a>
+              className={`break-all underline underline-offset-2 ${dimmed ? 'text-neutral-500' : 'text-dt'}`}
+            >
+              {display}
+            </a>
           );
         }
         if (/^@\S+/.test(part)) {
           const mention = part.slice(1).toLowerCase();
-          const matched = coAuthors?.find(ca => ca.name.toLowerCase() === mention || ca.name.split(" ")[0]?.toLowerCase() === mention);
+          const matched = coAuthors?.find(
+            (ca) =>
+              ca.name.toLowerCase() === mention ||
+              ca.name.split(' ')[0]?.toLowerCase() === mention
+          );
           const canTap = matched?.userId && onViewProfile;
           return (
             <span
               key={i}
               className="text-dt font-semibold"
-              style={canTap ? { cursor: "pointer" } : undefined}
-              onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(matched!.userId!); } : undefined}
+              style={canTap ? { cursor: 'pointer' } : undefined}
+              onClick={
+                canTap
+                  ? (e) => {
+                      e.stopPropagation();
+                      onViewProfile!(matched!.userId!);
+                    }
+                  : undefined
+              }
             >
               @{matched ? matched.name : part.slice(1)}
             </span>
@@ -67,11 +97,11 @@ export interface FeedViewProps {
   onOpenSocial: (event: Event) => void;
   onEditEvent: (event: Event) => void;
   onOpenAdd: () => void;
-  onOpenFriends: (tab?: "friends" | "add") => void;
+  onOpenFriends: (tab?: 'friends' | 'add') => void;
   onNavigateToGroups: (squadId?: string) => void;
   onViewProfile?: (userId: string) => void;
   showInstallBanner?: boolean;
-  installBannerVariant?: "install" | "notifications";
+  installBannerVariant?: 'install' | 'notifications';
   onDismissInstallBanner?: () => void;
   onEnableNotifications?: () => void;
 }
@@ -93,7 +123,7 @@ export default function FeedView({
   onNavigateToGroups,
   onViewProfile,
   showInstallBanner,
-  installBannerVariant = "install",
+  installBannerVariant = 'install',
   onDismissInstallBanner,
   onEnableNotifications,
 }: FeedViewProps) {
@@ -108,49 +138,59 @@ export default function FeedView({
   } = useFeedContext();
 
   const [showHidden, setShowHidden] = useState(false);
-  const [sortBy, setSortBy] = useState<"recent" | "upcoming">("recent");
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [sortBy, setSortBy] = useState<'recent' | 'upcoming'>('recent');
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
+    {}
+  );
 
   // Batch-fetch initial comment counts for badges
   useEffect(() => {
     if (!checks.length || isDemoMode) return;
-    db.getCheckCommentCounts(checks.map(c => c.id))
+    db.getCheckCommentCounts(checks.map((c) => c.id))
       .then(setCommentCounts)
       .catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checks.map(c => c.id).join(","), isDemoMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checks.map((c) => c.id).join(','), isDemoMode]);
 
-  const visibleChecks = checks.filter(c => !hiddenCheckIds.has(c.id) && c.expiresIn !== "expired");
-  const hiddenChecks = checks.filter(c => hiddenCheckIds.has(c.id));
+  const visibleChecks = checks.filter(
+    (c) => !hiddenCheckIds.has(c.id) && c.expiresIn !== 'expired'
+  );
+  const hiddenChecks = checks.filter((c) => hiddenCheckIds.has(c.id));
 
   // Pinned tier: expiring checks sorted by urgency (highest expiryPercent first)
   const pinnedChecks = visibleChecks
-    .filter(c => c.expiresIn !== "open")
+    .filter((c) => c.expiresIn !== 'open')
     .sort((a, b) => b.expiryPercent - a.expiryPercent);
 
   // Chrono tier: open checks + all events, sorted by date descending
   type FeedItem =
-    | { kind: "check"; data: InterestCheck }
-    | { kind: "event"; data: Event };
+    | { kind: 'check'; data: InterestCheck }
+    | { kind: 'event'; data: Event };
 
   const chronoItems: FeedItem[] = [
-    ...visibleChecks.filter(c => c.expiresIn === "open").map(c => ({ kind: "check" as const, data: c })),
-    ...events.map(e => ({ kind: "event" as const, data: e })),
+    ...visibleChecks
+      .filter((c) => c.expiresIn === 'open')
+      .map((c) => ({ kind: 'check' as const, data: c })),
+    ...events.map((e) => ({ kind: 'event' as const, data: e })),
   ];
 
-  if (sortBy === "recent") {
-    chronoItems.sort((a, b) => (b.data.createdAt ?? "").localeCompare(a.data.createdAt ?? ""));
+  if (sortBy === 'recent') {
+    chronoItems.sort((a, b) =>
+      (b.data.createdAt ?? '').localeCompare(a.data.createdAt ?? '')
+    );
   } else {
     const getEventDate = (item: FeedItem): string => {
-      if (item.kind === "check") return item.data.eventDate ?? "";
-      return item.data.rawDate ?? "";
+      if (item.kind === 'check') return item.data.eventDate ?? '';
+      return item.data.rawDate ?? '';
     };
     chronoItems.sort((a, b) => {
-      const da = getEventDate(a), db = getEventDate(b);
+      const da = getEventDate(a),
+        db = getEventDate(b);
       // Items with dates first, then dateless items
       if (da && !db) return -1;
       if (!da && db) return 1;
-      if (!da && !db) return (b.data.createdAt ?? "").localeCompare(a.data.createdAt ?? "");
+      if (!da && !db)
+        return (b.data.createdAt ?? '').localeCompare(a.data.createdAt ?? '');
       return da.localeCompare(db);
     });
   }
@@ -166,11 +206,11 @@ export default function FeedView({
           onEnableNotifications={onEnableNotifications}
         />
       )}
-      <div className="pt-2 px-4">
+      <div className="px-4 pt-2">
         {hasContent ? (
           <>
             {/* Pinned: expiring checks */}
-            {pinnedChecks.map(check => (
+            {pinnedChecks.map((check) => (
               <CheckCard
                 key={check.id}
                 check={check}
@@ -191,29 +231,33 @@ export default function FeedView({
 
             {/* Sort toggle */}
             {chronoItems.length > 0 && (
-              <div className="flex gap-2 mb-3 px-1">
+              <div className="mb-3 flex gap-2 px-1">
                 <button
-                  onClick={() => setSortBy("recent")}
-                  className={`font-mono text-tiny uppercase tracking-[0.08em] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition-colors ${
-                    sortBy === "recent"
-                      ? "bg-dt text-black border-dt"
-                      : "bg-transparent text-neutral-500 border-neutral-800"
+                  onClick={() => setSortBy('recent')}
+                  className={`text-tiny cursor-pointer rounded-lg border px-2.5 py-1 font-mono font-bold tracking-[0.08em] uppercase transition-colors ${
+                    sortBy === 'recent'
+                      ? 'bg-dt border-dt text-black'
+                      : 'border-neutral-800 bg-transparent text-neutral-500'
                   }`}
-                >Recent</button>
+                >
+                  Recent
+                </button>
                 <button
-                  onClick={() => setSortBy("upcoming")}
-                  className={`font-mono text-tiny uppercase tracking-[0.08em] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition-colors ${
-                    sortBy === "upcoming"
-                      ? "bg-dt text-black border-dt"
-                      : "bg-transparent text-neutral-500 border-neutral-800"
+                  onClick={() => setSortBy('upcoming')}
+                  className={`text-tiny cursor-pointer rounded-lg border px-2.5 py-1 font-mono font-bold tracking-[0.08em] uppercase transition-colors ${
+                    sortBy === 'upcoming'
+                      ? 'bg-dt border-dt text-black'
+                      : 'border-neutral-800 bg-transparent text-neutral-500'
                   }`}
-                >Upcoming</button>
+                >
+                  Upcoming
+                </button>
               </div>
             )}
 
             {/* Chrono: open checks + events interleaved */}
-            {chronoItems.map(item =>
-              item.kind === "check" ? (
+            {chronoItems.map((item) =>
+              item.kind === 'check' ? (
                 <CheckCard
                   key={item.data.id}
                   check={item.data}
@@ -237,7 +281,13 @@ export default function FeedView({
                   onToggleSave={() => toggleSave(item.data.id)}
                   onToggleDown={() => toggleDown(item.data.id)}
                   onOpenSocial={() => onOpenSocial(item.data)}
-                  onLongPress={(item.data.createdBy === userId || !item.data.createdBy || isDemoMode) ? () => onEditEvent(item.data) : undefined}
+                  onLongPress={
+                    item.data.createdBy === userId ||
+                    !item.data.createdBy ||
+                    isDemoMode
+                      ? () => onEditEvent(item.data)
+                      : undefined
+                  }
                   onViewProfile={onViewProfile}
                   isNew={item.data.id === newlyAddedEventId}
                 />
@@ -248,39 +298,60 @@ export default function FeedView({
             {hiddenChecks.length > 0 && (
               <div>
                 <button
-                  onClick={() => setShowHidden(prev => !prev)}
-                  className="bg-transparent border-none text-neutral-700 font-mono text-tiny cursor-pointer py-1.5 px-1 flex items-center gap-1"
+                  onClick={() => setShowHidden((prev) => !prev)}
+                  className="text-tiny flex cursor-pointer items-center gap-1 border-none bg-transparent px-1 py-1.5 font-mono text-neutral-700"
                 >
-                  <span className="text-tiny">{showHidden ? "▼" : "▶"}</span>
+                  <span className="text-tiny">{showHidden ? '▼' : '▶'}</span>
                   Hidden ({hiddenChecks.length})
                 </button>
-                {showHidden && hiddenChecks.map(check => (
-                  <div key={check.id} className="bg-neutral-925 rounded-xl overflow-hidden mb-2 border border-neutral-900 opacity-60">
-                    <div className="p-3.5 flex justify-between items-center">
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className={`flex items-center gap-2 mb-1.5 ${check.authorId ? "cursor-pointer" : ""}`}
-                          onClick={(e) => { if (check.authorId && onViewProfile) { e.stopPropagation(); onViewProfile(check.authorId); } }}
-                        >
-                          <div className="size-6 rounded-full bg-neutral-800 text-neutral-500 flex items-center justify-center font-mono text-tiny font-bold">
-                            {check.author[0]}
+                {showHidden &&
+                  hiddenChecks.map((check) => (
+                    <div
+                      key={check.id}
+                      className="bg-neutral-925 mb-2 overflow-hidden rounded-xl border border-neutral-900 opacity-60"
+                    >
+                      <div className="flex items-center justify-between p-3.5">
+                        <div className="min-w-0 flex-1">
+                          <div
+                            className={`mb-1.5 flex items-center gap-2 ${check.authorId ? 'cursor-pointer' : ''}`}
+                            onClick={(e) => {
+                              if (check.authorId && onViewProfile) {
+                                e.stopPropagation();
+                                onViewProfile(check.authorId);
+                              }
+                            }}
+                          >
+                            <div className="text-tiny flex size-6 items-center justify-center rounded-full bg-neutral-800 font-mono font-bold text-neutral-500">
+                              {check.author[0]}
+                            </div>
+                            <span className="font-mono text-xs text-neutral-500">
+                              {check.author}
+                              {check.viaFriendName && (
+                                <span className="font-normal text-neutral-500">
+                                  {' '}
+                                  via {check.viaFriendName}
+                                </span>
+                              )}
+                            </span>
                           </div>
-                          <span className="font-mono text-xs text-neutral-500">
-                            {check.author}
-                            {check.viaFriendName && <span className="text-neutral-500 font-normal">{" "}via {check.viaFriendName}</span>}
-                          </span>
+                          <p className="m-0 font-serif text-base leading-snug text-neutral-500">
+                            <Linkify dimmed coAuthors={check.coAuthors}>
+                              {check.text}
+                            </Linkify>
+                          </p>
                         </div>
-                        <p className="font-serif text-base text-neutral-500 m-0 leading-snug">
-                          <Linkify dimmed coAuthors={check.coAuthors} onViewProfile={onViewProfile}>{check.text}</Linkify>
+                        <p className="m-0 font-serif text-base leading-snug text-neutral-500">
+                          <Linkify
+                            dimmed
+                            coAuthors={check.coAuthors}
+                            onViewProfile={onViewProfile}
+                          >
+                            {check.text}
+                          </Linkify>
                         </p>
                       </div>
-                      <button
-                        onClick={() => unhideCheck(check.id)}
-                        className="bg-transparent border border-neutral-800 rounded-lg py-1.5 px-2.5 font-mono text-tiny text-neutral-500 cursor-pointer shrink-0 ml-3"
-                      >Unhide</button>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </>

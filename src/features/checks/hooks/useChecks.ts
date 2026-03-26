@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import * as db from "@/lib/db";
-import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck } from "@/lib/ui-types";
 import { logError, logWarn } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
+import { checksReducer, initialChecksState, CheckActionType } from "@/features/checks/reducers/checksReducer";
 
 // ─── Shared transform helpers ──────────────────────────────────────────────
 
@@ -86,17 +86,6 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
   };
 }
 
-function mergeChecks(prev: InterestCheck[], transformed: InterestCheck[]): InterestCheck[] {
-  const prevMap = new Map(prev.map((c) => [c.id, c]));
-  return transformed.map((c) => {
-    const existing = prevMap.get(c.id);
-    if (existing) {
-      return { ...c, squadId: c.squadId ?? existing.squadId, viaFriendName: c.viaFriendName ?? existing.viaFriendName };
-    }
-    return c;
-  });
-}
-
 // ─── Hook ──────────────────────────────────────────────────────────────────
 
 interface UseChecksParams {
@@ -112,12 +101,9 @@ interface UseChecksParams {
 }
 
 export function useChecks({ userId, isDemoMode, profile, friendCount, showToast, onCheckCreated, onDownResponse, onAutoSquad, onCoAuthorRespond }: UseChecksParams) {
-  const [checks, setChecks] = useState<InterestCheck[]>([]);
-  const [myCheckResponses, setMyCheckResponses] = useState<Record<string, "down" | "waitlist">>({});
-  const [hiddenCheckIds, setHiddenCheckIds] = useState<Set<string>>(new Set());
-  const [pendingDownCheckIds, setPendingDownCheckIds] = useState<Set<string>>(new Set());
-  const [newlyAddedCheckId, setNewlyAddedCheckId] = useState<string | null>(null);
-  const [leftChecks, setLeftChecks] = useState<InterestCheck[]>([]);
+  // Single reducer replaces 6x useState
+  const [state, dispatch] = useReducer(checksReducer, initialChecksState);
+  const { checks, myCheckResponses, hiddenCheckIds, pendingDownCheckIds, newlyAddedCheckId, leftChecks } = state;
 
   const loadChecks = useCallback(async () => {
     if (isDemoMode || !userId) return;
@@ -130,12 +116,12 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
       if (fofAnnotations.length > 0) {
         const viaMap = new Map(fofAnnotations.map((a) => [a.check_id, a.via_friend_name]));
         for (const c of transformedChecks) {
-          if (c.isYours || c.isCoAuthor) continue; // co-authors see it as friend-priority
+          if (c.isYours || c.isCoAuthor) continue;
           const via = viaMap.get(c.id);
           if (via) c.viaFriendName = via;
         }
       }
-      setChecks((prev) => mergeChecks(prev, transformedChecks));
+      dispatch({ type: CheckActionType.SYNC_CHECKS, checks: transformedChecks });
     } catch (err) {
       logWarn("loadChecks", "Failed to load checks", { error: err });
     }
@@ -150,15 +136,14 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     if (fofAnnotations && fofAnnotations.length > 0) {
       const viaMap = new Map(fofAnnotations.map((a) => [a.check_id, a.via_friend_name]));
       for (const c of transformedChecks) {
-        if (c.isYours || c.isCoAuthor) continue; // co-authors see it as friend-priority
+        if (c.isYours || c.isCoAuthor) continue;
         const via = viaMap.get(c.id);
         if (via) c.viaFriendName = via;
       }
     }
-    setChecks((prev) => mergeChecks(prev, transformedChecks));
-    setHiddenCheckIds(new Set(hiddenIds));
 
-    // Hydrate myCheckResponses from existing responses
+    // Build responses map from server data — passed to SYNC_CHECKS so it atomically
+    // sets checks + hiddenIds + myCheckResponses in one render
     const restoredResponses: Record<string, "down" | "waitlist"> = {};
     for (const c of transformedChecks) {
       const myResponse = c.responses.find((r) => r.name === "You");
@@ -166,71 +151,43 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
         restoredResponses[c.id] = myResponse.status;
       }
     }
-    if (Object.keys(restoredResponses).length > 0) {
-      setMyCheckResponses((prev) => ({ ...prev, ...restoredResponses }));
-    }
+
+    dispatch({
+      type: CheckActionType.SYNC_CHECKS,
+      checks: transformedChecks,
+      hiddenIds,
+      ...(Object.keys(restoredResponses).length > 0 && { responses: restoredResponses }),
+    });
   }, [userId]);
 
   const respondToCheck = (checkId: string) => {
     const check = checks.find((c) => c.id === checkId);
-    setMyCheckResponses((prev) => ({ ...prev, [checkId]: "down" }));
-    setChecks((prev) =>
-      prev.map((c) => {
-        if (c.id === checkId) {
-          const alreadyResponded = c.responses.some((r) => r.name === "You");
-          if (alreadyResponded) {
-            return {
-              ...c,
-              responses: c.responses.map((r) =>
-                r.name === "You" ? { ...r, status: "down" as const } : r
-              ),
-            };
-          }
-          return {
-            ...c,
-            responses: [...c.responses, { name: "You", avatar: profile?.avatar_letter ?? "?", status: "down" as const }],
-          };
-        }
-        return c;
-      })
-    );
+    dispatch({ type: CheckActionType.SET_RESPONSE, checkId, status: "down", avatarLetter: profile?.avatar_letter ?? "?" });
     showToast("You're down! \u{1F919}");
     if (!isDemoMode && check?.id) {
-      setPendingDownCheckIds((prev) => new Set(prev).add(checkId));
+      dispatch({ type: CheckActionType.SET_PENDING, checkId, pending: true });
       db.respondToCheck(check.id, 'down')
         .then(async (result) => {
-          // Server may have converted to waitlist via trigger
           if (result.response === 'waitlist') {
-            setMyCheckResponses((prev) => ({ ...prev, [checkId]: "waitlist" }));
-            setChecks((prev) =>
-              prev.map((c) =>
-                c.id === checkId
-                  ? { ...c, responses: c.responses.map((r) => r.name === "You" ? { ...r, status: "waitlist" as const } : r) }
-                  : c
-              )
-            );
+            dispatch({ type: CheckActionType.SET_RESPONSE, checkId, status: "waitlist" });
             showToast("Check is full — you're on the waitlist");
           }
-          // Full reload: DB trigger may have auto-joined user to a squad
           if (onDownResponse) await onDownResponse();
           else await loadChecks();
-          setPendingDownCheckIds((prev) => { const next = new Set(prev); next.delete(checkId); return next; });
-          // Auto-create squad if 2+ people are down and no squad exists yet
+          dispatch({ type: CheckActionType.SET_PENDING, checkId, pending: false });
           if (result.response === 'down' && onAutoSquad) {
-            setChecks((prev) => {
-              const updated = prev.find((c) => c.id === checkId);
-              if (updated && !updated.squadId) {
-                const downCount = updated.responses.filter((r) => r.status === "down").length;
-                if (downCount >= 2) {
-                  setTimeout(() => onAutoSquad(checkId), 300);
-                }
+            // Read latest checks after reload to check squad/down count
+            const updated = checks.find((c) => c.id === checkId);
+            if (updated && !updated.squadId) {
+              const downCount = updated.responses.filter((r) => r.status === "down").length;
+              if (downCount >= 2) {
+                setTimeout(() => onAutoSquad(checkId), 300);
               }
-              return prev;
-            });
+            }
           }
         })
         .catch((err) => {
-          setPendingDownCheckIds((prev) => { const next = new Set(prev); next.delete(checkId); return next; });
+          dispatch({ type: CheckActionType.SET_PENDING, checkId, pending: false });
           logError("respondToCheck", err, { checkId: check?.id });
         });
     }
@@ -284,8 +241,8 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
           location: location ?? undefined,
           ...movieFields,
         };
-        setChecks((prev) => [newCheck, ...prev]);
-        setNewlyAddedCheckId(newCheck.id);
+        dispatch({ type: CheckActionType.UPSERT_CHECK, check: newCheck });
+        dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: newCheck.id });
         showToast(friendCount > 0 ? "Sent to friends & their friends! \u{1F4E3}" : "Check posted! Add friends to share it \u{1F4E3}");
         onCheckCreated?.();
       } catch (err) {
@@ -311,34 +268,16 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
         location: location ?? undefined,
         ...movieFields,
       };
-      setChecks((prev) => [newCheck, ...prev]);
-      setNewlyAddedCheckId(newCheck.id);
+      dispatch({ type: CheckActionType.UPSERT_CHECK, check: newCheck });
+      dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: newCheck.id });
       showToast(friendCount > 0 ? "Sent to friends & their friends! \u{1F4E3}" : "Check posted! Add friends to share it \u{1F4E3}");
       onCheckCreated?.();
 
       setTimeout(() => {
-        setChecks((prev) =>
-          prev.map((c) =>
-            c.id === newCheck.id
-              ? { ...c, responses: [{ name: "Sara", avatar: "S", status: "down" as const }] }
-              : c
-          )
-        );
+        dispatch({ type: CheckActionType.UPSERT_CHECK, check: { ...newCheck, responses: [{ name: "Sara", avatar: "S", status: "down" as const }] } });
       }, 3000);
       setTimeout(() => {
-        setChecks((prev) =>
-          prev.map((c) =>
-            c.id === newCheck.id
-              ? {
-                  ...c,
-                  responses: [
-                    ...c.responses,
-                    { name: "Nickon", avatar: "N", status: "down" as const },
-                  ],
-                }
-              : c
-          )
-        );
+        dispatch({ type: CheckActionType.UPSERT_CHECK, check: { ...newCheck, responses: [{ name: "Sara", avatar: "S", status: "down" as const }, { name: "Nickon", avatar: "N", status: "down" as const }] } });
       }, 6000);
     }
   };
@@ -347,28 +286,7 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     if (isDemoMode) return;
     try {
       await db.respondToCoAuthorTag(checkId, true);
-      setChecks(prev => prev.map(c =>
-        c.id === checkId
-          ? {
-              ...c,
-              isCoAuthor: true,
-              pendingTagForYou: false,
-              coAuthors: c.coAuthors?.map(ca =>
-                ca.userId === userId ? { ...ca, status: 'accepted' as const } : ca
-              ),
-            }
-          : c
-      ));
-      // DB trigger auto-responds "down" — update local state too
-      setMyCheckResponses(prev => ({ ...prev, [checkId]: 'down' }));
-      setChecks(prev => prev.map(c => {
-        if (c.id !== checkId) return c;
-        const alreadyResponded = c.responses.some(r => r.name === 'You');
-        if (alreadyResponded) {
-          return { ...c, responses: c.responses.map(r => r.name === 'You' ? { ...r, status: 'down' as const } : r) };
-        }
-        return { ...c, responses: [...c.responses, { name: 'You', avatar: profile?.avatar_letter ?? '?', status: 'down' as const }] };
-      }));
+      dispatch({ type: CheckActionType.SET_CO_AUTHOR, checkId, userId: userId!, accepted: true, avatarLetter: profile?.avatar_letter ?? "?" });
       showToast("You're now a co-author!");
       onCoAuthorRespond?.(checkId);
       loadChecks();
@@ -382,17 +300,7 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     if (isDemoMode) return;
     try {
       await db.respondToCoAuthorTag(checkId, false);
-      setChecks(prev => prev.map(c =>
-        c.id === checkId
-          ? {
-              ...c,
-              pendingTagForYou: false,
-              coAuthors: c.coAuthors?.map(ca =>
-                ca.userId === userId ? { ...ca, status: 'declined' as const } : ca
-              ),
-            }
-          : c
-      ));
+      dispatch({ type: CheckActionType.SET_CO_AUTHOR, checkId, userId: userId!, accepted: false });
       onCoAuthorRespond?.(checkId);
     } catch (err) {
       logError('declineCoAuthorTag', err, { checkId });
@@ -404,52 +312,46 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const filtered = raw.filter((r) => {
       if (!r.check) return false;
-      // Filter out expired checks
       if (r.check.expires_at && new Date(r.check.expires_at) < now) return false;
-      // Filter out past-date checks
       if (r.check.event_date && r.check.event_date < todayIso) return false;
       return true;
     });
-    setLeftChecks(filtered.map((r) => ({
-      id: r.check.id,
-      text: r.check.text,
-      author: r.check.author.display_name,
-      authorId: r.check.author_id,
-      timeAgo: '',
-      expiresIn: '',
-      expiryPercent: 0,
-      responses: [],
-      isYours: false,
-      eventDate: r.check.event_date ?? undefined,
-      eventDateLabel: r.check.event_date
-        ? new Date(r.check.event_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-        : undefined,
-      eventTime: r.check.event_time?.replace(/\s*[Aa][Mm]/g, 'am').replace(/\s*[Pp][Mm]/g, 'pm') ?? undefined,
-    })));
+    dispatch({
+      type: CheckActionType.HYDRATE_LEFT_CHECKS,
+      leftChecks: filtered.map((r) => ({
+        id: r.check.id,
+        text: r.check.text,
+        author: r.check.author.display_name,
+        authorId: r.check.author_id,
+        timeAgo: '',
+        expiresIn: '',
+        expiryPercent: 0,
+        responses: [],
+        isYours: false,
+        eventDate: r.check.event_date ?? undefined,
+        eventDateLabel: r.check.event_date
+          ? new Date(r.check.event_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+          : undefined,
+        eventTime: r.check.event_time?.replace(/\s*[Aa][Mm]/g, 'am').replace(/\s*[Pp][Mm]/g, 'pm') ?? undefined,
+      })),
+    });
   }, []);
 
   const redownFromLeft = useCallback((checkId: string) => {
-    // Optimistically remove from leftChecks
-    setLeftChecks((prev) => prev.filter((c) => c.id !== checkId));
-    // Re-down via normal flow
+    dispatch({ type: CheckActionType.REMOVE_FROM_LEFT, checkId });
     respondToCheck(checkId);
-    // Backup: explicitly remove left_checks row (trigger should handle it, but be safe)
     db.removeLeftCheck(checkId).catch((err) => logError('removeLeftCheck', err, { checkId }));
   }, [respondToCheck]);
 
   const hideCheck = async (checkId: string) => {
-    setHiddenCheckIds((prev) => new Set(prev).add(checkId));
+    dispatch({ type: CheckActionType.SET_HIDDEN, checkId, hidden: true });
     if (!isDemoMode) {
       db.hideCheck(checkId).catch((err) => logError("hideCheck", err, { checkId }));
     }
   };
 
   const unhideCheck = async (checkId: string) => {
-    setHiddenCheckIds((prev) => {
-      const next = new Set(prev);
-      next.delete(checkId);
-      return next;
-    });
+    dispatch({ type: CheckActionType.SET_HIDDEN, checkId, hidden: false });
     if (!isDemoMode) {
       db.unhideCheck(checkId).catch((err) => logError("unhideCheck", err, { checkId }));
     }
@@ -458,28 +360,7 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
   // Recalculate expiry every 30s so stale checks auto-hide
   useEffect(() => {
     const timer = setInterval(() => {
-      setChecks(prev => {
-        let changed = false;
-        const updated = prev.map(c => {
-          if (!c.expiresAt || !c.createdAt || c.expiresIn === "open") return c;
-          const now = new Date();
-          const expires = new Date(c.expiresAt);
-          const created = new Date(c.createdAt);
-          const totalDuration = expires.getTime() - created.getTime();
-          const msElapsed = now.getTime() - created.getTime();
-          const expiryPercent = Math.min(100, (msElapsed / totalDuration) * 100);
-          const msRemaining = expires.getTime() - now.getTime();
-          const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-          const minsRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-          const expiresIn = hoursRemaining > 0 ? `${hoursRemaining}h` : minsRemaining > 0 ? `${minsRemaining}m` : "expired";
-          if (c.expiresIn !== expiresIn || Math.abs(c.expiryPercent - expiryPercent) > 1) {
-            changed = true;
-            return { ...c, expiresIn, expiryPercent };
-          }
-          return c;
-        });
-        return changed ? updated : prev;
-      });
+      dispatch({ type: CheckActionType.TICK_EXPIRY, now: new Date() });
     }, 30_000);
     return () => clearInterval(timer);
   }, []);
@@ -493,13 +374,12 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
 
   return {
     checks,
-    setChecks,
     myCheckResponses,
-    setMyCheckResponses,
     hiddenCheckIds,
     pendingDownCheckIds,
     newlyAddedCheckId,
-    setNewlyAddedCheckId,
+    leftChecks,
+    dispatch,
     loadChecks,
     hydrateChecks,
     respondToCheck,
@@ -508,7 +388,6 @@ export function useChecks({ userId, isDemoMode, profile, friendCount, showToast,
     declineCoAuthorTag,
     hideCheck,
     unhideCheck,
-    leftChecks,
     hydrateLeftChecks,
     redownFromLeft,
   };
