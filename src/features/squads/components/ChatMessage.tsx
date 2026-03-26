@@ -93,14 +93,16 @@ export default function ChatMessage({
 
     if (msg.messageType === 'poll' && activePoll && msg.messageId === activePoll.messageId) {
       return (
-        <PollMessage
-          poll={activePoll}
-          pollVotes={pollVotes}
-          userId={userId}
-          isWaitlisted={isWaitlisted}
-          pollMessageRef={pollMessageRef}
-          onPollClosed={onPollClosed}
-        />
+        <div className="mb-3">
+          <PollMessage
+            poll={activePoll}
+            pollVotes={pollVotes}
+            userId={userId}
+            isWaitlisted={isWaitlisted}
+            pollMessageRef={pollMessageRef}
+            onPollClosed={onPollClosed}
+          />
+        </div>
       );
     }
 
@@ -119,7 +121,7 @@ export default function ChatMessage({
         </span>
       )}
       <div
-        className={cn("select-text py-2 px-3 font-mono text-sm max-w-[80%] leading-snug",
+        className={cn("select-text font-mono max-w-[80%]",
           msg.isYou
             ? cn("bg-dt text-black rounded-tr-2xl rounded-bl-2xl", {
                 "rounded-tl-2xl": isFirstInGroup,
@@ -134,6 +136,12 @@ export default function ChatMessage({
                 "rounded-bl-lg": !isLastInGroup,
               })
         )}
+        style={{
+          padding: "10px 14px",
+          fontSize: 12,
+          lineHeight: 1.3,
+          letterSpacing: "0.025em",
+        }}
       >
         {linkify(msg.text, !!msg.isYou)}
       </div>
