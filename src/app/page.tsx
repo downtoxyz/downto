@@ -223,9 +223,7 @@ export default function Home() {
       setArchivedChecks(archivedChecksList);
       checksHook.hydrateLeftChecks(leftChecksList);
 
-      setFeedLoaded(true);
-
-      // Phase 4: Backfill social data (peopleDown + crew pool)
+      // Phase 4: Fetch social data before showing feed so it doesn't pop in
       const savedEventIds = savedEvents.map((se) => se.event!.id);
       const allEventIds = [...new Set([...savedEventIds, ...publicEvents.map((e) => e.id), ...friendsEvents.map((e) => e.id)])];
       if (allEventIds.length > 0) {
@@ -240,6 +238,8 @@ export default function Home() {
           logWarn("loadPeopleDown", "Failed to load social data", { error: err });
         }
       }
+
+      setFeedLoaded(true);
 
     } catch (err) {
       logError("loadRealData", err);
