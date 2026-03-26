@@ -383,6 +383,12 @@ const NotificationsPanel = ({
                         fontSize: 11,
                         color: color.dim,
                         lineHeight: 1.4,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        wordBreak: "break-all",
                       }}
                     >
                       {n.body}

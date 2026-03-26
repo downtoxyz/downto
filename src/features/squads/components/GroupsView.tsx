@@ -106,6 +106,9 @@ const GroupsView = ({
                 fontSize: 12,
                 color: color.muted,
                 marginBottom: 8,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
               {g.lastMsg}
