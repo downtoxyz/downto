@@ -22,16 +22,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No squad for this check' }, { status: 400 });
   }
 
-  // Verify caller is a squad member
+  // Verify caller is an active squad member (not waitlisted)
   const { data: membership } = await supabase
     .from('squad_members')
-    .select('id')
+    .select('id, role')
     .eq('squad_id', squad.id)
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!membership) {
-    return NextResponse.json({ error: 'Not a squad member' }, { status: 403 });
+  if (!membership || membership.role === 'waitlist') {
+    return NextResponse.json({ error: 'Not an active squad member' }, { status: 403 });
   }
 
   const { getServiceClient } = await import('@/lib/supabase-admin');
