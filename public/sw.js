@@ -1,5 +1,16 @@
 // down to — Service Worker for Web Push Notifications
 
+// Track which squad chat is currently open (suppresses push for that squad)
+let openSquadId = null;
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SQUAD_OPEN") {
+    openSquadId = event.data.squadId || null;
+  } else if (event.data?.type === "SQUAD_CLOSED") {
+    openSquadId = null;
+  }
+});
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
@@ -19,6 +30,12 @@ self.addEventListener("push", (event) => {
   }
 
   const { title = "down to", body = "", type, relatedId } = data;
+
+  // Suppress notification if user is viewing this squad's chat
+  const isSquadType = type === "squad_message" || type === "squad_mention" || type === "squad_invite";
+  if (isSquadType && relatedId && relatedId === openSquadId) {
+    return; // don't show notification, don't increment badge
+  }
 
   event.waitUntil(
     Promise.all([

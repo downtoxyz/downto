@@ -65,6 +65,9 @@ const SquadChat = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [entering, setEntering] = useState(true);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  // DEBUG: bubble style tuner — remove before shipping
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [bubbleStyle, setBubbleStyle] = useState({ paddingV: 10, paddingH: 14, fontSize: 12, leading: 1.3, tracking: 0.025 });
   const [showImOutConfirm, setShowImOutConfirm] = useState(false);
   const [kickTarget, setKickTarget] = useState<{ name: string; userId: string } | null>(null);
   const [showSquadPopup, setShowSquadPopup] = useState(false);
@@ -91,9 +94,11 @@ const SquadChat = ({
   const [pollCreating, setPollCreating] = useState(false);
   const pollMessageRef = useRef<HTMLDivElement>(null);
 
-  // Notify parent when chat opens/closes + block scroll-through on iOS PWA
+  // Notify parent + service worker when chat opens/closes
   useEffect(() => {
     onChatOpen?.(true);
+    // Tell service worker to suppress push notifications for this squad
+    navigator.serviceWorker?.controller?.postMessage({ type: "SQUAD_OPEN", squadId: squad.id });
     let touchStartY = 0;
     const recordTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0].clientY;
@@ -124,10 +129,11 @@ const SquadChat = ({
     document.addEventListener("touchmove", blockTouch, { passive: false });
     return () => {
       onChatOpen?.(false);
+      navigator.serviceWorker?.controller?.postMessage({ type: "SQUAD_CLOSED" });
       document.removeEventListener("touchstart", recordTouchStart);
       document.removeEventListener("touchmove", blockTouch);
     };
-  }, [onChatOpen]);
+  }, [onChatOpen, squad.id]);
 
   // Prevent pinch-to-zoom in PWA
   useEffect(() => {
@@ -392,11 +398,13 @@ const SquadChat = ({
   const isDragging = useRef(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (showDebugPanel) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     isDragging.current = false;
   };
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (showDebugPanel) return;
     const dx = e.touches[0].clientX - touchStartX.current;
     const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
     // Only activate swipe-to-dismiss when horizontal movement clearly dominates vertical
@@ -915,6 +923,56 @@ const SquadChat = ({
         transition: 'filter 0.2s, opacity 0.2s',
         minHeight: 0,
       }}>
+      {/* DEBUG: bubble style tuner — remove before shipping */}
+      <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 0" }}>
+        <button
+          onClick={() => setShowDebugPanel(p => !p)}
+          style={{
+            fontFamily: font.mono, fontSize: 9, background: color.accent, color: "#000",
+            border: "none", borderRadius: 20, padding: "4px 12px", cursor: "pointer",
+          }}
+        >
+          {`pad ${bubbleStyle.paddingV}/${bubbleStyle.paddingH} · fs ${bubbleStyle.fontSize} · lh ${bubbleStyle.leading} · tr ${bubbleStyle.tracking}`}
+        </button>
+      </div>
+      {showDebugPanel && (
+        <div style={{
+          padding: "8px 16px 4px", display: "flex", flexDirection: "column", gap: 6,
+          background: color.deep, borderBottom: `1px solid ${color.border}`,
+        }}>
+          {([
+            { label: "Pad V", key: "paddingV" as const, min: 2, max: 20, step: 1 },
+            { label: "Pad H", key: "paddingH" as const, min: 4, max: 24, step: 1 },
+            { label: "Font", key: "fontSize" as const, min: 8, max: 18, step: 1 },
+            { label: "Lead", key: "leading" as const, min: 1.0, max: 2.0, step: 0.05 },
+            { label: "Track", key: "tracking" as const, min: 0, max: 0.1, step: 0.005 },
+          ]).map(({ label, key, min, max, step }) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: font.mono, fontSize: 9, color: color.dim, width: 40, flexShrink: 0 }}>{label}</span>
+              <input
+                type="range" min={min} max={max} step={step}
+                value={bubbleStyle[key]}
+                onChange={e => setBubbleStyle(s => ({ ...s, [key]: parseFloat(e.target.value) }))}
+                style={{ flex: 1, accentColor: color.accent, height: 2 }}
+              />
+              <span style={{ fontFamily: font.mono, fontSize: 9, color: color.accent, width: 36, textAlign: "right" }}>
+                {key === "tracking" ? bubbleStyle[key].toFixed(3) : key === "leading" ? bubbleStyle[key].toFixed(2) : bubbleStyle[key]}
+              </span>
+            </div>
+          ))}
+          <button
+            onClick={() => setBubbleStyle({ paddingV: 8, paddingH: 12, fontSize: 14, leading: 1.375, tracking: 0 })}
+            style={{
+              fontFamily: font.mono, fontSize: 8, color: color.faint, background: "none",
+              border: `1px solid ${color.border}`, borderRadius: 10, padding: "3px 8px",
+              cursor: "pointer", alignSelf: "center", marginBottom: 4,
+            }}
+          >
+            RESET TO ORIGINAL
+          </button>
+        </div>
+      )}
+
       {/* Messages */}
       <div
         style={{
@@ -938,6 +996,7 @@ const SquadChat = ({
               <ChatMessage
                 key={i}
                 msg={msg}
+                bubbleStyle={bubbleStyle}
                 isFirstInGroup={!sameSenderAsPrev}
                 isLastInGroup={!sameSenderAsNext}
                 isLastConfirm={i === lastConfirmIdx}
