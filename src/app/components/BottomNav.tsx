@@ -138,6 +138,7 @@ const BottomNav = ({
             </span>
             {t === "groups" && hasGroupsUnread && (
               <div
+                data-testid="squads-unread-dot"
                 style={{
                   position: "absolute",
                   top: 4,

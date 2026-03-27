@@ -78,7 +78,7 @@ const GroupsView = ({
                 <span style={{ fontFamily: font.serif, fontSize: 17, color: color.text, fontWeight: 400 }}>
                   {g.name}
                   {g.hasUnread && (
-                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", marginLeft: 6, verticalAlign: "middle" }} />
+                    <span data-testid={`squad-unread-dot-${g.id}`} style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", marginLeft: 6, verticalAlign: "middle" }} />
                   )}
                 </span>
                 {g.isWaitlisted && (

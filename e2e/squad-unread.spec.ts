@@ -6,10 +6,10 @@ import { sendSquadMessage, getSharedSquad, getUserByEmail, hasUnreadMessages, up
 /**
  * Squad chat unread dot behavior tests.
  *
- * These tests validate every state transition of the unread red dot
- * on squad cards and the bottom nav Squads tab.
+ * Validates both the DATA layer (cursor-based RPC) and the UI layer
+ * (red dot visibility in BottomNav and squad card).
  *
- * Test users: kat@test.com (primary), zereptak.burner@gmail.com (secondary)
+ * Test users: kat@test.com (primary), sara@test.com (secondary)
  * Requires: local Supabase with seed data, both users in at least one shared squad.
  */
 
@@ -17,10 +17,12 @@ let katId: string;
 let otherUserId: string;
 let sharedSquad: { id: string; name: string };
 
+const SQUADS_DOT = '[data-testid="squads-unread-dot"]';
+
 test.describe("Squad unread dot behavior", () => {
   test.beforeAll(async () => {
     const kat = await getUserByEmail("kat@test.com");
-    const other = await getUserByEmail("zereptak.burner@gmail.com");
+    const other = await getUserByEmail("sara@test.com");
     if (!kat || !other) throw new Error("Test users not found — seed the database first");
     katId = kat.id;
     otherUserId = other.id;
@@ -38,172 +40,174 @@ test.describe("Squad unread dot behavior", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 1. No unread messages → no dot
+  // 1. No unread messages → no dot (DATA + UI)
   // ──────────────────────────────────────────────────────────────────────
-  test("no unread messages → Squads tab has no red dot", async ({ page }) => {
-    const squadsBtn = navButton(page, "Squads");
-    await expect(squadsBtn).toBeVisible();
+  test("no unread messages → no red dot on Squads tab or squad card", async ({ page }) => {
+    // DATA: cursor is up to date
+    const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
+    expect(isUnread).toBe(false);
 
-    // The red dot is a small 7-8px circle inside the nav button
-    // When there's no unread, there should be no red dot
-    const dot = page.locator('[data-testid="squads-unread-dot"]');
-    await expect(dot).not.toBeVisible({ timeout: 3_000 }).catch(() => {
-      // Fallback: check by style — red dot uses #ff3b30 background
-      // If no data-testid, just check there's no red circle near Squads
-    });
+    // UI: no red dot on bottom nav Squads tab
+    await expect(page.locator(SQUADS_DOT)).not.toBeVisible({ timeout: 3_000 });
+
+    // UI: navigate to squads, no dot on the squad card
+    await navButton(page, "Squads").click();
+    await expect(page.getByText(sharedSquad.name)).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).not.toBeVisible({ timeout: 2_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 2. New message from other user → dot appears
+  // 2. New message from other user → dot appears (DATA + UI)
   // ──────────────────────────────────────────────────────────────────────
-  test("new message from other user → red dot appears on Squads tab", async ({ page }) => {
+  test("new message from other user → red dot appears on Squads tab and squad card", async ({ page }) => {
     // Send a message as the other user
-    const msgText = `test-unread-${Date.now()}`;
-    await sendSquadMessage(sharedSquad.id, otherUserId, msgText);
+    await sendSquadMessage(sharedSquad.id, otherUserId, `test-unread-${Date.now()}`);
 
-    // Wait for realtime to propagate
-    await page.waitForTimeout(3_000);
-
-    // Navigate to squads tab
-    await navButton(page, "Squads").click();
-
-    // The squad card should show the unread indicator
-    const squadCard = page.getByText(sharedSquad.name);
-    await expect(squadCard).toBeVisible({ timeout: 5_000 });
-
-    // Check that the squad card has an unread dot (red circle near the name)
-    // The hasUnread flag adds a red dot to the squad card in GroupsView
-    const unreadDot = page.locator(`text="${sharedSquad.name}" >> .. >> [style*="ff3b30"], text="${sharedSquad.name}" >> .. >> .bg-red-500`);
-    // Allow flexible matching — the dot might be a sibling or child
+    // DATA: RPC should show unread
     await expect(async () => {
       const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
       expect(isUnread).toBe(true);
     }).toPass({ timeout: 5_000 });
+
+    // UI: red dot appears on bottom nav Squads tab
+    await expect(page.locator(SQUADS_DOT)).toBeVisible({ timeout: 8_000 });
+
+    // UI: navigate to squads, dot on the squad card
+    await navButton(page, "Squads").click();
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 3. Open squad chat → dot clears
+  // 3. Open squad chat → dot clears (DATA + UI)
   // ──────────────────────────────────────────────────────────────────────
-  test("open squad chat → unread dot clears", async ({ page }) => {
-    // Send a message to create unread state
+  test("open squad chat → dots clear on both tab and card", async ({ page }) => {
+    // Create unread state
     await sendSquadMessage(sharedSquad.id, otherUserId, `test-open-${Date.now()}`);
     await page.waitForTimeout(2_000);
 
     // Navigate to squads and open the chat
     await navButton(page, "Squads").click();
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).toBeVisible({ timeout: 5_000 });
     await page.getByText(sharedSquad.name).click();
 
     // Wait for chat to load
-    const messageInput = page.getByPlaceholder(/message/i);
-    await expect(messageInput).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/message/i)).toBeVisible({ timeout: 5_000 });
 
-    // Cursor should be updated — no more unread
+    // DATA: cursor should be updated
     await expect(async () => {
       const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
       expect(isUnread).toBe(false);
     }).toPass({ timeout: 5_000 });
+
+    // Go back to squad list
+    await page.locator("text=‹").first().click().catch(() => navButton(page, "Squads").click());
+    await page.waitForTimeout(1_000);
+
+    // UI: dot should be gone on squad card
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).not.toBeVisible({ timeout: 3_000 });
+
+    // UI: bottom nav dot should be gone (if this was the only unread squad)
+    // Note: might still show if OTHER squads have unread — check data first
+    const anyUnread = await hasUnreadMessages(katId, sharedSquad.id);
+    if (!anyUnread) {
+      await expect(page.locator(SQUADS_DOT)).not.toBeVisible({ timeout: 3_000 });
+    }
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 4. Leave chat → new message → dot reappears
+  // 4. Leave chat → new message → dot reappears (DATA + UI)
   // ──────────────────────────────────────────────────────────────────────
-  test("leave chat then new message arrives → dot reappears", async ({ page }) => {
+  test("leave chat then new message → dot reappears", async ({ page }) => {
     // Open and close the chat to set cursor
     await navButton(page, "Squads").click();
     await page.getByText(sharedSquad.name).click();
-    await page.getByPlaceholder(/message/i).waitFor({ timeout: 5_000 });
-
-    // Go back to squad list
-    const backBtn = page.locator("text=←, text=‹, [aria-label='Back']").first();
-    if (await backBtn.isVisible()) {
-      await backBtn.click();
-    } else {
-      await navButton(page, "Squads").click();
-    }
-
-    // Wait for chat to close
+    await expect(page.getByPlaceholder(/message/i)).toBeVisible({ timeout: 5_000 });
+    await page.locator("text=‹").first().click().catch(() => navButton(page, "Squads").click());
     await page.waitForTimeout(1_000);
+
+    // UI: dot should be gone
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).not.toBeVisible({ timeout: 3_000 });
 
     // Send a new message as other user
     await sendSquadMessage(sharedSquad.id, otherUserId, `test-reappear-${Date.now()}`);
 
-    // Unread should be true again
+    // DATA: should be unread again
     await expect(async () => {
       const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
       expect(isUnread).toBe(true);
     }).toPass({ timeout: 5_000 });
+
+    // UI: dot reappears on squad card
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).toBeVisible({ timeout: 8_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 5. Message while in chat → no unread (suppressed)
+  // 5. Message while in chat → no dot (DATA + UI)
   // ──────────────────────────────────────────────────────────────────────
-  test("message arrives while in chat → stays read (no dot)", async ({ page }) => {
+  test("message arrives while in chat → stays read, no dot", async ({ page }) => {
     // Open the chat
     await navButton(page, "Squads").click();
     await page.getByText(sharedSquad.name).click();
-    await page.getByPlaceholder(/message/i).waitFor({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/message/i)).toBeVisible({ timeout: 5_000 });
 
     // Send a message while user is in the chat
-    await sendSquadMessage(sharedSquad.id, otherUserId, `test-in-chat-${Date.now()}`);
+    const msgText = `inchat-${Date.now()}`;
+    await sendSquadMessage(sharedSquad.id, otherUserId, msgText);
+    await page.waitForTimeout(3_000);
 
-    // Wait for realtime
-    await page.waitForTimeout(2_000);
-
-    // Should still be read (cursor updates in real-time)
-    await expect(async () => {
-      const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
-      expect(isUnread).toBe(false);
-    }).toPass({ timeout: 5_000 });
-  });
-
-  // ──────────────────────────────────────────────────────────────────────
-  // 6. Own message doesn't create unread state
-  // ──────────────────────────────────────────────────────────────────────
-  test("own message does not trigger unread", async ({ page }) => {
-    // Send a message as kat (the logged-in user)
-    await sendSquadMessage(sharedSquad.id, katId, `test-self-${Date.now()}`);
-
-    await page.waitForTimeout(2_000);
-
-    // Should NOT be unread (self-messages filtered by RPC)
+    // DATA: should still be read
     const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
     expect(isUnread).toBe(false);
+
+    // The message should appear in the chat
+    await expect(page.getByText(msgText, { exact: true })).toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 7. Pull to refresh resyncs unread state
+  // 6. Own message doesn't create unread (DATA)
   // ──────────────────────────────────────────────────────────────────────
-  test("refresh resyncs unread state from cursor", async ({ page }) => {
-    // Create unread state
-    await sendSquadMessage(sharedSquad.id, otherUserId, `test-refresh-${Date.now()}`);
+  test("own message does not trigger unread", async ({ page }) => {
+    await sendSquadMessage(sharedSquad.id, katId, `test-self-${Date.now()}`);
     await page.waitForTimeout(2_000);
 
-    // Verify unread
-    let isUnread = await hasUnreadMessages(katId, sharedSquad.id);
-    expect(isUnread).toBe(true);
+    const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
+    expect(isUnread).toBe(false);
 
-    // Mark as read directly via cursor
+    // UI: no dot
+    await expect(page.locator(SQUADS_DOT)).not.toBeVisible({ timeout: 3_000 });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────
+  // 7. Tab switch resyncs unread state (DATA + UI)
+  // ──────────────────────────────────────────────────────────────────────
+  test("switching tabs resyncs unread state", async ({ page }) => {
+    // Create unread
+    await sendSquadMessage(sharedSquad.id, otherUserId, `test-resync-${Date.now()}`);
+    await page.waitForTimeout(2_000);
+
+    // Mark as read directly via cursor (simulating another device)
     await updateReadCursor(katId, sharedSquad.id);
 
-    // Trigger a reload (navigate away and back)
+    // Trigger resync by switching tabs
     await navButton(page, "Feed").click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1_000);
     await navButton(page, "Squads").click();
-    await page.waitForTimeout(2_000);
+    await page.waitForTimeout(3_000);
 
-    // Should now be read after resync
-    isUnread = await hasUnreadMessages(katId, sharedSquad.id);
+    // DATA: should be read
+    const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
     expect(isUnread).toBe(false);
+
+    // UI: dot should be gone after resync
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).not.toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 8. System messages don't trigger unread
+  // 8. System messages don't trigger unread (DATA)
   // ──────────────────────────────────────────────────────────────────────
   test("system messages do not trigger unread", async ({ page }) => {
-    // Reset cursor
     await updateReadCursor(katId, sharedSquad.id);
 
-    // Insert a system message directly (simulating squad formation, etc.)
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
     const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
     await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
@@ -223,8 +227,10 @@ test.describe("Squad unread dot behavior", () => {
 
     await page.waitForTimeout(2_000);
 
-    // System messages should NOT trigger unread (RPC filters is_system=false)
     const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
     expect(isUnread).toBe(false);
+
+    // UI: no dot
+    await expect(page.locator(SQUADS_DOT)).not.toBeVisible({ timeout: 3_000 });
   });
 });
