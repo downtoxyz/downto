@@ -8,12 +8,11 @@ import { logError, logWarn } from "@/lib/logger";
 
 interface UseEventsParams {
   userId: string | null;
-  isDemoMode: boolean;
   showToast: (msg: string) => void;
   loadRealDataRef: MutableRefObject<() => Promise<void>>;
 }
 
-export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: UseEventsParams) {
+export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParams) {
   const [events, setEvents] = useState<Event[]>([]);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
@@ -138,7 +137,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
       prev.map((e) => e.id === id ? { ...e, saved: newSaved } : e)
     );
     showToast(newSaved ? "Added to your calendar \u2713" : "Removed from calendar");
-    if (!isDemoMode && event.id) {
+    if (event.id) {
       (newSaved ? db.saveEvent(event.id) : db.unsaveEvent(event.id))
         .catch((err) => {
           logError("toggleSave", err, { eventId: id });
@@ -159,7 +158,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
       prev.map((e) => e.id === id ? { ...e, isDown: newDown, saved: newDown ? true : e.saved } : e)
     );
     showToast(newDown ? "You're down! \u{1F919}" : "Maybe next time");
-    if (!isDemoMode && event.id) {
+    if (event.id) {
       try {
         if (newDown && !prevSaved) {
           await db.saveEvent(event.id);
@@ -188,7 +187,7 @@ export function useEvents({ userId, isDemoMode, showToast, loadRealDataRef }: Us
       ? new Date(dateISO + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
       : updated.date;
 
-    if (!isDemoMode && userId) {
+    if (userId) {
       try {
         await db.updateEvent(editingEvent.id, {
           title: updated.title,

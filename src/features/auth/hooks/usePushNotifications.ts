@@ -10,7 +10,6 @@ import {
 
 export function usePushNotifications(
   isLoggedIn: boolean,
-  isDemoMode: boolean,
   showToast: (msg: string) => void,
 ) {
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -18,7 +17,7 @@ export function usePushNotifications(
   const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    if (!isLoggedIn || isDemoMode) return;
+    if (!isLoggedIn) return;
     if (!isPushSupported()) return;
     setPushSupported(true);
 
@@ -40,7 +39,7 @@ export function usePushNotifications(
         }
       }
     })();
-  }, [isLoggedIn, isDemoMode]);
+  }, [isLoggedIn]);
 
   const handleTogglePush = async () => {
     const reg = swRegistrationRef.current;

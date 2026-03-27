@@ -88,7 +88,6 @@ export interface FeedViewProps {
   sharedCheckId?: string | null;
   friends: Friend[];
   userId: string | null;
-  isDemoMode: boolean;
   profile: Profile | null;
   startSquadFromCheck: (check: InterestCheck) => Promise<void>;
   loadRealData: () => Promise<void>;
@@ -110,7 +109,6 @@ export default function FeedView({
   sharedCheckId,
   friends,
   userId,
-  isDemoMode,
   profile,
   startSquadFromCheck,
   loadRealData,
@@ -145,12 +143,12 @@ export default function FeedView({
 
   // Batch-fetch initial comment counts for badges
   useEffect(() => {
-    if (!checks.length || isDemoMode) return;
+    if (!checks.length) return;
     db.getCheckCommentCounts(checks.map((c) => c.id))
       .then(setCommentCounts)
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checks.map((c) => c.id).join(','), isDemoMode]);
+  }, [checks.map((c) => c.id).join(',')]);
 
   const visibleChecks = checks.filter(
     (c) => !hiddenCheckIds.has(c.id) && c.expiresIn !== 'expired'
@@ -215,7 +213,7 @@ export default function FeedView({
                 key={check.id}
                 check={check}
                 userId={userId}
-                isDemoMode={isDemoMode}
+
                 profile={profile}
                 friends={friends}
                 sharedCheckId={sharedCheckId}
@@ -262,7 +260,7 @@ export default function FeedView({
                   key={item.data.id}
                   check={item.data}
                   userId={userId}
-                  isDemoMode={isDemoMode}
+  
                   profile={profile}
                   friends={friends}
                   sharedCheckId={sharedCheckId}
@@ -283,8 +281,7 @@ export default function FeedView({
                   onOpenSocial={() => onOpenSocial(item.data)}
                   onLongPress={
                     item.data.createdBy === userId ||
-                    !item.data.createdBy ||
-                    isDemoMode
+                    !item.data.createdBy
                       ? () => onEditEvent(item.data)
                       : undefined
                   }

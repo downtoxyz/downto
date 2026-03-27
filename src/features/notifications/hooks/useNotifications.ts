@@ -20,10 +20,9 @@ export type AppNotification = {
 
 interface UseNotificationsParams {
   userId: string | null;
-  isDemoMode: boolean;
 }
 
-export function useNotifications({ userId, isDemoMode }: UseNotificationsParams) {
+export function useNotifications({ userId }: UseNotificationsParams) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -46,9 +45,9 @@ export function useNotifications({ userId, isDemoMode }: UseNotificationsParams)
 
   // Load initial notifications
   useEffect(() => {
-    if (isDemoMode || !userId) return;
+    if (!userId) return;
     loadNotificationsRef.current();
-  }, [isDemoMode, userId]);
+  }, [userId]);
 
   // Sync bell unread count to PWA app badge
   useEffect(() => {

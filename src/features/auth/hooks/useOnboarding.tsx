@@ -65,7 +65,6 @@ interface UseOnboardingParams {
   isLoading: boolean;
   userId: string | null;
   profile: Profile | null;
-  isDemoMode: boolean;
   feedLoaded: boolean;
   setIsLoggedIn: (v: boolean) => void;
   setProfile: (v: Profile | null | ((prev: Profile | null) => Profile | null)) => void;
@@ -121,7 +120,6 @@ export function useOnboarding({
   isLoading,
   userId,
   profile,
-  isDemoMode,
   feedLoaded,
   setIsLoggedIn,
   setProfile,
@@ -260,15 +258,11 @@ export function useOnboarding({
   // ─── Friend gate onDone ───────────────────────────────────────────────
 
   const handleFriendGateDone = async () => {
-    if (!isDemoMode) {
-      try {
-        const updated = await db.updateProfile({ onboarded: true } as Partial<Profile>);
-        setProfile(updated);
-      } catch (err) {
-        logError("finishOnboarding", err);
-        setProfile((prev: Profile | null) => prev ? { ...prev, onboarded: true } : prev);
-      }
-    } else {
+    try {
+      const updated = await db.updateProfile({ onboarded: true } as Partial<Profile>);
+      setProfile(updated);
+    } catch (err) {
+      logError("finishOnboarding", err);
       setProfile((prev: Profile | null) => prev ? { ...prev, onboarded: true } : prev);
     }
     setOnboardingFriendGate(false);

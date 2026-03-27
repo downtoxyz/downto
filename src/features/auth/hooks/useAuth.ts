@@ -11,8 +11,6 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
-
   useEffect(() => {
     const handleSession = async (session: Session | null) => {
       try {
@@ -66,7 +64,5 @@ export function useAuth() {
     setUserId,
     profile,
     setProfile,
-    isDemoMode,
-    setIsDemoMode,
   };
 }

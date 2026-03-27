@@ -24,7 +24,6 @@ const NotificationsPanel = ({
   onClose,
   notifications,
   setNotifications,
-  isDemoMode,
   userId,
   setUnreadCount,
   friends,
@@ -34,7 +33,6 @@ const NotificationsPanel = ({
   onClose: () => void;
   notifications: Notification[];
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
-  isDemoMode: boolean;
   userId: string | null;
   setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
   friends: { id: string }[];
@@ -179,7 +177,7 @@ const NotificationsPanel = ({
           {notifications.some((n) => !n.is_read) && (
             <button
               onClick={() => {
-                if (!isDemoMode && userId) {
+                if (userId) {
                   db.markAllNotificationsRead();
                 }
                 // Keep pending friend_request notifications unread
@@ -262,7 +260,7 @@ const NotificationsPanel = ({
                     const alreadyFriends = n.type === "friend_request" && n.related_user_id &&
                       friends.some((f) => f.id === n.related_user_id);
                     if (!n.is_read && (n.type === "friend_accepted" || alreadyFriends)) {
-                      if (!isDemoMode && userId) db.markNotificationRead(n.id);
+                      if (userId) db.markNotificationRead(n.id);
                       setNotifications((prev) =>
                         prev.map((notif) => notif.id === n.id ? { ...notif, is_read: true } : notif)
                       );
@@ -277,7 +275,7 @@ const NotificationsPanel = ({
                     // Mark all notifications for this squad as read
                     const squadId = n.related_squad_id;
                     if (squadId) {
-                      if (!isDemoMode && userId) db.markSquadNotificationsRead(squadId);
+                      if (userId) db.markSquadNotificationsRead(squadId);
                       const clearedCount = notifications.filter(
                         (notif) => !notif.is_read && notif.related_squad_id === squadId
                       ).length;
@@ -288,7 +286,7 @@ const NotificationsPanel = ({
                       );
                       setUnreadCount((prev) => Math.max(0, prev - clearedCount));
                     } else if (!n.is_read) {
-                      if (!isDemoMode && userId) db.markNotificationRead(n.id);
+                      if (userId) db.markNotificationRead(n.id);
                       setNotifications((prev) =>
                         prev.map((notif) => notif.id === n.id ? { ...notif, is_read: true } : notif)
                       );
@@ -298,7 +296,7 @@ const NotificationsPanel = ({
                     onNavigate({ type: "groups", squadId: squadId ?? undefined });
                   } else if (n.type === "event_down" || n.type === "friend_event") {
                     if (!n.is_read) {
-                      if (!isDemoMode && userId) db.markNotificationRead(n.id);
+                      if (userId) db.markNotificationRead(n.id);
                       setNotifications((prev) =>
                         prev.map((notif) => notif.id === n.id ? { ...notif, is_read: true } : notif)
                       );
@@ -309,7 +307,7 @@ const NotificationsPanel = ({
                   } else if (n.type === "check_response" || n.type === "friend_check" || n.type === "check_tag") {
                     // Mark single notification as read (except check_tag — cleared on accept/decline)
                     if (!n.is_read && n.type !== "check_tag") {
-                      if (!isDemoMode && userId) db.markNotificationRead(n.id);
+                      if (userId) db.markNotificationRead(n.id);
                       setNotifications((prev) =>
                         prev.map((notif) => notif.id === n.id ? { ...notif, is_read: true } : notif)
                       );

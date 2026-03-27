@@ -60,7 +60,6 @@ function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: str
 export interface CheckCardProps {
   check: InterestCheck;
   userId: string | null;
-  isDemoMode: boolean;
   profile: Profile | null;
   friends: Friend[];
   sharedCheckId?: string | null;
@@ -76,7 +75,6 @@ export interface CheckCardProps {
 export default function CheckCard({
   check,
   userId,
-  isDemoMode,
   profile,
   friends,
   sharedCheckId,
@@ -106,7 +104,6 @@ export default function CheckCard({
     checkId: check.id,
     userId,
     profile,
-    isDemoMode,
     initialCommentCount,
   });
 
@@ -118,9 +115,7 @@ export default function CheckCard({
   };
 
   const shareCheck = async () => {
-    if (!isDemoMode) {
-      try { await db.markCheckShared(check.id); } catch { /* best-effort */ }
-    }
+    try { await db.markCheckShared(check.id); } catch { /* best-effort */ }
     const url = `${window.location.origin}/check/${check.id}`;
     try {
       if (navigator.share) {
@@ -318,7 +313,7 @@ export default function CheckCard({
                     disabled={check.expiresIn === "expired" && !myCheckResponses[check.id]}
                     onClick={() => {
                       if (myCheckResponses[check.id] === "down" || myCheckResponses[check.id] === "waitlist") {
-                        if (!isDemoMode && check.id) {
+                        if (check.id) {
                           db.removeCheckResponse(check.id)
                             .then(() => loadRealData())
                             .catch(err => logError("removeCheckResponse", err, { checkId: check.id }));
@@ -449,11 +444,9 @@ export default function CheckCard({
         onEdit={() => { setActionsSheetOpen(false); setEditModalOpen(true); }}
         onArchive={async () => {
           setActionsSheetOpen(false);
-          if (!isDemoMode) {
-            try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
-          }
+          try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
           await loadRealData();
-          if (showToastWithAction && !isDemoMode) {
+          if (showToastWithAction) {
             showToastWithAction("Check archived — undo?", async () => {
               try { await db.unarchiveInterestCheck(check.id); } catch (err) { logError("unarchiveCheck", err, { checkId: check.id }); }
               await loadRealData();
@@ -464,12 +457,10 @@ export default function CheckCard({
         }}
         onDelete={async () => {
           setActionsSheetOpen(false);
-          if (!isDemoMode) {
-            // Soft-delete: archive first so undo is possible, then hard-delete after timeout
-            try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
-          }
+          // Soft-delete: archive first so undo is possible, then hard-delete after timeout
+          try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
           await loadRealData();
-          if (showToastWithAction && !isDemoMode) {
+          if (showToastWithAction) {
             const timer = setTimeout(async () => {
               try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
             }, 4500);
@@ -479,9 +470,7 @@ export default function CheckCard({
               await loadRealData();
             });
           } else {
-            if (!isDemoMode) {
-              try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
-            }
+            try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
             showToast("Check removed");
           }
         }}
@@ -494,13 +483,11 @@ export default function CheckCard({
         friends={friendsList}
         onSave={async (updates) => {
           setEditModalOpen(false);
-          if (!isDemoMode) {
-            try {
-              await db.updateInterestCheck(check.id, { text: updates.text, event_date: updates.eventDate, event_time: updates.eventTime, date_flexible: updates.dateFlexible, time_flexible: updates.timeFlexible });
-              if (updates.taggedFriendIds && updates.taggedFriendIds.length > 0) await db.tagCoAuthors(check.id, updates.taggedFriendIds);
-              if (check.squadId) await db.updateSquadName(check.squadId, updates.text);
-            } catch (err) { logError("updateCheck", err, { checkId: check.id }); showToast("Failed to save changes"); return; }
-          }
+          try {
+            await db.updateInterestCheck(check.id, { text: updates.text, event_date: updates.eventDate, event_time: updates.eventTime, date_flexible: updates.dateFlexible, time_flexible: updates.timeFlexible });
+            if (updates.taggedFriendIds && updates.taggedFriendIds.length > 0) await db.tagCoAuthors(check.id, updates.taggedFriendIds);
+            if (check.squadId) await db.updateSquadName(check.squadId, updates.text);
+          } catch (err) { logError("updateCheck", err, { checkId: check.id }); showToast("Failed to save changes"); return; }
           showToast("Check updated");
           await loadRealData();
         }}

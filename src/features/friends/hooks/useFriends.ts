@@ -4,19 +4,17 @@ import { useState, useCallback, useEffect, type MutableRefObject } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { Friend } from "@/lib/ui-types";
-import { DEMO_SEARCH_USERS } from "@/lib/demo-data";
 import { logError, logWarn } from "@/lib/logger";
 
 // ─── Hook ──────────────────────────────────────────────────────────────────
 
 interface UseFriendsParams {
   userId: string | null;
-  isDemoMode: boolean;
   showToast: (msg: string) => void;
   loadRealDataRef: MutableRefObject<() => Promise<void>>;
 }
 
-export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: UseFriendsParams) {
+export function useFriends({ userId, showToast, loadRealDataRef }: UseFriendsParams) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [suggestions, setSuggestions] = useState<Friend[]>([]);
   const [friendsOpen, setFriendsOpen] = useState(false);
@@ -71,14 +69,6 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
   }, []);
 
   const addFriend = async (id: string) => {
-    if (isDemoMode) {
-      setSuggestions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: "pending" as const } : s))
-      );
-      showToast("Friend request sent! \u{1F91D}");
-      return;
-    }
-
     try {
       const friendship = await db.sendFriendRequest(id);
       setSuggestions((prev) =>
@@ -150,7 +140,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
     }
   };
 
-  const searchUsers = !isDemoMode && userId ? async (query: string) => {
+  const searchUsers = userId ? async (query: string) => {
     // Fetch search results + outgoing pending requests in parallel
     const [results, outgoing] = await Promise.all([
       db.searchUsers(query),
@@ -177,16 +167,11 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
         availability: p.availability,
         igHandle: p.ig_handle ?? undefined,
       }));
-  } : isDemoMode ? async (query: string) => {
-    return DEMO_SEARCH_USERS.filter(u =>
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.username.toLowerCase().includes(query.toLowerCase())
-    );
   } : undefined;
 
   // Subscribe to realtime friendship changes
   useEffect(() => {
-    if (isDemoMode || !userId) return;
+    if (!userId) return;
 
     const sub = db.subscribeToFriendships(userId, async (event, friendship) => {
       const otherUserId = friendship.requester_id === userId
@@ -232,7 +217,7 @@ export function useFriends({ userId, isDemoMode, showToast, loadRealDataRef }: U
     });
 
     return () => { sub.unsubscribe(); };
-  }, [isDemoMode, userId, loadRealDataRef]);
+  }, [userId, loadRealDataRef]);
 
   return {
     friends,

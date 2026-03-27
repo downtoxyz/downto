@@ -10,7 +10,6 @@ import { font, color } from "@/lib/styles";
 import { sanitize, sanitizeVibes, parseDateToISO, toLocalISODate } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 import type { Person, Event, Tab, ScrapedEvent, Squad } from "@/lib/ui-types";
-import { DEMO_EVENTS, DEMO_CHECKS, DEMO_SQUADS, DEMO_FRIENDS, DEMO_SUGGESTIONS, DEMO_NOTIFICATIONS } from "@/lib/demo-data";
 import { useOnboarding } from "@/features/auth/hooks/useOnboarding";
 import EditEventModal from "@/features/events/components/EditEventModal";
 import EventLobby from "@/features/events/components/EventLobby";
@@ -42,9 +41,9 @@ import { logError, logWarn } from "@/lib/logger";
 // ─── Main App ───────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { isLoggedIn, setIsLoggedIn, isLoading, userId, setUserId, profile, setProfile, isDemoMode, setIsDemoMode } = useAuth();
+  const { isLoggedIn, setIsLoggedIn, isLoading, userId, setUserId, profile, setProfile } = useAuth();
   const { toastMsg, setToastMsg, toastAction, setToastAction, showToast, showToastWithAction, showToastRef } = useToast();
-  const { pushEnabled, pushSupported, handleTogglePush } = usePushNotifications(isLoggedIn, isDemoMode, showToast);
+  const { pushEnabled, pushSupported, handleTogglePush } = usePushNotifications(isLoggedIn, showToast);
 
   // ─── Tab / routing state ────────────────────────────────────────────────
   const {
@@ -59,7 +58,7 @@ export default function Home() {
   const loadRealDataRef = useRef<() => Promise<void>>(async () => {});
 
   // ─── Event state ─────────────────────────────────────────────────────────
-  const eventsHook = useEvents({ userId, isDemoMode, showToast, loadRealDataRef });
+  const eventsHook = useEvents({ userId, showToast, loadRealDataRef });
   const {
     events, setEvents,
     editingEvent, setEditingEvent,
@@ -84,14 +83,12 @@ export default function Home() {
   // ─── Domain hooks ───────────────────────────────────────────────────────
   const friendsHook = useFriends({
     userId,
-    isDemoMode,
     showToast,
     loadRealDataRef,
   });
 
   const checksHook = useChecks({
     userId,
-    isDemoMode,
     profile,
     friendCount: friendsHook.friends.length,
     showToast,
@@ -110,7 +107,7 @@ export default function Home() {
         (n) => n.type === "check_tag" && n.related_check_id === checkId && !n.is_read
       );
       if (tagNotif) {
-        if (!isDemoMode && userId) db.markNotificationRead(tagNotif.id);
+        if (userId) db.markNotificationRead(tagNotif.id);
         notificationsHook.setNotifications((prev) =>
           prev.map((n) => n.id === tagNotif.id ? { ...n, is_read: true } : n)
         );
@@ -125,7 +122,6 @@ export default function Home() {
 
   const squadsHook = useSquads({
     userId,
-    isDemoMode,
     profile,
     checksRef,
     dispatch: checksHook.dispatch,
@@ -145,11 +141,11 @@ export default function Home() {
     },
   });
 
-  const notificationsHook = useNotifications({ userId, isDemoMode });
+  const notificationsHook = useNotifications({ userId });
 
   // ─── Onboarding hook ───────────────────────────────────────────────────
   const onboarding = useOnboarding({
-    isLoggedIn, isLoading, userId, profile, isDemoMode, feedLoaded,
+    isLoggedIn, isLoading, userId, profile, feedLoaded,
     setIsLoggedIn, setProfile, setTab,
     checks: checksHook.checks,
     dispatch: checksHook.dispatch,
@@ -166,7 +162,7 @@ export default function Home() {
   const isLoadingRef = useRef(false);
 
   const loadRealData = useCallback(async () => {
-    if (isDemoMode || !userId) return;
+    if (!userId) return;
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
 
@@ -242,7 +238,7 @@ export default function Home() {
       isLoadingRef.current = false;
       setFeedLoaded(true);
     }
-  }, [isDemoMode, userId, checksHook.hydrateChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends, hydrateEvents, hydrateSocialData, notificationsHook.loadNotifications]);
+  }, [userId, checksHook.hydrateChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends, hydrateEvents, hydrateSocialData, notificationsHook.loadNotifications]);
 
   loadRealDataRef.current = loadRealData;
 
@@ -294,24 +290,6 @@ export default function Home() {
     }
   }, []);
 
-  // Activate demo mode via ?demo=true
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("demo") === "true") {
-      window.history.replaceState({}, "", "/");
-      setIsLoggedIn(true);
-      setIsDemoMode(true);
-      setFeedLoaded(true);
-      setEvents(DEMO_EVENTS);
-      checksHook.dispatch({ type: CheckActionType.SYNC_CHECKS, checks: DEMO_CHECKS });
-      squadsHook.setSquads(DEMO_SQUADS);
-      friendsHook.setFriends(DEMO_FRIENDS);
-      friendsHook.setSuggestions(DEMO_SUGGESTIONS);
-      notificationsHook.setNotifications(DEMO_NOTIFICATIONS);
-      notificationsHook.setUnreadCount(DEMO_NOTIFICATIONS.filter(n => !n.is_read).length);
-    }
-  }, []);
-
   // Process ?add= param after auth + onboarding complete
   useEffect(() => {
     if (!isLoggedIn || !userId || !profile?.onboarded) return;
@@ -332,14 +310,14 @@ export default function Home() {
 
   // Trigger data load when logged in
   useEffect(() => {
-    if (isLoggedIn && !isDemoMode) {
+    if (isLoggedIn) {
       loadRealData();
     }
-  }, [isLoggedIn, isDemoMode, loadRealData]);
+  }, [isLoggedIn, loadRealData]);
 
   // Reload data when user returns to the app
   useEffect(() => {
-    if (!isLoggedIn || isDemoMode) return;
+    if (!isLoggedIn) return;
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         loadRealDataRef.current();
@@ -347,11 +325,11 @@ export default function Home() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [isLoggedIn, isDemoMode]);
+  }, [isLoggedIn]);
 
   // Subscribe to realtime notifications (cross-domain — stays here)
   useEffect(() => {
-    if (!isLoggedIn || isDemoMode || !userId) return;
+    if (!isLoggedIn || !userId) return;
 
     const channel = db.subscribeToNotifications(userId, async (newNotif) => {
       if (newNotif.type === "squad_message" || newNotif.type === "squad_mention") {
@@ -447,7 +425,7 @@ export default function Home() {
     });
 
     return () => { channel.unsubscribe(); };
-  }, [isLoggedIn, isDemoMode, userId]);
+  }, [isLoggedIn, userId]);
 
   // Listen for service worker notification click messages
   useEffect(() => {
@@ -667,7 +645,7 @@ export default function Home() {
       ? { title: e.movieTitle, year: e.year, director: e.director, thumbnail: e.thumbnail, vibes: e.vibe }
       : null;
 
-    if (!isDemoMode && userId) {
+    if (userId) {
       try {
         let dbEvent: Awaited<ReturnType<typeof db.createEvent>> | null = null;
         if (igUrl) {
@@ -753,33 +731,6 @@ export default function Home() {
         showToast("Failed to save - try again");
         return;
       }
-    } else {
-      const newEvent: Event = {
-        id: `local-event-${Date.now()}`,
-        title,
-        venue,
-        date: dateDisplay,
-        time: timeDisplay,
-        vibe: vibes,
-        image: imageUrl,
-        igHandle,
-        igUrl: e.igUrl,
-        diceUrl: e.diceUrl,
-        letterboxdUrl: e.letterboxdUrl,
-        movieTitle: movieMetadata?.title,
-        movieYear: movieMetadata?.year,
-        movieDirector: movieMetadata?.director,
-        movieThumbnail: movieMetadata?.thumbnail,
-        note: eventNote ?? undefined,
-        saved: true,
-        isDown: true,
-        isPublic: visibility === 'public',
-        visibility,
-        peopleDown: [],
-      };
-      setEvents((prev) => [newEvent, ...prev]);
-      setNewlyAddedId(newEvent.id);
-      setTimeout(() => setNewlyAddedId(null), 2500);
     }
 
     setTab("feed");
@@ -822,7 +773,7 @@ export default function Home() {
           onOpenNotifications={() => {
             notificationsHook.setNotificationsOpen(true);
             if (notificationsHook.unreadCount > 0) {
-              if (!isDemoMode && userId) {
+              if (userId) {
                 db.markAllNotificationsRead();
               }
               notificationsHook.setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
@@ -892,7 +843,7 @@ export default function Home() {
             }}
           />
         </div>
-        {!feedLoaded && !isDemoMode && (
+        {!feedLoaded && (
           <div style={{
             display: "flex",
             flexDirection: "column",
@@ -919,7 +870,6 @@ export default function Home() {
             sharedCheckId={onboarding.sharedCheckGlowId}
             friends={friendsHook.friends}
             userId={userId}
-            isDemoMode={isDemoMode}
             profile={profile}
             startSquadFromCheck={squadsHook.startSquadFromCheck}
             loadRealData={loadRealData}
@@ -960,7 +910,6 @@ export default function Home() {
             onOpenSocial={(e) => squadsHook.setSocialEvent(e)}
             onEditEvent={(e) => setEditingEvent(e)}
             userId={userId ?? undefined}
-            isDemoMode={isDemoMode}
             leftChecks={checksHook.leftChecks}
             onRedownFromLeft={checksHook.redownFromLeft}
           />
@@ -999,7 +948,6 @@ export default function Home() {
               setIsLoggedIn(false);
               setUserId(null);
               setProfile(null);
-              setIsDemoMode(false);
             }}
             profile={profile}
             pushEnabled={pushEnabled}
@@ -1007,31 +955,25 @@ export default function Home() {
             onTogglePush={handleTogglePush}
             showToast={showToast}
             onUpdateProfile={async (updates) => {
-              if (!isDemoMode) {
-                const updated = await db.updateProfile(updates);
-                setProfile(updated);
-              }
+              const updated = await db.updateProfile(updates);
+              setProfile(updated);
             }}
             onAvailabilityChange={async (status) => {
-              if (!isDemoMode) {
-                try {
-                  const updated = await db.updateProfile({ availability: status });
-                  setProfile(updated);
-                } catch (err) {
-                  logError("updateAvailability", err, { status });
-                }
+              try {
+                const updated = await db.updateProfile({ availability: status });
+                setProfile(updated);
+              } catch (err) {
+                logError("updateAvailability", err, { status });
               }
             }}
             archivedChecks={archivedChecks}
             onRestoreCheck={async (checkId) => {
               setArchivedChecks((prev) => prev.filter((c) => c.id !== checkId));
-              if (!isDemoMode) {
-                try {
-                  await db.unarchiveInterestCheck(checkId);
-                  loadRealDataRef.current();
-                } catch (err) {
-                  logError("unarchiveCheck", err, { checkId });
-                }
+              try {
+                await db.unarchiveInterestCheck(checkId);
+                loadRealDataRef.current();
+              } catch (err) {
+                logError("unarchiveCheck", err, { checkId });
               }
               showToast("Check restored");
             }}
@@ -1088,9 +1030,9 @@ export default function Home() {
             setTab(t);
             scrollRef.current?.scrollTo(0, 0);
             if (t === "groups") {
-              if (!isDemoMode && userId) loadRealData();
+              if (userId) loadRealData();
             }
-            if (t === "feed" && !isDemoMode && userId) loadRealData();
+            if (t === "feed" && userId) loadRealData();
             if (t !== "feed") checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null });
           }}
           hasGroupsUnread={squadsHook.squads.some((s) => s.hasUnread) || notificationsHook.notifications.some((n) => n.type === "squad_invite" && !n.is_read)}
@@ -1129,7 +1071,6 @@ export default function Home() {
         onJoinSquadPool={squadsHook.handleJoinSquadPool}
         squadPoolMembers={squadsHook.squadPoolMembers}
         inSquadPool={squadsHook.inSquadPool}
-        isDemoMode={isDemoMode}
         onViewProfile={(uid) => setViewingUserId(uid)}
         existingSquadId={squadsHook.socialEvent?.id ? squadsHook.eventToSquad.get(squadsHook.socialEvent.id) : undefined}
         onGoToSquad={(squadId) => {
@@ -1146,7 +1087,6 @@ export default function Home() {
         onClose={() => notificationsHook.setNotificationsOpen(false)}
         notifications={notificationsHook.notifications}
         setNotifications={notificationsHook.setNotifications}
-        isDemoMode={isDemoMode}
         userId={userId}
         setUnreadCount={notificationsHook.setUnreadCount}
         friends={friendsHook.friends}
@@ -1209,7 +1149,7 @@ export default function Home() {
           currentUserId={userId}
           onClose={() => setViewingUserId(null)}
           onFriendAction={() => {
-            if (!isDemoMode && userId) loadRealData();
+            if (userId) loadRealData();
           }}
         />
       )}

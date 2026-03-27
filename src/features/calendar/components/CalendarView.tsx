@@ -18,7 +18,6 @@ const CalendarView = ({
   onOpenSocial,
   onEditEvent,
   userId,
-  isDemoMode,
   leftChecks = [],
   onRedownFromLeft,
 }: {
@@ -30,7 +29,6 @@ const CalendarView = ({
   onOpenSocial?: (event: Event) => void;
   onEditEvent?: (event: Event) => void;
   userId?: string;
-  isDemoMode?: boolean;
   leftChecks?: InterestCheck[];
   onRedownFromLeft?: (checkId: string) => void;
 }) => {
@@ -720,7 +718,7 @@ const CalendarView = ({
               onToggleDown={() => onToggleDown?.(selectedEvent.id)}
               onOpenSocial={() => onOpenSocial?.(selectedEvent)}
               onLongPress={
-                (selectedEvent.createdBy === userId || !selectedEvent.createdBy || isDemoMode)
+                (selectedEvent.createdBy === userId || !selectedEvent.createdBy)
                   ? () => onEditEvent?.(selectedEvent)
                   : undefined
               }

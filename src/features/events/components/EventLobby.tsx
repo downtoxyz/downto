@@ -13,7 +13,6 @@ const EventLobby = ({
   onJoinSquadPool,
   squadPoolMembers,
   inSquadPool,
-  isDemoMode,
   onViewProfile,
   existingSquadId,
   onGoToSquad,
@@ -28,7 +27,6 @@ const EventLobby = ({
   onJoinSquadPool: (event: Event) => void;
   squadPoolMembers: Person[];
   inSquadPool: boolean;
-  isDemoMode: boolean;
   onViewProfile?: (userId: string) => void;
   existingSquadId?: string;
   onGoToSquad?: (squadId: string) => void;
@@ -554,7 +552,7 @@ const EventLobby = ({
           )}
 
           {/* Looking for a squad toggle — always visible when not selecting */}
-          {!isSelecting && !isDemoMode && (
+          {!isSelecting && (
             <button
               onClick={() => onJoinSquadPool(event)}
               style={{

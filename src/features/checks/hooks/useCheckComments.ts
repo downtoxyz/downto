@@ -33,13 +33,11 @@ export function useCheckComments({
   checkId,
   userId,
   profile,
-  isDemoMode,
   initialCommentCount = 0,
 }: {
   checkId: string;
   userId: string | null;
   profile: Profile | null;
-  isDemoMode: boolean;
   initialCommentCount?: number;
 }) {
   const [comments, setComments] = useState<CommentUI[]>([]);
@@ -48,7 +46,6 @@ export function useCheckComments({
 
   // Always-on subscription — open when check card mounts
   useEffect(() => {
-    if (isDemoMode) return;
     const channel = db.subscribeToCheckComments(checkId, (comment) => {
       if (comment.user_id === userId) return;
       const ui = toCommentUI(comment, userId);
@@ -56,10 +53,10 @@ export function useCheckComments({
       setRealtimeCount(n => n + 1);
     });
     return () => channel.unsubscribe();
-  }, [checkId, userId, isDemoMode]);
+  }, [checkId, userId]);
 
   const openComments = useCallback(async () => {
-    if (isDemoMode || loaded) return;
+    if (loaded) return;
     try {
       const fetched = await db.getCheckComments(checkId);
       setComments(fetched.map(c => toCommentUI(c, userId)));
@@ -68,10 +65,10 @@ export function useCheckComments({
     } catch (err) {
       logError("loadCheckComments", err, { checkId });
     }
-  }, [checkId, userId, isDemoMode]);
+  }, [checkId, userId]);
 
   const postComment = useCallback(async (text: string, mentions: string[] = []) => {
-    if (!userId || !profile || isDemoMode) return;
+    if (!userId || !profile) return;
 
     const optimisticId = `optimistic-${Date.now()}`;
     const optimistic: CommentUI = {
@@ -94,7 +91,7 @@ export function useCheckComments({
       logError("postCheckComment", err, { checkId });
       setComments(prev => prev.filter(c => c.id !== optimisticId));
     }
-  }, [checkId, userId, profile, isDemoMode]);
+  }, [checkId, userId, profile]);
 
   // Before first open: initialCommentCount + realtime arrivals
   // After open: authoritative from fetched list

@@ -95,7 +95,6 @@ const pickOpener = (title?: string) => {
 
 interface UseSquadsParams {
   userId: string | null;
-  isDemoMode: boolean;
   profile: Profile | null;
   checksRef: { current: InterestCheck[] };
   dispatch: Dispatch<ChecksAction>;
@@ -105,7 +104,7 @@ interface UseSquadsParams {
   openSquadIdRef?: { current: string | null };
 }
 
-export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, showToast, onSquadCreated, onAutoDown, openSquadIdRef }: UseSquadsParams) {
+export function useSquads({ userId, profile, checksRef, dispatch, showToast, onSquadCreated, onAutoDown, openSquadIdRef }: UseSquadsParams) {
   const [squads, setSquads] = useState<Squad[]>([]);
   const [socialEvent, setSocialEvent] = useState<Event | null>(null);
   const [squadPoolMembers, setSquadPoolMembers] = useState<Person[]>([]);
@@ -268,7 +267,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
     const downPeople = allDown.filter((p) => p.odbc && memberSet.has(p.odbc));
 
     let squadDbId: string | undefined;
-    if (!isDemoMode && check.id) {
+    if (check.id) {
       try {
         const memberIds = Array.from(memberSet);
         const dbSquad = await db.createSquad(squadName, memberIds, undefined, check.id);
@@ -316,7 +315,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
     const opener = pickOpener(event.title);
 
     let squadDbId: string | undefined;
-    if (!isDemoMode && event.id) {
+    if (event.id) {
       try {
         const dbSquad = await db.createSquad(squadName, selectedUserIds, event.id);
         await db.sendMessage(dbSquad.id, opener);
@@ -376,7 +375,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
   };
 
   const handleJoinSquadPool = async (event: Event) => {
-    if (!event.id || isDemoMode) return;
+    if (!event.id) return;
 
     try {
       if (inSquadPool) {
@@ -430,7 +429,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
 
   // Load squad pool members when EventLobby opens and enrich peopleDown with inPool + inSquad flags
   useEffect(() => {
-    if (!socialEvent?.id || isDemoMode) {
+    if (!socialEvent?.id) {
       setSquadPoolMembers([]);
       setInSquadPool(false);
       setSocialDataLoaded(false);
@@ -492,7 +491,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
         setSocialDataLoaded(true);
       }
     })();
-  }, [socialEvent?.id, isDemoMode, userId]);
+  }, [socialEvent?.id, userId]);
 
   const handleRequestToJoin = useCallback(async (squadId: string, squadName: string) => {
     try {
@@ -527,7 +526,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
 
   // Load pending join requests for user's squads
   const loadJoinRequests = useCallback(async () => {
-    if (!userId || isDemoMode) return;
+    if (!userId) return;
     try {
       const allRequests: { squadId: string; userId: string; name: string; avatar: string }[] = [];
       for (const sq of squads) {
@@ -545,7 +544,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
     } catch (err) {
       logWarn("loadJoinRequests", "Failed to load join requests", {});
     }
-  }, [userId, isDemoMode, squads]);
+  }, [userId, squads]);
 
   // Load join requests when squads change
   useEffect(() => {
