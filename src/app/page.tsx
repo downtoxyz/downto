@@ -35,6 +35,7 @@ import { CheckActionType } from "@/features/checks/reducers/checksReducer";
 import { useSquads } from "@/features/squads/hooks/useSquads";
 import { useFriends } from "@/features/friends/hooks/useFriends";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
+import { useRealtimeNotifications } from "@/app/hooks/useRealtimeNotifications";
 import { logError, logWarn } from "@/lib/logger";
 
 
@@ -327,105 +328,19 @@ export default function Home() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [isLoggedIn]);
 
-  // Subscribe to realtime notifications (cross-domain — stays here)
-  useEffect(() => {
-    if (!isLoggedIn || !userId) return;
-
-    const channel = db.subscribeToNotifications(userId, async (newNotif) => {
-      if (newNotif.type === "squad_message" || newNotif.type === "squad_mention") {
-        // Skip notifications about own messages and for the currently-open squad
-        if (newNotif.related_user_id === userId) return;
-        if (newNotif.related_squad_id && newNotif.related_squad_id === selectedSquadIdRef.current) {
-          // User is in this chat — update cursor, skip UI
-          db.markSquadRead(newNotif.related_squad_id).catch(() => {});
-          return;
-        }
-        if (newNotif.related_squad_id) {
-          squadsHook.setSquads((prev) => prev.map((s) =>
-            s.id === newNotif.related_squad_id ? { ...s, hasUnread: true } : s
-          ));
-        }
-      } else {
-        // Auto-mark read if this notification is for the currently-open squad
-        const isOpenSquad = newNotif.related_squad_id && newNotif.related_squad_id === selectedSquadIdRef.current;
-        if (isOpenSquad) {
-          db.markNotificationRead(newNotif.id).catch(() => {});
-          notificationsHook.setNotifications((prev) => [{ ...newNotif, is_read: true }, ...prev]);
-        } else {
-          notificationsHook.setNotifications((prev) => [newNotif, ...prev]);
-          notificationsHook.setUnreadCount((prev) => prev + 1);
-        }
-      }
-
-      if (newNotif.type === "friend_request" && newNotif.related_user_id) {
-        if (newNotif.body) showToastRef.current(newNotif.body);
-        try {
-          const [reqProfile, friendship] = await Promise.all([
-            db.getProfileById(newNotif.related_user_id),
-            db.getFriendshipWith(newNotif.related_user_id),
-          ]);
-          if (reqProfile) {
-            const incoming = {
-              id: reqProfile.id,
-              friendshipId: friendship?.id ?? undefined,
-              name: reqProfile.display_name,
-              username: reqProfile.username,
-              avatar: reqProfile.avatar_letter,
-              status: "incoming" as const,
-              igHandle: reqProfile.ig_handle ?? undefined,
-            };
-            friendsHook.setSuggestions((prev) => {
-              if (prev.some((s) => s.id === reqProfile.id)) return prev;
-              return [incoming, ...prev];
-            });
-          }
-        } catch (err) {
-          logWarn("fetchIncomingFriend", "Failed to fetch incoming friend profile", { relatedUserId: newNotif.related_user_id });
-        }
-      } else if (newNotif.type === "squad_invite") {
-        if (newNotif.body) showToastRef.current(newNotif.body);
-        loadRealDataRef.current();
-      } else if (newNotif.type === "friend_check") {
-        if (newNotif.body) showToastRef.current(newNotif.body);
-        loadRealDataRef.current();
-      } else if (newNotif.type === "check_tag") {
-        if (newNotif.body) showToastRef.current(newNotif.title + ": " + newNotif.body);
-        loadRealDataRef.current();
-      } else if (newNotif.type === "friend_accepted" && newNotif.related_user_id) {
-        if (newNotif.body) showToastRef.current(newNotif.body);
-        loadRealDataRef.current();
-        const relatedId = newNotif.related_user_id;
-        friendsHook.setSuggestions((prev) => {
-          const person = prev.find((s) => s.id === relatedId);
-          if (person) {
-            friendsHook.setFriends((prevFriends) => {
-              if (prevFriends.some((f) => f.id === relatedId)) return prevFriends;
-              return [...prevFriends, { ...person, status: "friend" as const, availability: "open" as const }];
-            });
-            return prev.filter((s) => s.id !== relatedId);
-          }
-          db.getProfileById(relatedId).then((p) => {
-            if (p) {
-              friendsHook.setFriends((prevFriends) => {
-                if (prevFriends.some((f) => f.id === relatedId)) return prevFriends;
-                return [...prevFriends, {
-                  id: p.id,
-                  name: p.display_name,
-                  username: p.username,
-                  avatar: p.avatar_letter,
-                  status: "friend" as const,
-                  availability: "open" as const,
-                }];
-              });
-            }
-          }).catch((err) => logWarn("fetchFriendProfile", "Failed", { error: err }));
-          return prev;
-        });
-      }
-    });
-
-    return () => { channel.unsubscribe(); };
-  }, [isLoggedIn, userId]);
+  // Subscribe to realtime notifications
+  useRealtimeNotifications({
+    isLoggedIn,
+    userId,
+    selectedSquadIdRef,
+    showToastRef,
+    loadRealDataRef,
+    setSquads: squadsHook.setSquads,
+    setNotifications: notificationsHook.setNotifications,
+    setUnreadCount: notificationsHook.setUnreadCount,
+    setSuggestions: friendsHook.setSuggestions,
+    setFriends: friendsHook.setFriends,
+  });
 
   // Listen for service worker notification click messages
   useEffect(() => {
