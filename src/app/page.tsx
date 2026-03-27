@@ -245,13 +245,17 @@ export default function Home() {
 
       setFeedLoaded(true);
 
+      // Reload notifications AFTER squads are hydrated to avoid race condition
+      // where onUnreadSquadIds sets hasUnread on stale squad state
+      notificationsHook.loadNotifications();
+
     } catch (err) {
       logError("loadRealData", err);
     } finally {
       isLoadingRef.current = false;
       setFeedLoaded(true);
     }
-  }, [isDemoMode, userId, checksHook.hydrateChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends, hydrateEvents, hydrateSocialData]);
+  }, [isDemoMode, userId, checksHook.hydrateChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends, hydrateEvents, hydrateSocialData, notificationsHook.loadNotifications]);
 
   loadRealDataRef.current = loadRealData;
 

@@ -75,17 +75,6 @@ export function useNotifications({ userId, isDemoMode, onUnreadSquadIds }: UseNo
     }
   }, [unreadCount, unreadSquadCount]);
 
-  // Reload notifications on app focus
-  useEffect(() => {
-    if (isDemoMode || !userId) return;
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        loadNotificationsRef.current();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [isDemoMode, userId]);
 
   return {
     notifications,
