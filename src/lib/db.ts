@@ -1340,18 +1340,22 @@ export async function getUnreadSquadIds(): Promise<string[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('related_squad_id')
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-    .in('type', ['squad_message', 'squad_mention'])
-    .not('related_squad_id', 'is', null)
-    .neq('related_user_id', user.id);  // exclude self-notifications
-
+  const { data, error } = await supabase.rpc('get_unread_squad_ids', { p_user_id: user.id });
   if (error) return [];
-  const ids = new Set(data.map((n) => n.related_squad_id as string));
-  return [...ids];
+  return (data ?? []).map((r: { squad_id: string }) => r.squad_id);
+}
+
+export async function markSquadRead(squadId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('squad_read_cursors')
+    .upsert(
+      { user_id: user.id, squad_id: squadId, last_read_at: new Date().toISOString() },
+      { onConflict: 'user_id,squad_id' }
+    );
+  if (error) throw error;
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {

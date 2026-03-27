@@ -129,7 +129,7 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
     return null;
   });
 
-  const hydrateSquads = useCallback((squadsList: Awaited<ReturnType<typeof db.getSquads>>) => {
+  const hydrateSquads = useCallback((squadsList: Awaited<ReturnType<typeof db.getSquads>>, unreadSquadIds?: string[]) => {
     const transformedSquads: Squad[] = squadsList.map((s) => {
       const myMembership = (s.members ?? []).find((m) => m.user_id === userId);
       const isWaitlisted = myMembership?.role === 'waitlist';
@@ -198,13 +198,22 @@ export function useSquads({ userId, isDemoMode, profile, checksRef, dispatch, sh
     transformedSquads.sort((a, b) =>
       new Date(b.lastActivityAt!).getTime() - new Date(a.lastActivityAt!).getTime()
     );
-    // Preserve hasUnread flags from previous state (skip currently-open squad)
-    setSquads((prev) => {
-      const unreadMap = new Map(prev.filter((s) => s.hasUnread).map((s) => [s.id, true]));
-      if (openSquadIdRef?.current) unreadMap.delete(openSquadIdRef.current);
-      if (unreadMap.size === 0) return transformedSquads;
-      return transformedSquads.map((s) => unreadMap.has(s.id) ? { ...s, hasUnread: true } : s);
-    });
+    // Set hasUnread from cursor-based unread IDs (source of truth)
+    if (unreadSquadIds) {
+      const unreadSet = new Set(unreadSquadIds);
+      const openId = openSquadIdRef?.current;
+      setSquads(transformedSquads.map((s) =>
+        unreadSet.has(s.id) && s.id !== openId ? { ...s, hasUnread: true } : s
+      ));
+    } else {
+      // Fallback: preserve hasUnread from previous state (e.g. realtime updates between hydrations)
+      setSquads((prev) => {
+        const unreadMap = new Map(prev.filter((s) => s.hasUnread).map((s) => [s.id, true]));
+        if (openSquadIdRef?.current) unreadMap.delete(openSquadIdRef.current);
+        if (unreadMap.size === 0) return transformedSquads;
+        return transformedSquads.map((s) => unreadMap.has(s.id) ? { ...s, hasUnread: true } : s);
+      });
+    }
 
     // Link checks to their squads (distinguish member vs waitlisted)
     const checkToSquad = new Map<string, { squadId: string; inSquad: boolean; isWaitlisted: boolean; eventIsoDate?: string; dateStatus?: string }>();

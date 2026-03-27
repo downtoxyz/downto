@@ -21,35 +21,21 @@ export type AppNotification = {
 interface UseNotificationsParams {
   userId: string | null;
   isDemoMode: boolean;
-  onUnreadSquadIds?: (ids: string[]) => void;
 }
 
-export function useNotifications({ userId, isDemoMode, onUnreadSquadIds }: UseNotificationsParams) {
+export function useNotifications({ userId, isDemoMode }: UseNotificationsParams) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadSquadCount, setUnreadSquadCount] = useState(0);
-  const [hasUnreadSquadMessage, setHasUnreadSquadMessage] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-
-  const onUnreadSquadIdsRef = useRef(onUnreadSquadIds);
-  onUnreadSquadIdsRef.current = onUnreadSquadIds;
 
   const loadNotifications = useCallback(async () => {
     try {
-      const [notifs, count, unreadSquadIds] = await Promise.all([
+      const [notifs, count] = await Promise.all([
         db.getNotifications(),
         db.getUnreadCount(),
-        db.getUnreadSquadIds(),
       ]);
       setNotifications(notifs);
       setUnreadCount(count);
-      setUnreadSquadCount(unreadSquadIds.length);
-      if (unreadSquadIds.length > 0) {
-        setHasUnreadSquadMessage(true);
-        onUnreadSquadIdsRef.current?.(unreadSquadIds);
-      } else {
-        setHasUnreadSquadMessage(false);
-      }
     } catch (err) {
       logWarn("loadNotifications", "Failed to load notifications", { error: err });
     }
@@ -64,27 +50,21 @@ export function useNotifications({ userId, isDemoMode, onUnreadSquadIds }: UseNo
     loadNotificationsRef.current();
   }, [isDemoMode, userId]);
 
-  // Sync total unread count to PWA app badge (bell + squad messages)
+  // Sync bell unread count to PWA app badge
   useEffect(() => {
     if (!("setAppBadge" in navigator)) return;
-    const total = unreadCount + unreadSquadCount;
-    if (total > 0) {
-      navigator.setAppBadge(total).catch(() => {});
+    if (unreadCount > 0) {
+      navigator.setAppBadge(unreadCount).catch(() => {});
     } else {
       navigator.clearAppBadge().catch(() => {});
     }
-  }, [unreadCount, unreadSquadCount]);
-
+  }, [unreadCount]);
 
   return {
     notifications,
     setNotifications,
     unreadCount,
     setUnreadCount,
-    unreadSquadCount,
-    setUnreadSquadCount,
-    hasUnreadSquadMessage,
-    setHasUnreadSquadMessage,
     notificationsOpen,
     setNotificationsOpen,
     loadNotifications,

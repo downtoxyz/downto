@@ -76,7 +76,6 @@ export default function Home() {
   const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
   const selectedSquadIdRef = useRef<string | null>(null);
   selectedSquadIdRef.current = selectedSquad?.id ?? null;
-  const readSquadIdsRef = useRef<Set<string>>(new Set());
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
 
   // ─── Ref for onboarding hook's setShowAddGlow (declared after checksHook) ──
@@ -146,21 +145,7 @@ export default function Home() {
     },
   });
 
-  const notificationsHook = useNotifications({
-    userId,
-    isDemoMode,
-    onUnreadSquadIds: (ids) => {
-      const openId = selectedSquadIdRef.current;
-      const recentlyRead = readSquadIdsRef.current;
-      // Remove confirmed-read squads from the suppression set
-      for (const id of recentlyRead) {
-        if (!ids.includes(id)) recentlyRead.delete(id);
-      }
-      squadsHook.setSquads((prev) => prev.map((s) =>
-        ids.includes(s.id) && s.id !== openId && !recentlyRead.has(s.id) ? { ...s, hasUnread: true } : s
-      ));
-    },
-  });
+  const notificationsHook = useNotifications({ userId, isDemoMode });
 
   // ─── Onboarding hook ───────────────────────────────────────────────────
   const onboarding = useOnboarding({
@@ -201,6 +186,7 @@ export default function Home() {
         fofAnnotations,
         archivedChecksList,
         leftChecksList,
+        unreadSquadIds,
       ] = await Promise.all([
         db.getSavedEvents(),
         db.getPublicEvents(),
@@ -215,6 +201,7 @@ export default function Home() {
         db.getFofAnnotations().catch((err) => { logWarn("loadFofAnnotations", "Failed", { error: err }); return [] as { check_id: string; via_friend_name: string }[]; }),
         db.getArchivedChecks().catch((err) => { logWarn("loadArchivedChecks", "Failed", { error: err }); return [] as { id: string; text: string; archived_at: string }[]; }),
         db.getLeftChecks().catch((err) => { logWarn("loadLeftChecks", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getLeftChecks>>; }),
+        db.getUnreadSquadIds().catch(() => [] as string[]),
       ]);
 
       // Phase 2: Transform events via useEvents hook
@@ -223,7 +210,7 @@ export default function Home() {
       // Phase 3: Hydrate domain hooks
       friendsHook.hydrateFriends(friendsList, pendingRequests, suggestedUsers, outgoingRequests);
       checksHook.hydrateChecks(activeChecks, hiddenIds, fofAnnotations);
-      squadsHook.hydrateSquads(squadsList);
+      squadsHook.hydrateSquads(squadsList, unreadSquadIds);
       setArchivedChecks(archivedChecksList);
       checksHook.hydrateLeftChecks(leftChecksList);
 
@@ -371,11 +358,10 @@ export default function Home() {
         // Skip notifications about own messages and for the currently-open squad
         if (newNotif.related_user_id === userId) return;
         if (newNotif.related_squad_id && newNotif.related_squad_id === selectedSquadIdRef.current) {
-          db.markSquadNotificationsRead(newNotif.related_squad_id).catch(() => {});
+          // User is in this chat — update cursor, skip UI
+          db.markSquadRead(newNotif.related_squad_id).catch(() => {});
           return;
         }
-        notificationsHook.setHasUnreadSquadMessage(true);
-        notificationsHook.setUnreadSquadCount((prev) => prev + 1);
         if (newNotif.related_squad_id) {
           squadsHook.setSquads((prev) => prev.map((s) =>
             s.id === newNotif.related_squad_id ? { ...s, hasUnread: true } : s
@@ -510,8 +496,7 @@ export default function Home() {
     if (squad) {
       setSelectedSquad({ ...squad, hasUnread: false });
       squadsHook.setAutoSelectSquadId(null);
-      readSquadIdsRef.current.add(squad.id);
-      db.markSquadNotificationsRead(squad.id).catch(() => {});
+      db.markSquadRead(squad.id).catch(() => {});
       // Clear OS push notifications for this squad
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistration().then((reg) => {
@@ -526,13 +511,7 @@ export default function Home() {
       }
       if (squad.hasUnread) {
         squadsHook.setSquads((prev) => prev.map((s) => s.id === squad.id ? { ...s, hasUnread: false } : s));
-        notificationsHook.setUnreadSquadCount((prev) => Math.max(0, prev - 1));
       }
-      const updatedNotifs = notificationsHook.notifications.map((n) =>
-        n.related_squad_id === squad.id ? { ...n, is_read: true } : n
-      );
-      notificationsHook.setNotifications(updatedNotifs);
-      notificationsHook.setUnreadCount(updatedNotifs.filter((n) => !n.is_read).length);
     }
   }, [squadsHook.autoSelectSquadId, squadsHook.squads]);
 
@@ -992,23 +971,14 @@ export default function Home() {
             onSelectSquad={(squad) => {
               setSelectedSquad(squad);
               setSquadChatOrigin("groups");
-              readSquadIdsRef.current.add(squad.id);
-              // Clear all notification state for this squad
-              db.markSquadNotificationsRead(squad.id).catch(() => {});
+              db.markSquadRead(squad.id).catch(() => {});
               if (squad.hasUnread) {
                 squadsHook.setSquads((prev) => prev.map((s) => s.id === squad.id ? { ...s, hasUnread: false } : s));
-                notificationsHook.setUnreadSquadCount((prev) => Math.max(0, prev - 1));
               }
-              // Clear bell badge: mark squad notifications read locally and recompute count
-              const updatedNotifs = notificationsHook.notifications.map((n) =>
-                n.related_squad_id === squad.id ? { ...n, is_read: true } : n
-              );
-              notificationsHook.setNotifications(updatedNotifs);
-              notificationsHook.setUnreadCount(updatedNotifs.filter((n) => !n.is_read).length);
+              // Clear OS push notifications for this squad
               if ("serviceWorker" in navigator) {
                 navigator.serviceWorker.getRegistration().then((reg) => {
                   if (!reg) return;
-                  // Clear all push notification types related to this squad
                   const tags = ["squad_message", "squad_invite", "squad_mention", "date_confirm", "poll_created"];
                   tags.forEach((tag) => {
                     reg.getNotifications({ tag: `${tag}-${squad.id}` }).then((notifs) => {
@@ -1078,8 +1048,6 @@ export default function Home() {
           userId={userId}
           onClose={() => {
             const origin = squadChatOrigin;
-            // Allow future messages to show unread dot again
-            if (selectedSquad?.id) readSquadIdsRef.current.delete(selectedSquad.id);
             setSelectedSquad(null);
             setSquadChatOrigin(null);
             if (origin && origin !== tab) {
