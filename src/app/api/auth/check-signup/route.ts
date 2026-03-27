@@ -33,12 +33,39 @@ export async function POST(request: Request) {
   }
 
   if ((count ?? 0) >= SIGNUP_CAP) {
+    // Check if already on waitlist
+    const { count: waitlistCount } = await supabase
+      .from("waitlist")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email.toLowerCase());
+
     return NextResponse.json({
       allowed: false,
       existing: false,
+      alreadyWaitlisted: (waitlistCount ?? 0) > 0,
       message: "we're at capacity right now — join the waitlist and we'll let you in soon",
     });
   }
 
   return NextResponse.json({ allowed: true, existing: false });
+}
+
+// PUT: join waitlist
+export async function PUT(request: Request) {
+  const { email } = await request.json();
+  if (!email || !email.includes("@")) {
+    return NextResponse.json({ error: "Valid email required" }, { status: 400 });
+  }
+
+  const supabase = getServiceClient();
+
+  const { error } = await supabase
+    .from("waitlist")
+    .upsert({ email: email.toLowerCase() }, { onConflict: "email" });
+
+  if (error) {
+    return NextResponse.json({ error: "Failed to join waitlist" }, { status: 500 });
+  }
+
+  return NextResponse.json({ joined: true });
 }
