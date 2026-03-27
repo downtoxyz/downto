@@ -374,6 +374,13 @@ export function useOnboarding({
         }
       }
 
+      // Auto-redeem pending friend link (from /friend?token=xxx flow)
+      const pendingFriendToken = typeof window !== "undefined" ? localStorage.getItem("pendingFriendToken") : null;
+      if (pendingFriendToken) {
+        localStorage.removeItem("pendingFriendToken");
+        db.redeemFriendLink(pendingFriendToken).catch(() => {});
+      }
+
       // Wait for feed data before setting up friend gate
       if (!feedLoaded) return <div style={{ minHeight: "100vh", background: "#111" }} />;
 

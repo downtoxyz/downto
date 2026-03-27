@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { font, color } from "@/lib/styles";
 import type { Friend } from "@/lib/ui-types";
+import * as db from "@/lib/db";
 import { logError } from "@/lib/logger";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
 
@@ -386,6 +387,39 @@ const FriendsModal = ({
           </>
         ) : (
           <>
+            {/* Invite link */}
+            <button
+              onClick={async () => {
+                try {
+                  const token = await db.createFriendLink();
+                  const url = `${window.location.origin}/friend?token=${token}`;
+                  if (navigator.share) {
+                    await navigator.share({ title: "Add me on down to", url });
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    // TODO: show toast
+                  }
+                } catch { /* cancelled or error */ }
+              }}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: "transparent",
+                border: `1px dashed ${color.borderMid}`,
+                borderRadius: 12,
+                color: color.accent,
+                fontFamily: font.mono,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 16,
+              }}
+            >
+              Share invite link
+            </button>
+
             {/* Incoming requests */}
             {incomingRequests.length > 0 && (
               <>

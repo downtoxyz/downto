@@ -469,6 +469,22 @@ export async function removeFriend(friendshipId: string): Promise<void> {
   if (error) throw error;
 }
 
+// ============================================================================
+// FRIEND LINKS
+// ============================================================================
+
+export async function createFriendLink(): Promise<string> {
+  const { data, error } = await supabase.rpc('create_friend_link');
+  if (error) throw error;
+  return data as string;
+}
+
+export async function redeemFriendLink(token: string): Promise<{ success?: boolean; error?: string; creator_name?: string; already_friends?: boolean }> {
+  const { data, error } = await supabase.rpc('redeem_friend_link', { p_token: token });
+  if (error) throw error;
+  return data as { success?: boolean; error?: string; creator_name?: string; already_friends?: boolean };
+}
+
 export function subscribeToFriendships(
   userId: string,
   callback: (event: 'INSERT' | 'UPDATE' | 'DELETE', friendship: Friendship) => void
