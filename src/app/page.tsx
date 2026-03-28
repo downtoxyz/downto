@@ -905,8 +905,14 @@ export default function Home() {
           userId={userId}
           onClose={() => {
             const origin = squadChatOrigin;
+            const closingSquadId = selectedSquad?.id;
             setSelectedSquad(null);
             setSquadChatOrigin(null);
+            // Update cursor and clear dot on close (catches messages that arrived during session)
+            if (closingSquadId) {
+              db.markSquadRead(closingSquadId).catch(() => {});
+              squadsHook.setSquads((prev) => prev.map((s) => s.id === closingSquadId ? { ...s, hasUnread: false } : s));
+            }
             if (origin && origin !== tab) {
               setTab(origin);
             }

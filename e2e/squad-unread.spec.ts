@@ -115,6 +115,44 @@ test.describe("Squad unread dot behavior", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────
+  // 3b. Swipe-to-dismiss clears dot (DATA + UI)
+  // ──────────────────────────────────────────────────────────────────────
+  test("swipe-to-dismiss squad chat → dot clears", async ({ page }) => {
+    // Create unread state
+    await sendSquadMessage(sharedSquad.id, otherUserId, `test-swipe-${Date.now()}`);
+    await page.waitForTimeout(2_000);
+
+    // Navigate to squads and open the chat
+    await navButton(page, "Squads").click();
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).toBeVisible({ timeout: 5_000 });
+    await page.getByText(sharedSquad.name).click();
+    await expect(page.getByPlaceholder(/message/i)).toBeVisible({ timeout: 5_000 });
+
+    // Simulate swipe-to-dismiss (swipe right across the chat)
+    const viewport = page.viewportSize()!;
+    await page.mouse.move(50, viewport.height / 2);
+    await page.mouse.down();
+    // Swipe right past the 120px threshold
+    for (let x = 50; x < 300; x += 25) {
+      await page.mouse.move(x, viewport.height / 2);
+      await page.waitForTimeout(16);
+    }
+    await page.mouse.up();
+
+    // Wait for close animation
+    await page.waitForTimeout(500);
+
+    // DATA: cursor should be updated on close
+    await expect(async () => {
+      const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
+      expect(isUnread).toBe(false);
+    }).toPass({ timeout: 5_000 });
+
+    // UI: dot should be gone
+    await expect(page.locator(`[data-testid="squad-unread-dot-${sharedSquad.id}"]`)).not.toBeVisible({ timeout: 5_000 });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────
   // 4. Leave chat → new message → dot reappears (DATA + UI)
   // ──────────────────────────────────────────────────────────────────────
   test("leave chat then new message → dot reappears", async ({ page }) => {
@@ -155,12 +193,14 @@ test.describe("Squad unread dot behavior", () => {
     await sendSquadMessage(sharedSquad.id, otherUserId, msgText);
     await page.waitForTimeout(3_000);
 
-    // DATA: should still be read
-    const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
-    expect(isUnread).toBe(false);
-
     // The message should appear in the chat
     await expect(page.getByText(msgText, { exact: true })).toBeVisible({ timeout: 5_000 });
+
+    // DATA: cursor should be updated by realtime handler (async)
+    await expect(async () => {
+      const isUnread = await hasUnreadMessages(katId, sharedSquad.id);
+      expect(isUnread).toBe(false);
+    }).toPass({ timeout: 8_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────────
