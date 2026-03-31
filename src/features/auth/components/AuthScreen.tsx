@@ -25,30 +25,10 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [capBlocked, setCapBlocked] = useState(false);
-
   const handleSendCode = async () => {
     if (!email.includes("@")) return;
     setLoading(true);
     setError(null);
-    setCapBlocked(false);
-
-    // Check signup cap before sending OTP
-    try {
-      const res = await fetch("/api/auth/check-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!data.allowed) {
-        setCapBlocked(true);
-        setLoading(false);
-        return;
-      }
-    } catch {
-      // Fail open — if check fails, allow through
-    }
 
     const { error } = await supabase.auth.signInWithOtp({ email });
 
@@ -152,26 +132,6 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
         >
           {error}
         </p>
-      )}
-
-      {capBlocked && (
-        <div
-          style={{
-            background: color.card,
-            border: `1px solid ${color.border}`,
-            borderRadius: 14,
-            padding: "20px",
-            marginBottom: 24,
-            textAlign: "center",
-          }}
-        >
-          <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 8 }}>
-            we&apos;re at capacity
-          </p>
-          <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, lineHeight: 1.6, marginBottom: 0 }}>
-            we&apos;re keeping things small for now. if you already have an account, try logging in with your email.
-          </p>
-        </div>
       )}
 
       {step === "email" ? (
