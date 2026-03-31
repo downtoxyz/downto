@@ -809,48 +809,46 @@ const AddModal = ({
                     ? 'Save & Share Publicly →'
                     : 'Save & Share with Friends →'}
                 </button>
-                <button
-                  onClick={() => {
-                    const title = scraped.title || 'Event';
-                    const dateStr =
-                      scraped.date && scraped.date !== 'TBD'
-                        ? scraped.date
-                        : null;
-                    const parsedDate = dateStr
-                      ? parseNaturalDate(dateStr)
-                      : null;
-                    const timeStr =
-                      scraped.time && scraped.time !== 'TBD'
-                        ? scraped.time
-                        : null;
-                    onInterestCheck(
-                      sanitize(title, 280),
-                      24,
-                      parsedDate?.iso ?? null,
-                      5,
-                      undefined,
-                      timeStr
-                    );
-                    close();
-                  }}
-                  style={{
-                    width: '100%',
-                    background: 'transparent',
-                    color: color.accent,
-                    border: `1px solid ${color.accent}`,
-                    borderRadius: 12,
-                    padding: '14px',
-                    fontFamily: font.mono,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    marginTop: 8,
-                  }}
-                >
-                  Send as Interest Check →
-                </button>
+                {(() => {
+                  const scrapedDateStr = scraped.date && scraped.date !== 'TBD' ? scraped.date : null;
+                  const scrapedParsedDate = scrapedDateStr ? parseNaturalDate(scrapedDateStr) : null;
+                  return (
+                    <button
+                      onClick={() => {
+                        if (!scrapedParsedDate) return;
+                        const title = scraped.title || 'Event';
+                        const timeStr = scraped.time && scraped.time !== 'TBD' ? scraped.time : null;
+                        onInterestCheck(
+                          sanitize(title, 280),
+                          24,
+                          scrapedParsedDate.iso,
+                          5,
+                          undefined,
+                          timeStr
+                        );
+                        close();
+                      }}
+                      disabled={!scrapedParsedDate}
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        color: scrapedParsedDate ? color.accent : color.dim,
+                        border: `1px solid ${scrapedParsedDate ? color.accent : color.borderMid}`,
+                        borderRadius: 12,
+                        padding: '14px',
+                        fontFamily: font.mono,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: scrapedParsedDate ? 'pointer' : 'not-allowed',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        marginTop: 8,
+                      }}
+                    >
+                      {scrapedParsedDate ? 'Send as Interest Check →' : 'No date found — can\u2019t send as check'}
+                    </button>
+                  );
+                })()}
                 <p
                   style={{
                     fontFamily: font.mono,
@@ -1054,7 +1052,7 @@ const AddModal = ({
             <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
               <input
                 type="text"
-                placeholder="tmr 7pm"
+                placeholder="when? (e.g. tmr 7pm)"
                 value={whenInput}
                 onChange={(e) => setWhenInput(e.target.value)}
                 style={{
@@ -1062,7 +1060,7 @@ const AddModal = ({
                   minWidth: 0,
                   padding: '10px 12px',
                   background: color.deep,
-                  border: `1px solid ${color.borderMid}`,
+                  border: `1px solid ${idea.trim() && !parsedDate ? '#ff6b6b44' : color.borderMid}`,
                   borderRadius: 10,
                   fontFamily: font.mono,
                   fontSize: 11,
@@ -1104,7 +1102,20 @@ const AddModal = ({
                 {whenPreview}
               </div>
             )}
-            {!whenPreview && <div style={{ marginBottom: 8 }} />}
+            {!whenPreview && idea.trim() && !parsedDate && (
+              <div
+                style={{
+                  fontFamily: font.mono,
+                  fontSize: 10,
+                  color: '#ff6b6b',
+                  marginBottom: 8,
+                  paddingLeft: 2,
+                }}
+              >
+                add a date (e.g. &quot;fri&quot;, &quot;3/14&quot;, &quot;next sat&quot;)
+              </div>
+            )}
+            {!whenPreview && (!idea.trim() || parsedDate) && <div style={{ marginBottom: 8 }} />}
             {/* Movie preview from detected Letterboxd link */}
             {checkMovieLoading && (
               <div
@@ -1401,18 +1412,18 @@ const AddModal = ({
                   close();
                 }
               }}
-              disabled={!idea.trim()}
+              disabled={!idea.trim() || !parsedDate}
               style={{
                 width: '100%',
-                background: idea.trim() ? color.accent : color.borderMid,
-                color: idea.trim() ? '#000' : color.dim,
+                background: idea.trim() && parsedDate ? color.accent : color.borderMid,
+                color: idea.trim() && parsedDate ? '#000' : color.dim,
                 border: 'none',
                 borderRadius: 12,
                 padding: '14px',
                 fontFamily: font.mono,
                 fontSize: 13,
                 fontWeight: 700,
-                cursor: idea.trim() ? 'pointer' : 'not-allowed',
+                cursor: idea.trim() && parsedDate ? 'pointer' : 'not-allowed',
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
               }}

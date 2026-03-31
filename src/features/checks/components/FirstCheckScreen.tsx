@@ -102,7 +102,7 @@ const FirstCheckScreen = ({
       <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
         <input
           type="text"
-          placeholder="tmr 7pm"
+          placeholder="when? (e.g. tmr 7pm)"
           value={whenInput}
           onChange={(e) => setWhenInput(e.target.value)}
           style={{
@@ -110,7 +110,7 @@ const FirstCheckScreen = ({
             minWidth: 0,
             padding: "10px 12px",
             background: color.deep,
-            border: `1px solid ${color.borderMid}`,
+            border: `1px solid ${idea.trim() && !parsedDate ? '#ff6b6b44' : color.borderMid}`,
             borderRadius: 10,
             fontFamily: font.mono,
             fontSize: 11,
@@ -150,7 +150,20 @@ const FirstCheckScreen = ({
           {whenPreview}
         </div>
       )}
-      {!whenPreview && <div style={{ marginBottom: 8 }} />}
+      {!whenPreview && idea.trim() && !parsedDate && (
+        <div
+          style={{
+            fontFamily: font.mono,
+            fontSize: 10,
+            color: '#ff6b6b',
+            marginBottom: 8,
+            paddingLeft: 2,
+          }}
+        >
+          add a date (e.g. &quot;fri&quot;, &quot;3/14&quot;, &quot;next sat&quot;)
+        </div>
+      )}
+      {!whenPreview && (!idea.trim() || parsedDate) && <div style={{ marginBottom: 8 }} />}
 
       {/* Timer picker */}
       <div style={{ marginBottom: 16 }}>
@@ -239,18 +252,18 @@ const FirstCheckScreen = ({
             onComplete(title, checkTimer, eventDate, squadSize === 0 ? null : squadSize, eventTime, true, true, location);
           }
         }}
-        disabled={!idea.trim()}
+        disabled={!idea.trim() || !parsedDate}
         style={{
           width: "100%",
           padding: "16px",
-          background: idea.trim() ? color.accent : color.borderMid,
+          background: idea.trim() && parsedDate ? color.accent : color.borderMid,
           border: "none",
           borderRadius: 12,
-          color: idea.trim() ? color.bg : color.dim,
+          color: idea.trim() && parsedDate ? color.bg : color.dim,
           fontFamily: font.mono,
           fontSize: 14,
           fontWeight: 700,
-          cursor: idea.trim() ? "pointer" : "default",
+          cursor: idea.trim() && parsedDate ? "pointer" : "default",
           marginBottom: 16,
         }}
       >
