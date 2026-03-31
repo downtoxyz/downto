@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck, Friend } from "@/lib/ui-types";
@@ -97,6 +97,14 @@ export default function CheckCard({
   } = useFeedContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+
+  // Auto-open comments when navigated to this check via notification
+  useEffect(() => {
+    if (newlyAddedCheckId === check.id && !isCommentsOpen) {
+      openComments();
+      setIsCommentsOpen(true);
+    }
+  }, [newlyAddedCheckId, check.id]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
 

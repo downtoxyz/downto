@@ -304,6 +304,16 @@ const NotificationsPanel = ({
                     }
                     onClose();
                     onNavigate({ type: "feed" });
+                  } else if (n.type === "check_comment" || n.type === "comment_mention") {
+                    if (!n.is_read) {
+                      if (userId) db.markNotificationRead(n.id);
+                      setNotifications((prev) =>
+                        prev.map((notif) => notif.id === n.id ? { ...notif, is_read: true } : notif)
+                      );
+                      setUnreadCount((prev) => Math.max(0, prev - 1));
+                    }
+                    onClose();
+                    onNavigate({ type: "feed", checkId: n.related_check_id ?? undefined });
                   } else if (n.type === "check_response" || n.type === "friend_check" || n.type === "check_tag") {
                     // Mark single notification as read (except check_tag — cleared on accept/decline)
                     if (!n.is_read && n.type !== "check_tag") {

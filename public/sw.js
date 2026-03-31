@@ -77,7 +77,7 @@ self.addEventListener("notificationclick", (event) => {
     tab = "/?tab=profile&openFriends=1";
   } else if (type === "squad_message" || type === "squad_invite") {
     tab = relatedId ? `/?tab=groups&squadId=${relatedId}` : "/?tab=groups";
-  } else if (type === "check_response" || type === "friend_check") {
+  } else if (type === "check_response" || type === "friend_check" || type === "check_comment" || type === "comment_mention") {
     tab = relatedId ? `/?tab=feed&checkId=${relatedId}` : "/?tab=feed";
   } else if (type === "date_confirm") {
     tab = relatedId ? `/?tab=groups&squadId=${relatedId}` : "/?tab=groups";

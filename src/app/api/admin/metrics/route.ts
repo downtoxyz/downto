@@ -262,9 +262,5 @@ export async function GET(request: NextRequest) {
       commentsByDate,
       messagesByDate,
     },
-    waitlist: await (async () => {
-      const { data, count } = await admin.from("waitlist").select("*", { count: "exact" }).order("created_at", { ascending: false }).limit(20);
-      return { total: count ?? 0, recent: data ?? [] };
-    })(),
   });
 }
