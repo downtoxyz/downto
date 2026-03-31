@@ -25,33 +25,10 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [capBlocked, setCapBlocked] = useState(false);
-  const [waitlistJoined, setWaitlistJoined] = useState(false);
-  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
-
   const handleSendCode = async () => {
     if (!email.includes("@")) return;
     setLoading(true);
     setError(null);
-    setCapBlocked(false);
-
-    // Check signup cap before sending OTP
-    try {
-      const res = await fetch("/api/auth/check-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!data.allowed) {
-        setCapBlocked(true);
-        if (data.alreadyWaitlisted) setWaitlistJoined(true);
-        setLoading(false);
-        return;
-      }
-    } catch {
-      // Fail open — if check fails, allow through
-    }
 
     const { error } = await supabase.auth.signInWithOtp({ email });
 
@@ -155,77 +132,6 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
         >
           {error}
         </p>
-      )}
-
-      {capBlocked && (
-        <div
-          style={{
-            background: color.card,
-            border: `1px solid ${color.border}`,
-            borderRadius: 14,
-            padding: "20px",
-            marginBottom: 24,
-            textAlign: "center",
-          }}
-        >
-          {waitlistJoined ? (
-            <>
-              <p style={{ fontFamily: font.serif, fontSize: 18, color: color.accent, marginBottom: 8 }}>
-                you&apos;re on the list
-              </p>
-              <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, lineHeight: 1.6, marginBottom: 0 }}>
-                we&apos;ll let you know when a spot opens up. if you already have an account, try logging in with your email.
-              </p>
-            </>
-          ) : (
-            <>
-              <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 8 }}>
-                we&apos;re at capacity
-              </p>
-              <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, lineHeight: 1.6, marginBottom: 16 }}>
-                we&apos;re keeping things small for now. drop your email and we&apos;ll let you in when there&apos;s room.
-              </p>
-              <button
-                onClick={async () => {
-                  if (!email.includes("@")) return;
-                  setJoiningWaitlist(true);
-                  try {
-                    await fetch("/api/auth/check-signup", {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email }),
-                    });
-                    setWaitlistJoined(true);
-                  } catch {
-                    setError("Failed to join waitlist");
-                  } finally {
-                    setJoiningWaitlist(false);
-                  }
-                }}
-                disabled={!email.includes("@") || joiningWaitlist}
-                style={{
-                  width: "100%",
-                  padding: "14px",
-                  background: email.includes("@") ? color.accent : color.borderMid,
-                  color: email.includes("@") ? "#000" : color.dim,
-                  border: "none",
-                  borderRadius: 12,
-                  fontFamily: font.mono,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: email.includes("@") ? "pointer" : "not-allowed",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {joiningWaitlist ? "Joining..." : "Join Waitlist"}
-              </button>
-              <p style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, marginTop: 10, marginBottom: 0 }}>
-                already have an account? just enter your email above and send code.
-              </p>
-            </>
-          )}
-        </div>
       )}
 
       {step === "email" ? (
