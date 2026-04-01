@@ -470,39 +470,6 @@ const ProfileView = ({
       )}
     </div>
 
-    <div style={{ marginTop: 24 }}>
-      <div
-        style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          color: color.faint,
-          marginBottom: 16,
-        }}
-      >
-        Your vibes
-      </div>
-      {["techno", "ambient", "house", "photography", "late night", "community"].map((v) => (
-        <span
-          key={v}
-          style={{
-            display: "inline-block",
-            background: color.card,
-            color: color.muted,
-            padding: "8px 14px",
-            borderRadius: 20,
-            fontFamily: font.mono,
-            fontSize: 11,
-            margin: "0 6px 8px 0",
-            border: `1px solid ${color.border}`,
-          }}
-        >
-          {v}
-        </span>
-      ))}
-    </div>
-
     {archivedChecks && archivedChecks.length > 0 && (
       <div style={{ marginTop: 24 }}>
         <button
