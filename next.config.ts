@@ -31,7 +31,10 @@ function detectSkipNotify(): string {
   }
 }
 
+const isCapacitorBuild = process.env.CAPACITOR_BUILD === "true";
+
 const nextConfig: NextConfig = {
+  ...(isCapacitorBuild && { output: "export" }),
   allowedDevOrigins: ["http://127.0.0.1"],
   reactStrictMode: true,
   typescript: {
@@ -45,17 +48,19 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SKIP_UPDATE_NOTIFY: detectSkipNotify(),
     NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV ?? "",
   },
-  async headers() {
-    return [
-      {
-        source: "/sw.js",
-        headers: [
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
-          { key: "Service-Worker-Allowed", value: "/" },
-        ],
-      },
-    ];
-  },
+  ...(!isCapacitorBuild && {
+    async headers() {
+      return [
+        {
+          source: "/sw.js",
+          headers: [
+            { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+            { key: "Service-Worker-Allowed", value: "/" },
+          ],
+        },
+      ];
+    },
+  }),
 };
 
 export default withSentryConfig(nextConfig, {

@@ -7,6 +7,7 @@
     "dev": "next dev",
     "dev:prod": "bash -c '[ -f .env.development.local ] && mv .env.development.local .env.development.local.bak; trap \"[ -f .env.development.local.bak ] && mv .env.development.local.bak .env.development.local\" EXIT; next dev'",
     "build": "next build",
+    "build:capacitor": "bash scripts/build-capacitor.sh",
     "start": "next start",
     "test": "echo 'Unit tests disabled'"
   },
