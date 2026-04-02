@@ -840,7 +840,7 @@ export async function getArchivedChecks(): Promise<{ id: string; text: string; a
 
 export async function updateInterestCheck(
   checkId: string,
-  updates: { text?: string; max_squad_size?: number; event_date?: string | null; event_time?: string | null; date_flexible?: boolean; time_flexible?: boolean }
+  updates: { text?: string; max_squad_size?: number; event_date?: string | null; event_time?: string | null; date_flexible?: boolean; time_flexible?: boolean; location?: string | null }
 ): Promise<void> {
   const { error } = await supabase
     .from('interest_checks')

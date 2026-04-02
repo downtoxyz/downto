@@ -91,6 +91,7 @@ export default function CheckCard({
     pendingDownCheckIds,
     newlyAddedCheckId,
     respondToCheck,
+    clearResponse,
     acceptCoAuthorTag,
     declineCoAuthorTag,
     hideCheck,
@@ -321,6 +322,7 @@ export default function CheckCard({
                     disabled={check.expiresIn === "expired" && !myCheckResponses[check.id]}
                     onClick={() => {
                       if (myCheckResponses[check.id] === "down" || myCheckResponses[check.id] === "waitlist") {
+                        clearResponse(check.id);
                         if (check.id) {
                           db.removeCheckResponse(check.id)
                             .then(() => loadRealData())
@@ -492,7 +494,7 @@ export default function CheckCard({
         onSave={async (updates) => {
           setEditModalOpen(false);
           try {
-            await db.updateInterestCheck(check.id, { text: updates.text, event_date: updates.eventDate, event_time: updates.eventTime, date_flexible: updates.dateFlexible, time_flexible: updates.timeFlexible });
+            await db.updateInterestCheck(check.id, { text: updates.text, event_date: updates.eventDate, event_time: updates.eventTime, date_flexible: updates.dateFlexible, time_flexible: updates.timeFlexible, location: updates.location });
             if (updates.taggedFriendIds && updates.taggedFriendIds.length > 0) await db.tagCoAuthors(check.id, updates.taggedFriendIds);
             if (check.squadId) await db.updateSquadName(check.squadId, updates.text);
           } catch (err) { logError("updateCheck", err, { checkId: check.id }); showToast("Failed to save changes"); return; }
