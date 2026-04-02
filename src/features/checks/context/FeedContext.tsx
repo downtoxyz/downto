@@ -18,6 +18,7 @@ export interface FeedContextValue {
 
   // — Check actions —
   respondToCheck: (checkId: string) => void;
+  clearResponse: (checkId: string) => void;
   acceptCoAuthorTag: (checkId: string) => Promise<void>;
   declineCoAuthorTag: (checkId: string) => Promise<void>;
   hideCheck: (checkId: string) => void;

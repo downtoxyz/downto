@@ -676,6 +676,7 @@ export default function Home() {
       newlyAddedCheckId: checksHook.newlyAddedCheckId,
       leftChecks: checksHook.leftChecks,
       respondToCheck: checksHook.respondToCheck,
+      clearResponse: checksHook.clearResponse,
       acceptCoAuthorTag: checksHook.acceptCoAuthorTag,
       declineCoAuthorTag: checksHook.declineCoAuthorTag,
       hideCheck: checksHook.hideCheck,

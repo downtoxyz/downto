@@ -27,6 +27,7 @@ export const CheckActionType = {
   UPSERT_CHECK:       "UPSERT_CHECK",
   PATCH_CHECKS:       "PATCH_CHECKS",
   SET_RESPONSE:       "SET_RESPONSE",
+  CLEAR_RESPONSE:     "CLEAR_RESPONSE",
   MERGE_RESPONSES:    "MERGE_RESPONSES",
   SET_PENDING:        "SET_PENDING",
   SET_HIDDEN:         "SET_HIDDEN",
@@ -46,6 +47,8 @@ export type ChecksAction =
   | { type: typeof CheckActionType.PATCH_CHECKS; patches: Array<{ id: string; patch: Partial<InterestCheck> }> }
   // Optimistic response — patches "You" into check.responses + myCheckResponses
   | { type: typeof CheckActionType.SET_RESPONSE; checkId: string; status: "down" | "waitlist"; avatarLetter?: string }
+  // Optimistic un-down — removes "You" from check.responses + myCheckResponses
+  | { type: typeof CheckActionType.CLEAR_RESPONSE; checkId: string }
   // Bulk response merge — for shared check injection
   | { type: typeof CheckActionType.MERGE_RESPONSES; responses: Record<string, "down" | "waitlist"> }
   // Pending spinner (pending: true = add, false = remove)
@@ -96,8 +99,10 @@ function patchYouResponses(
 export function checksReducer(state: ChecksState, action: ChecksAction): ChecksState {
   switch (action.type) {
     case CheckActionType.SYNC_CHECKS: {
+      // When responses are provided (hydrate path), replace rather than merge
+      // so removed responses don't persist as stale entries
       const responses = action.responses
-        ? { ...state.myCheckResponses, ...action.responses }
+        ? action.responses
         : state.myCheckResponses;
       const checks = patchYouResponses(mergeChecks(state.checks, action.checks), responses);
       return {
@@ -133,6 +138,15 @@ export function checksReducer(state: ChecksState, action: ChecksAction): ChecksS
         return { ...c, responses };
       });
       return { ...state, checks, myCheckResponses: { ...state.myCheckResponses, [checkId]: status } };
+    }
+    case CheckActionType.CLEAR_RESPONSE: {
+      const { checkId } = action;
+      const checks = state.checks.map((c) => {
+        if (c.id !== checkId) return c;
+        return { ...c, responses: c.responses.filter((r) => r.name !== "You") };
+      });
+      const { [checkId]: _, ...rest } = state.myCheckResponses;
+      return { ...state, checks, myCheckResponses: rest };
     }
     case CheckActionType.MERGE_RESPONSES:
       return { ...state, myCheckResponses: { ...state.myCheckResponses, ...action.responses } };

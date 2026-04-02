@@ -157,7 +157,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
       type: CheckActionType.SYNC_CHECKS,
       checks: transformedChecks,
       hiddenIds,
-      ...(Object.keys(restoredResponses).length > 0 && { responses: restoredResponses }),
+      responses: restoredResponses,
     });
   }, [userId]);
 
@@ -312,6 +312,10 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
     db.removeLeftCheck(checkId).catch((err) => logError('removeLeftCheck', err, { checkId }));
   }, [respondToCheck]);
 
+  const clearResponse = (checkId: string) => {
+    dispatch({ type: CheckActionType.CLEAR_RESPONSE, checkId });
+  };
+
   const hideCheck = async (checkId: string) => {
     dispatch({ type: CheckActionType.SET_HIDDEN, checkId, hidden: true });
     db.hideCheck(checkId).catch((err) => logError("hideCheck", err, { checkId }));
@@ -348,6 +352,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
     loadChecks,
     hydrateChecks,
     respondToCheck,
+    clearResponse,
     handleCreateCheck,
     acceptCoAuthorTag,
     declineCoAuthorTag,
