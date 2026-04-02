@@ -616,20 +616,16 @@ export async function getSharedCheck(checkId: string) {
 
     const { data: squad } = await supabase
       .from('squads')
-      .select('id, members:squad_members(id)')
+      .select('id, members:squad_members(id, user_id, role)')
       .eq('check_id', checkId)
       .is('archived_at', null)
       .maybeSingle();
     if (squad) {
       squadId = squad.id;
-      squadMemberCount = (squad.members as { id: string }[])?.length ?? 0;
-      const { data: membership } = await supabase
-        .from('squad_members')
-        .select('id')
-        .eq('squad_id', squad.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-      inSquad = !!membership;
+      const members = squad.members as { id: string; user_id: string; role: string }[];
+      squadMemberCount = members?.filter((m) => m.role !== 'waitlist')?.length ?? 0;
+      const myMembership = members?.find((m) => m.user_id === user.id);
+      inSquad = !!myMembership && myMembership.role !== 'waitlist';
     }
   }
 
@@ -733,7 +729,7 @@ export async function getActiveChecks(): Promise<(InterestCheck & { author: Prof
       *,
       author:profiles!author_id(*),
       responses:check_responses(*, user:profiles!user_id(*)),
-      squads(id, archived_at, members:squad_members(id, role)),
+      squads(id, archived_at, members:squad_members(id, user_id, role)),
       co_authors:check_co_authors(*, user:profiles!user_id(*))
     `)
     .or(`expires_at.gt.${new Date().toISOString()},expires_at.is.null,event_date.gte.${new Date().toISOString().slice(0, 10)}`)

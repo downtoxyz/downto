@@ -66,6 +66,8 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
     maxSquadSize: c.max_squad_size,
     squadId: c.squads?.find((s) => !s.archived_at)?.id,
     squadMemberCount: c.squads?.find((s) => !s.archived_at)?.members?.filter((m) => (m as { role?: string }).role !== 'waitlist')?.length ?? 0,
+    inSquad: !!userId && !!(c.squads?.find((s) => !s.archived_at)?.members?.some((m) => (m as { user_id?: string }).user_id === userId && (m as { role?: string }).role !== 'waitlist')),
+    isWaitlisted: !!userId && !!(c.squads?.find((s) => !s.archived_at)?.members?.some((m) => (m as { user_id?: string }).user_id === userId && (m as { role?: string }).role === 'waitlist')),
     eventDate: c.event_date ?? undefined,
     eventDateLabel: c.event_date ? new Date(c.event_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : undefined,
     eventTime: c.event_time?.replace(/\s*[Aa][Mm]/g, 'am').replace(/\s*[Pp][Mm]/g, 'pm') ?? undefined,
