@@ -6,6 +6,7 @@ import { useAppNavigation } from "@/app/hooks/useAppNavigation";
 import { useEvents } from "@/features/events/hooks/useEvents";
 import { supabase } from "@/lib/supabase";
 import * as db from "@/lib/db";
+import { API_BASE } from "@/lib/db";
 import { font, color } from "@/lib/styles";
 import { sanitize, sanitizeVibes, parseDateToISO, toLocalISODate } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
@@ -418,7 +419,7 @@ export default function Home() {
   const handleSetSquadDate = async (squadDbId: string, date: string, time?: string | null, locked?: boolean) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) return;
-    const res = await fetch('/api/squads/set-date', {
+    const res = await fetch(`${API_BASE}/api/squads/set-date`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ squadId: squadDbId, date, time: time ?? null, locked: !!locked }),
@@ -454,7 +455,7 @@ export default function Home() {
   const handleClearSquadDate = async (squadDbId: string) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) return;
-    const res = await fetch('/api/squads/set-date', {
+    const res = await fetch(`${API_BASE}/api/squads/set-date`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ squadId: squadDbId, clear: true }),
@@ -475,7 +476,7 @@ export default function Home() {
   const handleUpdateSquadSize = async (checkId: string, newSize: number) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) return;
-    const res = await fetch('/api/squads/update-size', {
+    const res = await fetch(`${API_BASE}/api/squads/update-size`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ checkId, maxSquadSize: newSize }),
@@ -492,7 +493,7 @@ export default function Home() {
   const handleSetMemberRole = async (squadId: string, targetUserId: string, role: string) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) return;
-    const res = await fetch('/api/squads/set-member-role', {
+    const res = await fetch(`${API_BASE}/api/squads/set-member-role`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ squadId, userId: targetUserId, role }),
@@ -509,7 +510,7 @@ export default function Home() {
   const handleKickMember = async (squadId: string, targetUserId: string) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) return;
-    const res = await fetch('/api/squads/kick-member', {
+    const res = await fetch(`${API_BASE}/api/squads/kick-member`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ squadId, userId: targetUserId }),
@@ -526,7 +527,7 @@ export default function Home() {
   const handleAddMember = async (squadId: string, targetUserId: string) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) return;
-    const res = await fetch('/api/squads/add-member', {
+    const res = await fetch(`${API_BASE}/api/squads/add-member`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ squadId, userId: targetUserId }),

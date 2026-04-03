@@ -3,6 +3,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { API_BASE } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { color, font } from "@/lib/styles";
 
@@ -83,7 +84,7 @@ export default function AdminPage() {
       }
 
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const res = await fetch(`/api/admin/metrics?tz=${encodeURIComponent(tz)}`, {
+      const res = await fetch(`${API_BASE}/api/admin/metrics?tz=${encodeURIComponent(tz)}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 

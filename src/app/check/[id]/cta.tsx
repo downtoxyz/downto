@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { API_BASE } from "@/lib/db";
 import { font, color } from "@/lib/styles";
 
 type State = "loading" | "logged-out" | "ready" | "submitting" | "done";
@@ -21,7 +22,7 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) { setState("logged-out"); return; }
 
-      const res = await fetch("/api/checks/respond-shared", {
+      const res = await fetch(`${API_BASE}/api/checks/respond-shared`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ checkId, response: "down" }),

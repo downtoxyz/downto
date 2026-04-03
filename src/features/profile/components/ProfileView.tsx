@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Profile } from "@/lib/types";
+import { API_BASE } from "@/lib/db";
 import { font, color } from "@/lib/styles";
 import type { Friend, AvailabilityStatus } from "@/lib/ui-types";
 import { AVAILABILITY_OPTIONS, EXPIRY_OPTIONS } from "@/lib/ui-types";
@@ -42,7 +43,7 @@ const ProfileView = ({
   useEffect(() => {
     const buildId = process.env.NEXT_PUBLIC_BUILD_ID;
     if (!buildId) return;
-    fetch("/api/version")
+    fetch(`${API_BASE}/api/version`)
       .then((r) => r.json())
       .then(({ buildId: latest }) => setIsLatestBuild(!latest || latest === buildId))
       .catch(() => {});

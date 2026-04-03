@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { API_BASE } from '@/lib/db';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
 
@@ -73,7 +74,7 @@ async function saveSubscriptionToServer(subscription: PushSubscription): Promise
 
   const subJson = subscription.toJSON();
 
-  await fetch('/api/push/subscribe', {
+  await fetch(`${API_BASE}/api/push/subscribe`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -96,7 +97,7 @@ export async function unsubscribeFromPush(
 
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      await fetch('/api/push/subscribe', {
+      await fetch(`${API_BASE}/api/push/subscribe`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

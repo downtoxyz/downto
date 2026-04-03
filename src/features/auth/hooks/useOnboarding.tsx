@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, type Dispatch, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import * as db from "@/lib/db";
+import { API_BASE } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck, Tab, Friend } from "@/lib/ui-types";
 import { type ChecksAction, CheckActionType } from "@/features/checks/reducers/checksReducer";
@@ -338,7 +339,7 @@ export function useOnboarding({
           (async () => {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (token) {
-              fetch("/api/checks/respond-shared", {
+              fetch(`${API_BASE}/api/checks/respond-shared`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ checkId: pendingCheckId, response: "down" }),

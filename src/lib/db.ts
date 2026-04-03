@@ -635,7 +635,7 @@ export async function getSharedCheck(checkId: string) {
 export async function respondToSharedCheck(checkId: string): Promise<boolean> {
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) return false;
-  const res = await fetch('/api/checks/respond-shared', {
+  const res = await fetch(`${API_BASE}/api/checks/respond-shared`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ checkId, response: 'down' }),
@@ -1475,7 +1475,7 @@ export async function extendSquad(squadId: string, days: number = 7): Promise<st
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch('/api/squads/extend', {
+  const res = await fetch(`${API_BASE}/api/squads/extend`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1518,7 +1518,7 @@ export async function respondToDateConfirm(
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch('/api/squads/confirm-date', {
+  const res = await fetch(`${API_BASE}/api/squads/confirm-date`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1568,7 +1568,7 @@ export async function createPoll(squadId: string, question: string, options: str
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch('/api/squads/create-poll', {
+  const res = await fetch(`${API_BASE}/api/squads/create-poll`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1589,7 +1589,7 @@ export async function votePoll(pollId: string, optionIndex: number) {
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch('/api/squads/vote-poll', {
+  const res = await fetch(`${API_BASE}/api/squads/vote-poll`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1610,7 +1610,7 @@ export async function closePoll(pollId: string) {
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch('/api/squads/close-poll', {
+  const res = await fetch(`${API_BASE}/api/squads/close-poll`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

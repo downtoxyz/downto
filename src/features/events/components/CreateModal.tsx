@@ -7,6 +7,7 @@ import type { ScrapedEvent } from '@/lib/ui-types';
 import { parseNaturalDate, parseNaturalTime, sanitize } from '@/lib/utils';
 import { logWarn } from '@/lib/logger';
 import * as db from '@/lib/db';
+import { API_BASE } from '@/lib/db';
 
 interface CheckMovie {
   title: string;
@@ -211,7 +212,7 @@ const AddModal = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/scrape', {
+      const response = await fetch(`${API_BASE}/api/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -911,7 +912,7 @@ const AddModal = ({
                     checkMovieLoadingRef.current = true;
                     setCheckMovieLoading(true);
                     const urlToReplace = detectedUrl;
-                    fetch('/api/scrape', {
+                    fetch(`${API_BASE}/api/scrape`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ url: detectedUrl }),
@@ -1514,7 +1515,7 @@ const AddModal = ({
                         setMovieSearching(true);
                         movieSearchTimer.current = setTimeout(async () => {
                           try {
-                            const res = await fetch('/api/search-letterboxd', {
+                            const res = await fetch(`${API_BASE}/api/search-letterboxd`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ query: val.trim() }),

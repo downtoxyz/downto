@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { logVersionPing } from "@/lib/db";
+import { logVersionPing, API_BASE } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { font, color } from "@/lib/styles";
 
@@ -38,7 +38,7 @@ export default function UpdateBanner() {
   // Check if a newer build is available
   const checkForUpdate = async (): Promise<boolean> => {
     try {
-      const r = await fetch("/api/version");
+      const r = await fetch(`${API_BASE}/api/version`);
       const { buildId } = await r.json();
       return !!buildId && buildId !== CLIENT_BUILD_ID;
     } catch {
