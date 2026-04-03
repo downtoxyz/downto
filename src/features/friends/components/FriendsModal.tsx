@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { font, color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 import type { Friend } from "@/lib/ui-types";
 import * as db from "@/lib/db";
 import { logError } from "@/lib/logger";
@@ -146,40 +146,28 @@ const FriendsModal = ({
   if (!visible) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
-    >
+    <div className="fixed inset-0 z-100 flex items-end justify-center">
       <div
         onClick={preventClose ? undefined : close}
+        className={cn(
+          "absolute inset-0 transition-all duration-300 ease-in-out",
+          (entering || closing) ? "opacity-0" : "opacity-100"
+        )}
         style={{
-          position: "absolute",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
-          opacity: (entering || closing) ? 0 : 1,
-          transition: "opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       />
       <div
+        className={cn(
+          "relative bg-surface w-full max-w-[420px] flex flex-col",
+          !closing && "animate-slide-up"
+        )}
         style={{
-          position: "relative",
-          background: color.surface,
           borderRadius: "24px 24px 0 0",
-          width: "100%",
-          maxWidth: 420,
           padding: "32px 24px 0",
           maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
           transition: closing ? "transform 0.2s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
         }}
@@ -188,85 +176,44 @@ const FriendsModal = ({
           onTouchStart={handleSwipeStart}
           onTouchMove={handleSwipeMove}
           onTouchEnd={finishSwipe}
-          style={{ touchAction: "none" }}
+          className="touch-none"
         >
-          <div
-            style={{
-              width: 40,
-              height: 4,
-              background: color.faint,
-              borderRadius: 2,
-              margin: "0 auto 24px",
-            }}
-          />
+          <div className="w-10 h-1 bg-faint rounded-sm mx-auto mb-6" />
         </div>
 
         {preventClose && (
-          <div
-            style={{
-              fontFamily: font.mono,
-              fontSize: 13,
-              color: color.text,
-              textAlign: "center",
-              marginBottom: 16,
-            }}
-          >
+          <div className="font-mono text-sm text-primary text-center mb-4">
             add at least one friend to get started
           </div>
         )}
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div className="flex gap-2 mb-5">
           <button
             onClick={() => setTab("friends")}
-            style={{
-              flex: 1,
-              background: tab === "friends" ? color.accent : "transparent",
-              color: tab === "friends" ? "#000" : color.dim,
-              border: tab === "friends" ? "none" : `1px solid ${color.borderMid}`,
-              borderRadius: 10,
-              padding: "10px",
-              fontFamily: font.mono,
-              fontSize: 11,
-              fontWeight: tab === "friends" ? 700 : 400,
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}
+            className={cn(
+              "flex-1 rounded-lg p-2.5 font-mono text-xs cursor-pointer uppercase",
+              tab === "friends"
+                ? "bg-dt text-black font-bold border-none"
+                : "bg-transparent text-dim border border-border-mid font-normal"
+            )}
+            style={{ letterSpacing: "0.08em" }}
           >
             Friends ({friends.length})
           </button>
           <button
             onClick={() => setTab("add")}
-            style={{
-              flex: 1,
-              background: tab === "add" ? color.accent : "transparent",
-              color: tab === "add" ? "#000" : color.dim,
-              border: tab === "add" ? "none" : `1px solid ${color.borderMid}`,
-              borderRadius: 10,
-              padding: "10px",
-              fontFamily: font.mono,
-              fontSize: 11,
-              fontWeight: tab === "add" ? 700 : 400,
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              position: "relative",
-            }}
+            className={cn(
+              "flex-1 rounded-lg p-2.5 font-mono text-xs cursor-pointer uppercase relative",
+              tab === "add"
+                ? "bg-dt text-black font-bold border-none"
+                : "bg-transparent text-dim border border-border-mid font-normal"
+            )}
+            style={{ letterSpacing: "0.08em" }}
           >
             Add
             {incomingRequests.length > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  right: 6,
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "#ff6b6b",
-                }}
-              />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger" />
             )}
           </button>
         </div>
@@ -277,18 +224,7 @@ const FriendsModal = ({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={tab === "add" ? "Search users by name or @username..." : "Filter friends..."}
-          style={{
-            width: "100%",
-            background: color.deep,
-            border: `1px solid ${color.borderMid}`,
-            borderRadius: 12,
-            padding: "12px 16px",
-            color: color.text,
-            fontFamily: font.mono,
-            fontSize: 13,
-            outline: "none",
-            marginBottom: 20,
-          }}
+          className="w-full bg-deep border border-border-mid rounded-xl py-3 px-4 text-primary font-mono text-sm outline-none mb-5"
         />
 
         <div
@@ -296,25 +232,12 @@ const FriendsModal = ({
           onTouchStart={handleScrollTouchStart}
           onTouchMove={handleScrollTouchMove}
           onTouchEnd={handleScrollTouchEnd}
-          style={{
-            overflowY: "auto",
-            overflowX: "hidden",
-            flex: 1,
-            paddingBottom: 40,
-          }}
+          className="overflow-y-auto overflow-x-hidden flex-1 pb-10"
         >
         {tab === "friends" ? (
           <>
             {filteredFriends.length === 0 ? (
-              <p
-                style={{
-                  textAlign: "center",
-                  color: color.faint,
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  padding: "40px 0",
-                }}
-              >
+              <p className="text-center text-faint font-mono text-xs py-10">
                 {search ? "No friends found" : "No friends yet"}
               </p>
             ) : (
@@ -322,65 +245,27 @@ const FriendsModal = ({
                 <div
                   key={f.id}
                   onClick={() => onViewProfile ? onViewProfile(f.id) : setSelectedFriend(f)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "12px 0",
-                    borderBottom: `1px solid ${color.border}`,
-                    cursor: "pointer",
-                  }}
+                  className="flex items-center py-3 border-b border-border cursor-pointer"
                 >
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      background: color.accent,
-                      color: "#000",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontFamily: font.mono,
-                      fontSize: 16,
-                      fontWeight: 700,
-                      marginRight: 12,
-                    }}
-                  >
+                  <div className="w-10 h-10 rounded-full bg-dt text-black flex items-center justify-center font-mono text-base font-bold mr-3">
                     {f.avatar}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 13,
-                        color: color.text,
-                      }}
-                    >
+                  <div className="flex-1">
+                    <div className="font-mono text-sm text-primary">
                       {f.name}
                     </div>
-                    <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 11,
-                        color: color.dim,
-                      }}
-                    >
+                    <div className="font-mono text-xs text-dim">
                       @{f.username}
                     </div>
                   </div>
                   {f.availability && (
-                    <span
-                      style={{
-                        fontSize: 12,
-                        opacity: 0.8,
-                      }}
-                    >
-                      {f.availability === "open" && "✨"}
-                      {f.availability === "awkward" && "👀"}
-                      {f.availability === "not-available" && "🌙"}
+                    <span className="text-xs opacity-80">
+                      {f.availability === "open" && "\u2728"}
+                      {f.availability === "awkward" && "\uD83D\uDC40"}
+                      {f.availability === "not-available" && "\uD83C\uDF19"}
                     </span>
                   )}
-                  <span style={{ color: color.faint, fontSize: 16, marginLeft: 8 }}>›</span>
+                  <span className="text-faint text-base ml-2">&rsaquo;</span>
                 </div>
               ))
             )}
@@ -401,21 +286,8 @@ const FriendsModal = ({
                   }
                 } catch { /* cancelled or error */ }
               }}
-              style={{
-                width: "100%",
-                padding: "12px 0",
-                background: "transparent",
-                border: `1px dashed ${color.borderMid}`,
-                borderRadius: 12,
-                color: color.accent,
-                fontFamily: font.mono,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginBottom: 16,
-              }}
+              className="w-full py-3 bg-transparent border border-dashed border-border-mid rounded-xl text-dt font-mono text-xs font-bold cursor-pointer uppercase mb-4"
+              style={{ letterSpacing: "0.08em" }}
             >
               Share invite link
             </button>
@@ -424,141 +296,72 @@ const FriendsModal = ({
             {incomingRequests.length > 0 && (
               <>
                 <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    color: color.accent,
-                    marginBottom: 12,
-                  }}
+                  className="font-mono text-tiny uppercase text-dt mb-3"
+                  style={{ letterSpacing: "0.15em" }}
                 >
                   Friend Requests ({incomingRequests.length})
                 </div>
                 {incomingRequests.map((f) => (
                   <div
                     key={f.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "12px 0",
-                      borderBottom: `1px solid ${color.border}`,
-                    }}
+                    className="flex items-center py-3 border-b border-border"
                   >
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: "50%",
-                        background: color.borderLight,
-                        color: color.dim,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontFamily: font.mono,
-                        fontSize: 16,
-                        fontWeight: 700,
-                        marginRight: 12,
-                      }}
-                    >
+                    <div className="w-10 h-10 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-base font-bold mr-3">
                       {f.avatar}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontFamily: font.mono,
-                          fontSize: 13,
-                          color: color.text,
-                        }}
-                      >
+                    <div className="flex-1">
+                      <div className="font-mono text-sm text-primary">
                         {f.name}
                       </div>
-                      <div
-                        style={{
-                          fontFamily: font.mono,
-                          fontSize: 11,
-                          color: color.dim,
-                        }}
-                      >
+                      <div className="font-mono text-xs text-dim">
                         @{f.username}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="flex gap-1.5">
                       {onRemoveFriend && (
                         <button
                           onClick={() => onRemoveFriend(f.id)}
-                          style={{
-                            background: "transparent",
-                            color: color.dim,
-                            border: `1px solid ${color.borderMid}`,
-                            borderRadius: 8,
-                            padding: "8px 12px",
-                            fontFamily: font.mono,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
+                          className="bg-transparent text-dim border border-border-mid rounded-lg py-2 px-3 font-mono text-xs font-bold cursor-pointer"
                         >
                           Decline
                         </button>
                       )}
                       <button
                         onClick={() => onAcceptRequest(f.id)}
-                        style={{
-                          background: color.accent,
-                          color: "#000",
-                          border: "none",
-                          borderRadius: 8,
-                          padding: "8px 14px",
-                          fontFamily: font.mono,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
+                        className="bg-dt text-black border-none rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer"
                       >
                         Accept
                       </button>
                     </div>
                   </div>
                 ))}
-                <div style={{ height: 20 }} />
+                <div className="h-5" />
               </>
             )}
 
             {/* Requested (outgoing pending) */}
             {filteredOutgoing.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
+              <div className="mb-5">
                 <div
                   onClick={() => setRequestedState((s) => s === "collapsed" ? "preview" : "collapsed")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    cursor: "pointer",
-                    paddingBottom: requestedState !== "collapsed" ? 8 : 0,
-                  }}
+                  className={cn(
+                    "flex items-center justify-between cursor-pointer",
+                    requestedState !== "collapsed" ? "pb-2" : "pb-0"
+                  )}
                 >
                   <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.15em",
-                      color: color.dim,
-                    }}
+                    className="font-mono text-tiny uppercase text-dim"
+                    style={{ letterSpacing: "0.15em" }}
                   >
                     Requested ({filteredOutgoing.length})
                   </div>
                   <span
+                    className="font-mono text-xs text-faint transition-transform duration-200"
                     style={{
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      color: color.faint,
-                      transition: "transform 0.2s",
                       transform: requestedState === "collapsed" ? "rotate(0deg)" : "rotate(90deg)",
                     }}
                   >
-                    ›
+                    &rsaquo;
                   </span>
                 </div>
                 {requestedState !== "collapsed" && (
@@ -566,42 +369,25 @@ const FriendsModal = ({
                     {(requestedState === "preview" ? filteredOutgoing.slice(0, 3) : filteredOutgoing).map((f) => (
                       <div
                         key={f.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "10px 0",
-                          borderBottom: `1px solid ${color.border}`,
-                        }}
+                        className="flex items-center py-2.5 border-b border-border"
                       >
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: color.borderLight,
-                            color: color.dim,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontFamily: font.mono,
-                            fontSize: 14,
-                            fontWeight: 700,
-                            marginRight: 12,
-                          }}
-                        >
+                        <div className="w-9 h-9 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-sm font-bold mr-3">
                           {f.avatar}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontFamily: font.mono, fontSize: 13, color: color.text }}>
+                        <div className="flex-1">
+                          <div className="font-mono text-sm text-primary">
                             {f.name}
                           </div>
-                          <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                          <div className="font-mono text-xs text-dim">
                             @{f.username}
                           </div>
                         </div>
                         <span
                           onClick={() => onCancelRequest?.(f.id)}
-                          style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, cursor: onCancelRequest ? "pointer" : undefined, padding: "4px 8px", borderRadius: 6, border: `1px solid ${color.border}` }}
+                          className={cn(
+                            "font-mono text-tiny text-faint py-1 px-2 rounded-md border border-border",
+                            onCancelRequest ? "cursor-pointer" : ""
+                          )}
                         >
                           Pending
                         </span>
@@ -610,14 +396,7 @@ const FriendsModal = ({
                     {requestedState === "preview" && filteredOutgoing.length > 3 && (
                       <div
                         onClick={() => setRequestedState("expanded")}
-                        style={{
-                          fontFamily: font.mono,
-                          fontSize: 11,
-                          color: color.dim,
-                          padding: "10px 0",
-                          cursor: "pointer",
-                          textAlign: "center",
-                        }}
+                        className="font-mono text-xs text-dim py-2.5 cursor-pointer text-center"
                       >
                         Show all ({filteredOutgoing.length})
                       </div>
@@ -631,101 +410,47 @@ const FriendsModal = ({
             {search.length >= 2 ? (
               <>
                 <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    color: color.dim,
-                    marginBottom: 12,
-                  }}
+                  className="font-mono text-tiny uppercase text-dim mb-3"
+                  style={{ letterSpacing: "0.15em" }}
                 >
                   {searching ? "Searching..." : `Results (${searchResults.length})`}
                 </div>
                 {searching ? (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "32px 0",
-                      color: color.faint,
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                    }}
-                  >
-                    <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}>
+                  <div className="text-center py-8 text-faint font-mono text-xs">
+                    <span className="animate-pulse">
                       Searching users...
                     </span>
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <p
-                    style={{
-                      textAlign: "center",
-                      color: color.faint,
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      padding: "32px 0",
-                    }}
-                  >
+                  <p className="text-center text-faint font-mono text-xs py-8">
                     No users found
                   </p>
                 ) : (
                   searchResults.map((f) => (
                     <div
                       key={f.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "12px 0",
-                        borderBottom: `1px solid ${color.border}`,
-                      }}
+                      className="flex items-center py-3 border-b border-border"
                     >
                       <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: "50%",
-                          background: f.status === "friend" ? color.accent : color.borderLight,
-                          color: f.status === "friend" ? "#000" : color.dim,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontFamily: font.mono,
-                          fontSize: 16,
-                          fontWeight: 700,
-                          marginRight: 12,
-                        }}
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center font-mono text-base font-bold mr-3",
+                          f.status === "friend"
+                            ? "bg-dt text-black"
+                            : "bg-border-light text-dim"
+                        )}
                       >
                         {f.avatar}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            fontFamily: font.mono,
-                            fontSize: 13,
-                            color: color.text,
-                          }}
-                        >
+                      <div className="flex-1">
+                        <div className="font-mono text-sm text-primary">
                           {f.name}
                         </div>
-                        <div
-                          style={{
-                            fontFamily: font.mono,
-                            fontSize: 11,
-                            color: color.dim,
-                          }}
-                        >
+                        <div className="font-mono text-xs text-dim">
                           @{f.username}
                         </div>
                       </div>
                       {f.status === "friend" ? (
-                        <span
-                          style={{
-                            fontFamily: font.mono,
-                            fontSize: 11,
-                            color: color.dim,
-                            padding: "8px 14px",
-                          }}
-                        >
+                        <span className="font-mono text-xs text-dim py-2 px-3.5">
                           Friends
                         </span>
                       ) : (
@@ -744,17 +469,12 @@ const FriendsModal = ({
                               prev.map((r) => r.id === f.id ? { ...r, status: "pending" as const } : r)
                             );
                           }}
-                          style={{
-                            background: f.status === "pending" ? "transparent" : color.accent,
-                            color: f.status === "pending" ? color.dim : "#000",
-                            border: f.status === "pending" ? `1px solid ${color.borderMid}` : "none",
-                            borderRadius: 8,
-                            padding: "8px 14px",
-                            fontFamily: font.mono,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
+                          className={cn(
+                            "rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer",
+                            f.status === "pending"
+                              ? "bg-transparent text-dim border border-border-mid"
+                              : "bg-dt text-black border-none"
+                          )}
                         >
                           {f.status === "pending" ? "Requested" : "Add"}
                         </button>
@@ -766,95 +486,44 @@ const FriendsModal = ({
             ) : (
               <>
                 <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    color: color.dim,
-                    marginBottom: 12,
-                  }}
+                  className="font-mono text-tiny uppercase text-dim mb-3"
+                  style={{ letterSpacing: "0.15em" }}
                 >
                   Suggestions
                 </div>
                 {filteredSuggestions.length === 0 ? (
-                  <p
-                    style={{
-                      textAlign: "center",
-                      color: color.faint,
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      padding: "32px 0",
-                    }}
-                  >
+                  <p className="text-center text-faint font-mono text-xs py-8">
                     Search for friends by name or username
                   </p>
                 ) : (
                   filteredSuggestions.map((f) => (
                     <div
                       key={f.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "12px 0",
-                        borderBottom: `1px solid ${color.border}`,
-                      }}
+                      className="flex items-center py-3 border-b border-border"
                     >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: "50%",
-                          background: color.borderLight,
-                          color: color.dim,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontFamily: font.mono,
-                          fontSize: 16,
-                          fontWeight: 700,
-                          marginRight: 12,
-                        }}
-                      >
+                      <div className="w-10 h-10 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-base font-bold mr-3">
                         {f.avatar}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            fontFamily: font.mono,
-                            fontSize: 13,
-                            color: color.text,
-                          }}
-                        >
+                      <div className="flex-1">
+                        <div className="font-mono text-sm text-primary">
                           {f.name}
                         </div>
-                        <div
-                          style={{
-                            fontFamily: font.mono,
-                            fontSize: 11,
-                            color: color.dim,
-                          }}
-                        >
+                        <div className="font-mono text-xs text-dim">
                           @{f.username}
                           {f.mutualFriendName && (
-                            <span style={{ color: color.accent, marginLeft: 6 }}>via {f.mutualFriendName}</span>
+                            <span className="text-dt ml-1.5">via {f.mutualFriendName}</span>
                           )}
                         </div>
                       </div>
                       <button
                         onClick={() => f.status === "none" && onAddFriend(f.id)}
                         disabled={f.status === "pending"}
-                        style={{
-                          background: f.status === "pending" ? "transparent" : color.accent,
-                          color: f.status === "pending" ? color.dim : "#000",
-                          border: f.status === "pending" ? `1px solid ${color.borderMid}` : "none",
-                          borderRadius: 8,
-                          padding: "8px 14px",
-                          fontFamily: font.mono,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: f.status === "pending" ? "default" : "pointer",
-                        }}
+                        className={cn(
+                          "rounded-lg py-2 px-3.5 font-mono text-xs font-bold",
+                          f.status === "pending"
+                            ? "bg-transparent text-dim border border-border-mid cursor-default"
+                            : "bg-dt text-black border-none cursor-pointer"
+                        )}
                       >
                         {f.status === "pending" ? "Requested" : "Add"}
                       </button>
@@ -868,24 +537,13 @@ const FriendsModal = ({
         </div>
 
         {preventClose && hasAddedFriend && (
-          <div style={{ padding: "12px 0 24px", flexShrink: 0 }}>
+          <div className="py-3 pb-6 shrink-0">
             <button
               onClick={onClose}
-              style={{
-                width: "100%",
-                background: color.accent,
-                color: "#000",
-                border: "none",
-                borderRadius: 12,
-                padding: "14px",
-                fontFamily: font.mono,
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
-                letterSpacing: "0.02em",
-              }}
+              className="w-full bg-dt text-black border-none rounded-xl py-3.5 font-mono text-sm font-bold cursor-pointer"
+              style={{ letterSpacing: "0.02em" }}
             >
-              Continue →
+              Continue &rarr;
             </button>
           </div>
         )}
@@ -894,91 +552,36 @@ const FriendsModal = ({
       {/* Friend Profile Detail */}
       {selectedFriend && (
         <div
+          className="absolute inset-0 bg-surface z-10 flex flex-col items-center animate-slide-up"
           style={{
-            position: "absolute",
-            inset: 0,
-            background: color.surface,
             borderRadius: "24px 24px 0 0",
             padding: "32px 24px 40px",
-            zIndex: 10,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            animation: "slideUp 0.2s ease-out",
           }}
         >
           <button
             onClick={() => setSelectedFriend(null)}
-            style={{
-              alignSelf: "flex-start",
-              background: "transparent",
-              border: "none",
-              color: color.dim,
-              fontFamily: font.mono,
-              fontSize: 13,
-              cursor: "pointer",
-              padding: "0 0 20px",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
+            className="self-start bg-transparent border-none text-dim font-mono text-sm cursor-pointer pb-5 px-0 flex items-center gap-1.5"
           >
-            ‹ Back
+            &lsaquo; Back
           </button>
 
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: "50%",
-              background: color.accent,
-              color: "#000",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: font.mono,
-              fontSize: 28,
-              fontWeight: 700,
-              marginBottom: 16,
-            }}
-          >
+          <div className="w-[72px] h-[72px] rounded-full bg-dt text-black flex items-center justify-center font-mono text-[28px] font-bold mb-4">
             {selectedFriend.avatar}
           </div>
 
-          <div
-            style={{
-              fontFamily: font.serif,
-              fontSize: 22,
-              color: color.text,
-              marginBottom: 4,
-            }}
-          >
+          <div className="font-serif text-2xl text-primary mb-1">
             {selectedFriend.name}
           </div>
 
-          <div
-            style={{
-              fontFamily: font.mono,
-              fontSize: 13,
-              color: color.dim,
-              marginBottom: 8,
-            }}
-          >
+          <div className="font-mono text-sm text-dim mb-2">
             @{selectedFriend.username}
           </div>
 
           {selectedFriend.availability && (
-            <div
-              style={{
-                fontFamily: font.mono,
-                fontSize: 12,
-                color: color.faint,
-                marginBottom: 32,
-              }}
-            >
-              {selectedFriend.availability === "open" && "✨ open to friends!"}
-              {selectedFriend.availability === "awkward" && "👀 awkward timing"}
-              {selectedFriend.availability === "not-available" && "🌙 not available"}
+            <div className="font-mono text-xs text-faint mb-8">
+              {selectedFriend.availability === "open" && "\u2728 open to friends!"}
+              {selectedFriend.availability === "awkward" && "\uD83D\uDC40 awkward timing"}
+              {selectedFriend.availability === "not-available" && "\uD83C\uDF19 not available"}
             </div>
           )}
 
@@ -988,17 +591,9 @@ const FriendsModal = ({
                 onRemoveFriend(selectedFriend.id);
                 setSelectedFriend(null);
               }}
+              className="mt-auto bg-transparent rounded-lg py-3 px-6 font-mono text-xs text-danger cursor-pointer uppercase"
               style={{
-                marginTop: "auto",
-                background: "transparent",
-                border: `1px solid rgba(255,107,107,0.3)`,
-                borderRadius: 10,
-                padding: "12px 24px",
-                fontFamily: font.mono,
-                fontSize: 12,
-                color: "#ff6b6b",
-                cursor: "pointer",
-                textTransform: "uppercase",
+                border: "1px solid rgba(255,107,107,0.3)",
                 letterSpacing: "0.08em",
               }}
             >
