@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { API_BASE } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
-import { color, font } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 
 interface PushFailure {
   created_at: string;
@@ -109,16 +109,16 @@ export default function AdminPage() {
 
   if (authLoading || loading) {
     return (
-      <div style={{ ...containerStyle, justifyContent: "center", alignItems: "center" }}>
-        <p style={{ color: color.muted, fontFamily: font.mono, fontSize: 14 }}>Loading...</p>
+      <div className="flex-1 bg-bg px-4 py-6 flex flex-col justify-center items-center max-w-[640px] w-full mx-auto overflow-x-hidden overflow-y-auto">
+        <p className="text-muted font-mono text-sm">Loading...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ ...containerStyle, justifyContent: "center", alignItems: "center" }}>
-        <p style={{ color: color.muted, fontFamily: font.mono, fontSize: 14 }}>{error}</p>
+      <div className="flex-1 bg-bg px-4 py-6 flex flex-col justify-center items-center max-w-[640px] w-full mx-auto overflow-x-hidden overflow-y-auto">
+        <p className="text-muted font-mono text-sm">{error}</p>
       </div>
     );
   }
@@ -160,30 +160,24 @@ export default function AdminPage() {
   ];
 
   return (
-    <div style={containerStyle}>
-      <h1 style={{ fontFamily: font.serif, fontSize: 28, color: color.text, margin: "0 0 20px" }}>
+    <div className="flex-1 bg-bg px-4 py-6 flex flex-col max-w-[640px] w-full mx-auto overflow-x-hidden overflow-y-auto">
+      <h1 className="font-serif text-primary mb-5" style={{ fontSize: 28 }}>
         Admin
       </h1>
 
       {/* Tabs */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
+      <div className="flex flex-wrap gap-2 mb-6">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            style={{
-              background: tab === t.key ? color.accent : "transparent",
-              color: tab === t.key ? "#000" : color.dim,
-              border: tab === t.key ? "none" : `1px solid ${color.borderMid}`,
-              borderRadius: 10,
-              padding: "8px 16px",
-              fontFamily: font.mono,
-              fontSize: 11,
-              fontWeight: tab === t.key ? 700 : 400,
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}
+            className={cn(
+              "rounded-lg px-4 py-2 font-mono text-xs uppercase cursor-pointer",
+              tab === t.key
+                ? "bg-dt text-black border-none font-bold"
+                : "bg-transparent text-dim border border-border-mid font-normal"
+            )}
+            style={{ letterSpacing: "0.08em" }}
           >
             {t.label}
           </button>
@@ -193,32 +187,30 @@ export default function AdminPage() {
       {/* Users tab */}
       {tab === "users" && (
         <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 32 }}>
+          <div className="flex flex-wrap gap-3 mb-8">
             <SummaryCard label="DAU Today" value={dauToday} />
             <SummaryCard label="Total Users" value={metrics.totalUsers} />
             <SummaryCard label="Onboarded" value={metrics.onboarded} />
           </div>
 
-          <h2 style={sectionHeader}>Active Users (last 30 days)</h2>
-          <div style={{ marginBottom: 32 }}>
+          <h2 className="font-mono text-sm text-muted font-normal mb-3 uppercase" style={{ letterSpacing: 1 }}>Active Users (last 30 days)</h2>
+          <div className="mb-8">
             {days.map(({ date, dau }) => (
-              <div key={date} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 40, flexShrink: 0 }}>
+              <div key={date} className="flex items-center gap-2 mb-0.5">
+                <span className="font-mono text-xs text-dim w-10 shrink-0">
                   {date.slice(5)}
                 </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   <div
+                    className="h-3.5 bg-dt rounded-sm"
                     style={{
-                      height: 14,
                       width: dau > 0 ? `${(dau / maxDau) * 100}%` : 0,
-                      backgroundColor: color.accent,
-                      borderRadius: 2,
                       minWidth: dau > 0 ? 4 : 0,
                     }}
                   />
                 </div>
                 {dau > 0 && (
-                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted, flexShrink: 0 }}>
+                  <span className="font-mono text-xs text-muted shrink-0">
                     {dau}
                   </span>
                 )}
@@ -226,26 +218,24 @@ export default function AdminPage() {
             ))}
           </div>
 
-          <h2 style={sectionHeader}>Signups (last 30 days)</h2>
-          <div style={{ marginBottom: 32 }}>
+          <h2 className="font-mono text-sm text-muted font-normal mb-3 uppercase" style={{ letterSpacing: 1 }}>Signups (last 30 days)</h2>
+          <div className="mb-8">
             {days.map(({ date, signups }) => (
-              <div key={`s-${date}`} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, width: 40, flexShrink: 0 }}>
+              <div key={`s-${date}`} className="flex items-center gap-2 mb-0.5">
+                <span className="font-mono text-xs text-dim w-10 shrink-0">
                   {date.slice(5)}
                 </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   <div
+                    className="h-3.5 bg-dt rounded-sm"
                     style={{
-                      height: 14,
                       width: signups > 0 ? `${(signups / maxSignups) * 100}%` : 0,
-                      backgroundColor: color.accent,
-                      borderRadius: 2,
                       minWidth: signups > 0 ? 4 : 0,
                     }}
                   />
                 </div>
                 {signups > 0 && (
-                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted, flexShrink: 0 }}>
+                  <span className="font-mono text-xs text-muted shrink-0">
                     {signups}
                   </span>
                 )}
@@ -253,23 +243,23 @@ export default function AdminPage() {
             ))}
           </div>
 
-          <h2 style={sectionHeader}>Recent Signups</h2>
+          <h2 className="font-mono text-sm text-muted font-normal mb-3 uppercase" style={{ letterSpacing: 1 }}>Recent Signups</h2>
           {metrics.recentSignups.length === 0 ? (
-            <p style={{ color: color.faint, fontFamily: font.mono, fontSize: 12, textAlign: "center", padding: "32px 0" }}>
+            <p className="text-faint font-mono text-xs text-center py-8">
               No signups
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {metrics.recentSignups.map((u) => (
-                <div key={u.username} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: `1px solid ${color.border}` }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontFamily: font.mono, fontSize: 12, color: color.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.display_name || u.username}</div>
-                    <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>
+                <div key={u.username} className="flex justify-between items-center gap-2 py-2 border-b border-border">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-xs text-primary overflow-hidden text-ellipsis whitespace-nowrap">{u.display_name || u.username}</div>
+                    <div className="font-mono text-tiny text-dim">
                       @{u.username}
                       {u.created_at && <> · {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>}
                     </div>
                   </div>
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: u.onboarded ? color.accent : color.dim, flexShrink: 0 }}>
+                  <span className={cn("font-mono text-tiny shrink-0", u.onboarded ? "text-dt" : "text-dim")}>
                     {u.onboarded ? "onboarded" : "not onboarded"}
                   </span>
                 </div>
@@ -282,27 +272,33 @@ export default function AdminPage() {
       {/* Engagement tab */}
       {tab === "engagement" && (
         <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 32 }}>
+          <div className="flex flex-wrap gap-3 mb-8">
             <SummaryCard label="Active (7d)" value={metrics.engagement.active7d} />
             <SummaryCard label="Engaged (7d)" value={metrics.engagement.engaged7d} />
             <SummaryCard label="Lurking (7d)" value={metrics.engagement.lurkers7d} accent={metrics.engagement.lurkers7d > 0 ? "#ff8c00" : undefined} />
           </div>
 
-          <h2 style={sectionHeader}>Activity (last 7 days)</h2>
-          <div style={{ marginBottom: 32 }}>
+          <h2 className="font-mono text-sm text-muted font-normal mb-3 uppercase" style={{ letterSpacing: 1 }}>Activity (last 7 days)</h2>
+          <div className="mb-8">
             {engagementDays.map(({ date, checks, responses, comments, messages }) => {
               const total = checks + responses + comments + messages;
               const maxActivity = Math.max(...engagementDays.map(d => d.checks + d.responses + d.comments + d.messages), 1);
               return (
-                <div key={date} style={{ marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 2 }}>
-                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, flexShrink: 0 }}>{date.slice(5)}</span>
-                    <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div key={date} className="mb-2">
+                  <div className="flex justify-between gap-2 mb-0.5">
+                    <span className="font-mono text-xs text-dim shrink-0">{date.slice(5)}</span>
+                    <span className="font-mono text-tiny text-faint overflow-hidden text-ellipsis whitespace-nowrap">
                       {total > 0 && `${checks}c · ${responses}r · ${comments}cm · ${messages}m`}
                     </span>
                   </div>
-                  <div style={{ display: "flex", height: 14, borderRadius: 2, overflow: "hidden", width: total > 0 ? `${(total / maxActivity) * 100}%` : 0, minWidth: total > 0 ? 4 : 0 }}>
-                    {checks > 0 && <div style={{ flex: checks, background: color.accent }} />}
+                  <div
+                    className="flex h-3.5 rounded-sm overflow-hidden"
+                    style={{
+                      width: total > 0 ? `${(total / maxActivity) * 100}%` : 0,
+                      minWidth: total > 0 ? 4 : 0,
+                    }}
+                  >
+                    {checks > 0 && <div className="bg-dt" style={{ flex: checks }} />}
                     {responses > 0 && <div style={{ flex: responses, background: "#AF52DE" }} />}
                     {comments > 0 && <div style={{ flex: comments, background: "#5AC8FA" }} />}
                     {messages > 0 && <div style={{ flex: messages, background: "#34C759" }} />}
@@ -310,16 +306,24 @@ export default function AdminPage() {
                 </div>
               );
             })}
-            <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+            <div className="flex gap-4 mt-2">
               {[
-                { label: "checks", color: color.accent },
-                { label: "responses", color: "#AF52DE" },
-                { label: "comments", color: "#5AC8FA" },
-                { label: "messages", color: "#34C759" },
+                { label: "checks", clr: "bg-dt" },
+                { label: "responses", clr: "" },
+                { label: "comments", clr: "" },
+                { label: "messages", clr: "" },
               ].map((l) => (
-                <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>{l.label}</span>
+                <div key={l.label} className="flex items-center gap-1">
+                  <div
+                    className={cn("w-2 h-2 rounded-sm", l.clr)}
+                    style={
+                      l.label === "responses" ? { background: "#AF52DE" } :
+                      l.label === "comments" ? { background: "#5AC8FA" } :
+                      l.label === "messages" ? { background: "#34C759" } :
+                      undefined
+                    }
+                  />
+                  <span className="font-mono text-tiny text-dim">{l.label}</span>
                 </div>
               ))}
             </div>
@@ -327,13 +331,12 @@ export default function AdminPage() {
 
           {metrics.engagement.lurkerNames.length > 0 && (
             <>
-              <h2 style={sectionHeader}>Lurkers (opened app, no activity)</h2>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              <h2 className="font-mono text-sm text-muted font-normal mb-3 uppercase" style={{ letterSpacing: 1 }}>Lurkers (opened app, no activity)</h2>
+              <div className="flex flex-wrap gap-1">
                 {metrics.engagement.lurkerNames.map((name) => (
-                  <span key={name} style={{
-                    fontFamily: font.mono, fontSize: 10, color: color.muted,
-                    background: color.borderLight, padding: "3px 8px", borderRadius: 6,
-                  }}>{name}</span>
+                  <span key={name} className="font-mono text-tiny text-muted bg-border-light px-2 py-0.5 rounded-md">
+                    {name}
+                  </span>
                 ))}
               </div>
             </>
@@ -344,22 +347,21 @@ export default function AdminPage() {
       {/* Push tab */}
       {tab === "push" && (
         <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
+          <div className="flex flex-wrap gap-3 mb-6">
             <SummaryCard label="Subscribers" value={metrics.push.subscribers} />
             <SummaryCard label="Sent (24h)" value={metrics.push.sent24h} />
             <SummaryCard label="Failed (24h)" value={metrics.push.failed24h} accent="#ff4444" />
-            <SummaryCard label="Stale (24h)" value={metrics.push.stale24h} accent={color.muted} />
+            <SummaryCard label="Stale (24h)" value={metrics.push.stale24h} accent="#888888" />
           </div>
 
           {metrics.push.subscriberNames.length > 0 && (
             <>
-              <h2 style={sectionHeader}>Subscribed Users</h2>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 24 }}>
+              <h2 className="font-mono text-sm text-muted font-normal mb-3 uppercase" style={{ letterSpacing: 1 }}>Subscribed Users</h2>
+              <div className="flex flex-wrap gap-1 mb-6">
                 {metrics.push.subscriberNames.map((name) => (
-                  <span key={name} style={{
-                    fontFamily: font.mono, fontSize: 10, color: color.muted,
-                    background: color.borderLight, padding: "3px 8px", borderRadius: 6,
-                  }}>{name}</span>
+                  <span key={name} className="font-mono text-tiny text-muted bg-border-light px-2 py-0.5 rounded-md">
+                    {name}
+                  </span>
                 ))}
               </div>
             </>
@@ -367,23 +369,23 @@ export default function AdminPage() {
 
           {metrics.push.recentFailures.length > 0 && (
             <>
-              <h2 style={sectionHeader}>Recent Failures</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <h2 className="font-mono text-sm text-muted font-normal mb-3 uppercase" style={{ letterSpacing: 1 }}>Recent Failures</h2>
+              <div className="flex flex-col gap-2">
                 {metrics.push.recentFailures.map((f, i) => (
-                  <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${color.border}`, minWidth: 0 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, flexShrink: 0 }}>
+                  <div key={i} className="py-2 border-b border-border min-w-0">
+                    <div className="flex justify-between gap-2 mb-1">
+                      <span className="font-mono text-xs text-dim shrink-0">
                         {new Date(f.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                       </span>
-                      <span style={{ fontFamily: font.mono, fontSize: 11, color: f.status === "failed" ? "#ff4444" : color.muted, flexShrink: 0 }}>
+                      <span className={cn("font-mono text-xs shrink-0", f.status === "failed" ? "text-danger" : "text-muted")}>
                         {f.status}
                       </span>
                     </div>
-                    <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>
+                    <div className="font-mono text-tiny text-dim">
                       {f.display_name}
                     </div>
                     {f.error && (
-                      <div style={{ fontFamily: font.mono, fontSize: 10, color: color.muted, marginTop: 2, wordBreak: "break-word" }}>
+                      <div className="font-mono text-tiny text-muted mt-0.5 break-words">
                         {f.error}
                       </div>
                     )}
@@ -394,7 +396,7 @@ export default function AdminPage() {
           )}
 
           {metrics.push.recentFailures.length === 0 && (
-            <p style={{ color: color.faint, fontFamily: font.mono, fontSize: 12, textAlign: "center", padding: "32px 0" }}>
+            <p className="text-faint font-mono text-xs text-center py-8">
               No recent failures
             </p>
           )}
@@ -404,21 +406,15 @@ export default function AdminPage() {
       {/* Versions tab */}
       {tab === "versions" && (
         <>
-          <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+          <div className="flex gap-3 mb-4">
             {["latest", "users"].map((s) => (
               <button
                 key={s}
                 onClick={() => setVersionSort(s as "latest" | "users")}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  color: versionSort === s ? color.accent : color.dim,
-                  cursor: "pointer",
-                  padding: 0,
-                  textTransform: "uppercase",
-                }}
+                className={cn(
+                  "bg-transparent border-none font-mono text-xs cursor-pointer p-0 uppercase",
+                  versionSort === s ? "text-dt" : "text-dim"
+                )}
               >
                 Sort by {s} {versionSort === s ? "↓" : ""}
               </button>
@@ -426,7 +422,7 @@ export default function AdminPage() {
           </div>
 
           {metrics.versions.distribution.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {[...metrics.versions.distribution]
                 .sort((a, b) =>
                   versionSort === "users"
@@ -440,37 +436,30 @@ export default function AdminPage() {
                     <div
                       key={v.build_id}
                       onClick={() => setExpandedBuild(isExpanded ? null : v.build_id)}
-                      style={{
-                        padding: 12,
-                        borderRadius: 8,
-                        border: `1px solid ${color.border}`,
-                        background: color.card,
-                        cursor: "pointer",
-                      }}
+                      className="p-3 rounded-lg border border-border bg-card cursor-pointer"
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: msg ? 4 : 0 }}>
-                        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text, flexShrink: 0 }}>
-                          <span style={{ color: color.faint, marginRight: 6 }}>{isExpanded ? "▾" : "▸"}</span>
+                      <div className={cn("flex justify-between items-center gap-2", msg ? "mb-1" : "")}>
+                        <span className="font-mono text-xs text-primary shrink-0">
+                          <span className="text-faint mr-1.5">{isExpanded ? "▾" : "▸"}</span>
                           {v.build_id ? v.build_id.slice(0, 7) : "—"}
                         </span>
-                        <span style={{ fontFamily: font.mono, fontSize: 11, flexShrink: 0 }}>
-                          <span style={{ color: color.accent, fontWeight: 700 }}>{v.users}</span>
-                          <span style={{ color: color.dim }}> users</span>
-                          <span style={{ color: color.faint, marginLeft: 8 }}>{v.pings24h} 24h</span>
+                        <span className="font-mono text-xs shrink-0">
+                          <span className="text-dt font-bold">{v.users}</span>
+                          <span className="text-dim"> users</span>
+                          <span className="text-faint ml-2">{v.pings24h} 24h</span>
                         </span>
                       </div>
                       {msg && (
-                        <div style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingLeft: 18 }}>
+                        <div className="font-mono text-tiny text-dim overflow-hidden text-ellipsis whitespace-nowrap" style={{ paddingLeft: 18 }}>
                           {msg}
                         </div>
                       )}
                       {isExpanded && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8, paddingLeft: 18 }}>
+                        <div className="flex flex-wrap gap-1 mt-2" style={{ paddingLeft: 18 }}>
                           {v.userNames.map((name) => (
-                            <span key={name} style={{
-                              fontFamily: font.mono, fontSize: 10, color: color.muted,
-                              background: color.borderLight, padding: "3px 8px", borderRadius: 6,
-                            }}>{name}</span>
+                            <span key={name} className="font-mono text-tiny text-muted bg-border-light px-2 py-0.5 rounded-md">
+                              {name}
+                            </span>
                           ))}
                         </div>
                       )}
@@ -479,7 +468,7 @@ export default function AdminPage() {
                 })}
             </div>
           ) : (
-            <p style={{ color: color.faint, fontFamily: font.mono, fontSize: 12, textAlign: "center", padding: "32px 0" }}>
+            <p className="text-faint font-mono text-xs text-center py-8">
               No version data
             </p>
           )}
@@ -491,44 +480,13 @@ export default function AdminPage() {
 
 function SummaryCard({ label, value, accent: accentOverride }: { label: string; value: number; accent?: string }) {
   return (
-    <div
-      style={{
-        flex: "1 1 120px",
-        backgroundColor: color.card,
-        border: `1px solid ${color.borderLight}`,
-        borderRadius: 8,
-        padding: "16px 20px",
-      }}
-    >
-      <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 4 }}>
+    <div className="flex-[1_1_120px] bg-card border border-border-light rounded-lg px-5 py-4">
+      <div className="font-mono text-xs text-dim mb-1">
         {label}
       </div>
-      <div style={{ fontFamily: font.mono, fontSize: 32, color: accentOverride ?? color.accent, fontWeight: 700 }}>
+      <div className="font-mono font-bold" style={{ fontSize: 32, color: accentOverride ?? "#e8ff5a" }}>
         {value}
       </div>
     </div>
   );
 }
-
-const containerStyle: React.CSSProperties = {
-  flex: 1,
-  backgroundColor: color.bg,
-  padding: "24px 16px",
-  display: "flex",
-  flexDirection: "column",
-  maxWidth: 640,
-  width: "100%",
-  margin: "0 auto",
-  overflowX: "hidden",
-  overflowY: "auto",
-};
-
-const sectionHeader: React.CSSProperties = {
-  fontFamily: font.mono,
-  fontSize: 13,
-  color: color.muted,
-  fontWeight: 400,
-  margin: "0 0 12px",
-  textTransform: "uppercase",
-  letterSpacing: 1,
-};
