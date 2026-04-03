@@ -2,6 +2,7 @@ node_modules
 .next
 out
 ios/App/Pods
+*.xcuserdatad
 .vercel
 .env*.local
 tsconfig.tsbuildinfo

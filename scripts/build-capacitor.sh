@@ -36,4 +36,7 @@ CAPACITOR_BUILD=true npx next build
 
 echo ""
 echo "Static export ready in ./out"
-echo "Copy ./out to Capacitor: npx cap copy"
+
+# Sync static export into iOS project
+npx cap sync ios
+echo "Capacitor iOS synced. Open with: npx cap open ios"
