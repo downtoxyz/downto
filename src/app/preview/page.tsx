@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { font, color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 
 /* ── sample data ───────────────────────────────────────────── */
 
@@ -86,19 +86,10 @@ export default function PreviewPage() {
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>("text");
 
   return (
-    <div style={{ background: color.bg, minHeight: "100vh", fontFamily: font.mono }}>
+    <div className="bg-bg min-h-screen font-mono">
       {/* sticky toggle bar */}
-      <div
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          background: color.surface,
-          borderBottom: `1px solid ${color.border}`,
-          padding: "12px 16px",
-        }}
-      >
-        <div style={{ maxWidth: 420, margin: "0 auto" }}>
+      <div className="sticky top-0 z-50 bg-surface border-b border-border px-4 py-3">
+        <div className="max-w-[420px] mx-auto">
           <ToggleRow
             label="DATE STYLE"
             options={[
@@ -111,7 +102,7 @@ export default function PreviewPage() {
             value={dateStyle}
             onChange={(v) => setDateStyle(v as DateStyle)}
           />
-          <div style={{ height: 8 }} />
+          <div className="h-2" />
           <ToggleRow
             label="CHIP ICONS"
             options={[
@@ -122,7 +113,7 @@ export default function PreviewPage() {
             value={iconStyle}
             onChange={(v) => setIconStyle(v as IconStyle)}
           />
-          <div style={{ height: 8 }} />
+          <div className="h-2" />
           <ToggleRow
             label="BUTTON STYLE"
             options={[
@@ -133,7 +124,7 @@ export default function PreviewPage() {
             value={buttonStyle}
             onChange={(v) => setButtonStyle(v as ButtonStyle)}
           />
-          <div style={{ height: 8 }} />
+          <div className="h-2" />
           <ToggleRow
             label="RESPONSE STYLE"
             options={[
@@ -149,7 +140,7 @@ export default function PreviewPage() {
       </div>
 
       {/* cards */}
-      <div style={{ maxWidth: 420, margin: "0 auto", padding: "16px 16px 80px" }}>
+      <div className="max-w-[420px] mx-auto px-4 pt-4 pb-20">
         {CHECKS.map((check) => (
           <CheckCard
             key={check.id}
@@ -181,35 +172,23 @@ function ToggleRow({
   return (
     <div>
       <div
-        style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          color: color.dim,
-          marginBottom: 6,
-        }}
+        className="font-mono text-tiny uppercase text-dim mb-1.5"
+        style={{ letterSpacing: "0.15em" }}
       >
         {label}
       </div>
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+      <div className="flex gap-1 flex-wrap">
         {options.map((opt) => (
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
-            style={{
-              fontFamily: font.mono,
-              fontSize: 10,
-              fontWeight: 700,
-              padding: "4px 10px",
-              borderRadius: 6,
-              border: `1px solid ${value === opt.value ? color.accent : color.borderMid}`,
-              background: value === opt.value ? color.accent : "transparent",
-              color: value === opt.value ? "#000" : color.muted,
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}
+            className={cn(
+              "font-mono text-tiny font-bold rounded-md border cursor-pointer uppercase",
+              value === opt.value
+                ? "border-dt bg-dt text-black"
+                : "border-border-mid bg-transparent text-muted"
+            )}
+            style={{ padding: "4px 10px", letterSpacing: "0.08em" }}
           >
             {opt.label}
           </button>
@@ -241,25 +220,16 @@ function CheckCard({
         ? "#ffaa5a"
         : "#ff6b6b";
 
-  const hasDateInfo = check.eventDateLabel || check.eventTime || check.eventLocation;
   const downResps = check.responses.filter((r) => r.type === "down");
   const maybeResps = check.responses.filter((r) => r.type === "maybe");
 
   return (
-    <div
-      style={{
-        borderRadius: 14,
-        marginBottom: 8,
-        background: color.card,
-        border: `1px solid ${color.border}`,
-        overflow: "hidden",
-      }}
-    >
+    <div className="rounded-xl mb-2 bg-card border border-border overflow-hidden">
       {/* expiry bar */}
-      <div style={{ height: 3, background: color.deep }}>
+      <div className="h-[3px] bg-deep">
         <div
+          className="h-[3px]"
           style={{
-            height: 3,
             width: `${100 - check.expiryPercent}%`,
             background: expiryColor,
             borderRadius: "0 2px 2px 0",
@@ -267,72 +237,30 @@ function CheckCard({
         />
       </div>
 
-      <div style={{ padding: 14 }}>
+      <div className="p-3.5">
         {/* author row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                background: color.borderLight,
-                color: color.dim,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: font.mono,
-                fontSize: 11,
-                fontWeight: 700,
-              }}
-            >
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-xs font-bold">
               {check.author[0]}
             </div>
-            <span
-              style={{
-                fontFamily: font.mono,
-                fontSize: 11,
-                color: color.muted,
-              }}
-            >
+            <span className="font-mono text-xs text-muted">
               {check.author}
             </span>
           </div>
-          <span
-            style={{
-              fontFamily: font.mono,
-              fontSize: 10,
-              color: color.faint,
-            }}
-          >
+          <span className="font-mono text-tiny text-faint">
             {check.expiresIn} left
           </span>
         </div>
 
         {/* body */}
-        <div
-          style={{
-            fontFamily: font.serif,
-            fontSize: 18,
-            fontWeight: 400,
-            color: color.text,
-            lineHeight: 1.4,
-            marginBottom: 10,
-          }}
-        >
+        <div className="font-serif text-lg font-normal text-primary leading-[1.4] mb-2.5">
           {check.text}
         </div>
 
         {/* date chips — inline or collapsed (not footer) */}
         {dateStyle === "chips" && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+          <div className="flex gap-1.5 flex-wrap mb-2.5">
             <DateChip
               text={check.eventDateLabel}
               fallback="TBD"
@@ -364,15 +292,12 @@ function CheckCard({
 
         {/* responses + action buttons row */}
         <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            gap: 8,
-            marginTop: check.responses.length > 0 ? 0 : 10,
-          }}
+          className={cn(
+            "flex items-end justify-between gap-2",
+            check.responses.length > 0 ? "mt-0" : "mt-2.5"
+          )}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex-1 min-w-0">
             {check.responses.length > 0 && (
               <ResponseSection
                 down={downResps}
@@ -381,7 +306,7 @@ function CheckCard({
               />
             )}
           </div>
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <div className="flex gap-1.5 shrink-0">
             <ActionButton label="Down" active={false} variant="down" buttonStyle={buttonStyle} />
             <ActionButton label="Maybe" active={false} variant="maybe" buttonStyle={buttonStyle} />
           </div>
@@ -390,15 +315,7 @@ function CheckCard({
 
       {/* date footer bar */}
       {dateStyle === "footer" && (
-        <div
-          style={{
-            borderTop: `1px solid ${color.border}`,
-            padding: "8px 14px",
-            display: "flex",
-            gap: 6,
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="border-t border-border px-3.5 py-2 flex gap-1.5 flex-wrap">
           <DateChip
             text={check.eventDateLabel}
             fallback="TBD"
@@ -456,28 +373,23 @@ function DateChip({
 
   return (
     <span
+      className={cn(
+        "font-mono text-tiny font-semibold rounded-md inline-flex items-center gap-0.5",
+        isTBD ? "text-faint" : "text-dt"
+      )}
       style={{
-        fontFamily: font.mono,
-        fontSize: 10,
-        fontWeight: 600,
-        color: isTBD ? color.faint : color.accent,
         background: isTBD ? "rgba(255,255,255,0.03)" : "rgba(232,255,90,0.08)",
-        border: `1px solid ${isTBD ? color.borderLight : "rgba(232,255,90,0.2)"}`,
-        borderRadius: 6,
+        border: `1px solid ${isTBD ? "#2a2a2a" : "rgba(232,255,90,0.2)"}`,
         padding: "3px 8px",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 2,
       }}
     >
       {icon}{label}
       {flexible && (
         <span
+          className="font-normal ml-0.5"
           style={{
             fontSize: 9,
-            color: isTBD ? color.faint : "rgba(232,255,90,0.5)",
-            marginLeft: 2,
-            fontWeight: 400,
+            color: isTBD ? "#444" : "rgba(232,255,90,0.5)",
           }}
         >
           flex
@@ -519,14 +431,7 @@ function CollapsedDateLine({
   }
 
   return (
-    <div
-      style={{
-        fontFamily: font.mono,
-        fontSize: 10,
-        color: color.accent,
-        marginBottom: 10,
-      }}
-    >
+    <div className="font-mono text-tiny text-dt mb-2.5">
       {parts.join(" · ")}
     </div>
   );
@@ -553,42 +458,35 @@ function ResponseSection({
 function CollapsedResponses({ down, maybe }: { down: Response[]; maybe: Response[] }) {
   const all = [...down, ...maybe];
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <div style={{ display: "flex" }}>
+    <div className="flex items-center gap-2">
+      <div className="flex">
         {all.slice(0, 6).map((r, i) => (
           <div
             key={r.name}
+            className={cn(
+              "w-6 h-6 rounded-full flex items-center justify-center font-mono font-bold relative",
+              r.type === "down" ? "bg-dt text-black" : "bg-border-light text-dim"
+            )}
             style={{
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              background: r.type === "down" ? color.accent : color.borderLight,
-              color: r.type === "down" ? "#000" : color.dim,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: font.mono,
               fontSize: 9,
-              fontWeight: 700,
               marginLeft: i > 0 ? -6 : 0,
-              border: `2px solid ${color.card}`,
+              border: "2px solid #111",
               zIndex: all.length - i,
-              position: "relative",
             }}
           >
             {r.name[0]}
           </div>
         ))}
       </div>
-      <span style={{ fontFamily: font.mono, fontSize: 10 }}>
+      <span className="font-mono text-tiny">
         {down.length > 0 && (
-          <span style={{ color: color.accent }}>{down.length} down</span>
+          <span className="text-dt">{down.length} down</span>
         )}
         {down.length > 0 && maybe.length > 0 && (
-          <span style={{ color: color.faint }}> · </span>
+          <span className="text-faint"> · </span>
         )}
         {maybe.length > 0 && (
-          <span style={{ color: color.dim }}>{maybe.length} maybe</span>
+          <span className="text-dim">{maybe.length} maybe</span>
         )}
       </span>
     </div>
@@ -600,42 +498,31 @@ function ExpandedResponses({ down, maybe }: { down: Response[]; maybe: Response[
   const renderGroup = (resps: Response[], label: string, accentColor: string) => {
     if (resps.length === 0) return null;
     return (
-      <div style={{ marginBottom: 6 }}>
+      <div className="mb-1.5">
         <div
-          style={{
-            fontFamily: font.mono,
-            fontSize: 10,
-            textTransform: "uppercase",
-            letterSpacing: "0.15em",
-            color: accentColor,
-            marginBottom: 4,
-          }}
+          className={cn(
+            "font-mono text-tiny uppercase mb-1",
+            label === "Down" ? "text-dt" : "text-dim"
+          )}
+          style={{ letterSpacing: "0.15em" }}
         >
           {label} ({resps.length})
         </div>
         {resps.map((r) => (
           <div
             key={r.name}
-            style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}
+            className="flex items-center gap-1.5 mb-[3px]"
           >
             <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                background: label === "Down" ? color.accent : color.borderLight,
-                color: label === "Down" ? "#000" : color.dim,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: font.mono,
-                fontSize: 8,
-                fontWeight: 700,
-              }}
+              className={cn(
+                "w-5 h-5 rounded-full flex items-center justify-center font-mono font-bold",
+                label === "Down" ? "bg-dt text-black" : "bg-border-light text-dim"
+              )}
+              style={{ fontSize: 8 }}
             >
               {r.name[0]}
             </div>
-            <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
+            <span className="font-mono text-xs text-muted">
               {r.name}
             </span>
           </div>
@@ -646,59 +533,43 @@ function ExpandedResponses({ down, maybe }: { down: Response[]; maybe: Response[
 
   return (
     <div>
-      {renderGroup(down, "Down", color.accent)}
-      {renderGroup(maybe, "Maybe", color.dim)}
+      {renderGroup(down, "Down", "#e8ff5a")}
+      {renderGroup(maybe, "Maybe", "#666")}
     </div>
   );
 }
 
 /* response: side by side (two columns) */
 function SideBySideResponses({ down, maybe }: { down: Response[]; maybe: Response[] }) {
-  const col = (resps: Response[], label: string, accentColor: string, bg: string) => (
-    <div style={{ flex: 1 }}>
+  const col = (resps: Response[], label: string, bg: string) => (
+    <div className="flex-1">
       <div
-        style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          color: accentColor,
-          marginBottom: 4,
-        }}
+        className={cn(
+          "font-mono text-tiny uppercase mb-1",
+          label === "Down" ? "text-dt" : "text-dim"
+        )}
+        style={{ letterSpacing: "0.15em" }}
       >
         {label}
       </div>
       {resps.length === 0 ? (
-        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>—</span>
+        <span className="font-mono text-tiny text-faint">—</span>
       ) : (
         resps.map((r) => (
           <div
             key={r.name}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginBottom: 3,
-            }}
+            className="flex items-center gap-1.5 mb-[3px]"
           >
             <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                background: bg,
-                color: label === "Down" ? "#000" : color.dim,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: font.mono,
-                fontSize: 8,
-                fontWeight: 700,
-              }}
+              className={cn(
+                "w-5 h-5 rounded-full flex items-center justify-center font-mono font-bold",
+                label === "Down" ? "text-black" : "text-dim"
+              )}
+              style={{ fontSize: 8, background: bg }}
             >
               {r.name[0]}
             </div>
-            <span style={{ fontFamily: font.mono, fontSize: 11, color: color.muted }}>
+            <span className="font-mono text-xs text-muted">
               {r.name}
             </span>
           </div>
@@ -708,9 +579,9 @@ function SideBySideResponses({ down, maybe }: { down: Response[]; maybe: Respons
   );
 
   return (
-    <div style={{ display: "flex", gap: 12 }}>
-      {col(down, "Down", color.accent, color.accent)}
-      {col(maybe, "Maybe", color.dim, color.borderLight)}
+    <div className="flex gap-3">
+      {col(down, "Down", "#e8ff5a")}
+      {col(maybe, "Maybe", "#2a2a2a")}
     </div>
   );
 }
@@ -720,7 +591,7 @@ function InlineResponses({ down, maybe }: { down: Response[]; maybe: Response[] 
   const parts: React.ReactElement[] = [];
   if (down.length > 0) {
     parts.push(
-      <span key="down" style={{ color: color.accent }}>
+      <span key="down" className="text-dt">
         {down.map((r) => r.name).join(", ")} down
       </span>
     );
@@ -728,19 +599,19 @@ function InlineResponses({ down, maybe }: { down: Response[]; maybe: Response[] 
   if (maybe.length > 0) {
     if (parts.length > 0) {
       parts.push(
-        <span key="sep" style={{ color: color.faint }}>
+        <span key="sep" className="text-faint">
           {" · "}
         </span>
       );
     }
     parts.push(
-      <span key="maybe" style={{ color: color.dim }}>
+      <span key="maybe" className="text-dim">
         {maybe.map((r) => r.name).join(", ")} maybe
       </span>
     );
   }
   return (
-    <div style={{ fontFamily: font.mono, fontSize: 10, lineHeight: 1.5 }}>{parts}</div>
+    <div className="font-mono text-tiny leading-normal">{parts}</div>
   );
 }
 
@@ -781,18 +652,17 @@ function ActionButton({
 
   return (
     <button
-      style={{
-        fontFamily: font.mono,
-        fontSize: buttonStyle === "iconOnly" ? 14 : 10,
-        fontWeight: 700,
-        padding: buttonStyle === "iconOnly" ? "4px 8px" : "6px 10px",
-        borderRadius: 8,
-        border: `1px solid ${isDown ? color.accent : color.borderMid}`,
-        background: active ? (isDown ? color.accent : color.dim) : "transparent",
-        color: active ? "#000" : isDown ? color.accent : color.dim,
-        cursor: "pointer",
-        lineHeight: 1,
-      }}
+      className={cn(
+        "font-mono font-bold rounded-lg border cursor-pointer leading-none",
+        buttonStyle === "iconOnly" ? "text-sm px-2 py-1" : "text-tiny py-1.5 px-2.5",
+        isDown ? "border-dt" : "border-border-mid",
+        active
+          ? isDown
+            ? "bg-dt text-black"
+            : "bg-dim text-black"
+          : "bg-transparent",
+        !active && (isDown ? "text-dt" : "text-dim")
+      )}
     >
       {content}
     </button>
