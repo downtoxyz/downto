@@ -2,6 +2,9 @@
 
 Event saving app with social layer. Save events from Instagram to your calendar, see who else is going, form small squads.
 
+## Specs
+Product behavior specs live in `specs/`. Read the relevant spec before implementing or modifying a feature.
+
 ## Stack
 - Next.js (App Router)
 - TypeScript
@@ -95,7 +98,7 @@ echo "$OTP"
 
 Use `--session-name downto` on all agent-browser commands to persist auth across browser restarts.
 
-Test users: `kat@test.com`, `zereptak.burner@gmail.com`
+Test users: `kat@test.com`, `testuser2@test.com`
 
 ### App navigation
 - **Bottom nav tabs**: Feed (`⚡ Feed`), Cal (`📅 Cal`), Squads (`👥 Squads`), You (`⚙ You`)
