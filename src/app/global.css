@@ -3,8 +3,29 @@
 @theme {
   --text-tiny: 0.625rem;
 
-  --color-danger: #ff6b6b;
+  /* Brand / accent */
   --color-dt: #e8ff5a;
+  --color-danger: #ff6b6b;
+  --color-pool: #00d4ff;
+
+  /* Surfaces */
+  --color-bg: #0a0a0a;
+  --color-card: #111;
+  --color-surface: #1a1a1a;
+  --color-deep: #0d0d0d;
+
+  /* Text hierarchy */
+  --color-primary: #fff;
+  --color-muted: #888;
+  --color-dim: #666;
+  --color-faint: #444;
+
+  /* Borders */
+  --color-border: #1a1a1a;
+  --color-border-light: #2a2a2a;
+  --color-border-mid: #333;
+
+  /* Keep Tailwind neutral scale for one-offs */
   --color-neutral-925: #111;
 
   /* Font family */

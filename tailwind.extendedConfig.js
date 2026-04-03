@@ -1,9 +1,36 @@
 export const colors = {
+  // Brand / accent
   dt: '#e8ff5a',
   danger: '#ff6b6b',
+  pool: '#00d4ff',
+
+  // Surfaces
+  bg: '#0a0a0a',
+  card: '#111',
+  surface: '#1a1a1a',
+  deep: '#0d0d0d',
+
+  // Text hierarchy
+  primary: '#fff',
+  muted: '#888',
+  dim: '#666',
+  faint: '#444',
+
+  // Borders
+  border: '#1a1a1a',
+  'border-light': '#2a2a2a',
+  'border-mid': '#333',
+
+  // Tailwind neutral for one-offs
   neutral: {
     925: '#111',
   },
+
+  // Preserve defaults needed by Tailwind utilities
+  transparent: 'transparent',
+  current: 'currentColor',
+  white: '#fff',
+  black: '#000',
 };
 
 export const extendedTheme = {
