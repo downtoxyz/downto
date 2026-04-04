@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import * as db from "@/lib/db";
-import { font, color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 import type { Squad } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
 import { parseNaturalDate, parseNaturalTime, parseDateToISO, formatTimeAgo } from "@/lib/utils";
@@ -454,25 +454,17 @@ const SquadChat = ({
   return (
     <>
     {/* Full-screen backdrop so iOS keyboard gap shows bg color, not content behind */}
-    <div style={{
-      position: "fixed", inset: 0, background: color.bg, zIndex: 49,
-      transform: (closing || entering) ? "translateX(100%)" : `translateX(${dragX}px)`,
-      transition: closing ? "transform 0.25s ease-in" : (entering || dragX === 0) ? "transform 0.3s ease-out" : "none",
-    }} />
+    <div
+      className="fixed inset-0 bg-bg z-[49]"
+      style={{
+        transform: (closing || entering) ? "translateX(100%)" : `translateX(${dragX}px)`,
+        transition: closing ? "transform 0.25s ease-in" : (entering || dragX === 0) ? "transform 0.3s ease-out" : "none",
+      }}
+    />
     <div
       ref={chatContainerRef}
+      className="flex flex-col fixed top-0 left-0 right-0 h-dvh z-50 bg-bg overflow-hidden overscroll-none"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "100dvh",
-        zIndex: 50,
-        background: color.bg,
-        overflow: "hidden",
-        overscrollBehavior: "none",
         transform: (closing || entering) ? "translateX(100%)" : `translateX(${dragX}px)`,
         transition: closing ? "transform 0.25s ease-in" : (entering || dragX === 0) ? "transform 0.3s ease-out" : "none",
       }}
@@ -492,49 +484,23 @@ const SquadChat = ({
       {/* Leave squad confirmation */}
       {showLeaveConfirm && (
         <div
-          style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
           onClick={() => setShowLeaveConfirm(false)}
         >
           <div
-            style={{
-              background: color.deep,
-              border: `1px solid ${color.border}`,
-              borderRadius: 16,
-              padding: "24px 20px",
-              maxWidth: 300,
-              width: "90%",
-              textAlign: "center",
-            }}
+            className="bg-deep border border-border rounded-2xl px-5 py-6 w-[90%] max-w-[300px] text-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 6 }}>
+            <p className="font-serif text-lg text-primary mb-1.5" style={{ fontWeight: 400 }}>
               Leave {localSquad.name}?
             </p>
-            <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 20 }}>
+            <p className="font-mono text-xs text-dim mb-5">
               You won&apos;t see messages from this squad anymore.
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setShowLeaveConfirm(false)}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  background: "none",
-                  border: `1px solid ${color.border}`,
-                  borderRadius: 10,
-                  color: color.text,
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
+                className="flex-1 py-2.5 bg-transparent border border-border rounded-lg text-primary font-mono text-xs cursor-pointer"
               >
                 Cancel
               </button>
@@ -551,18 +517,7 @@ const SquadChat = ({
                   }
                   setShowLeaveConfirm(false);
                 }}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  background: "#ff4444",
-                  border: "none",
-                  borderRadius: 10,
-                  color: "#fff",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                className="flex-1 py-2.5 bg-[#ff4444] border-none rounded-lg text-white font-mono text-xs font-bold cursor-pointer"
               >
                 Leave
               </button>
@@ -574,49 +529,23 @@ const SquadChat = ({
       {/* I'm out confirmation */}
       {showImOutConfirm && (
         <div
-          style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
           onClick={() => setShowImOutConfirm(false)}
         >
           <div
-            style={{
-              background: color.deep,
-              border: `1px solid ${color.border}`,
-              borderRadius: 16,
-              padding: "24px 20px",
-              maxWidth: 300,
-              width: "90%",
-              textAlign: "center",
-            }}
+            className="bg-deep border border-border rounded-2xl px-5 py-6 w-[90%] max-w-[300px] text-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 6 }}>
+            <p className="font-serif text-lg text-primary mb-1.5" style={{ fontWeight: 400 }}>
               Can&apos;t make it?
             </p>
-            <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 20 }}>
+            <p className="font-mono text-xs text-dim mb-5">
               You&apos;ll be removed from this squad and lose access to the chat.
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setShowImOutConfirm(false)}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  background: "none",
-                  border: `1px solid ${color.border}`,
-                  borderRadius: 10,
-                  color: color.text,
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
+                className="flex-1 py-2.5 bg-transparent border border-border rounded-lg text-primary font-mono text-xs cursor-pointer"
               >
                 Cancel
               </button>
@@ -638,18 +567,7 @@ const SquadChat = ({
                   }
                   setShowImOutConfirm(false);
                 }}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  background: "#ff4444",
-                  border: "none",
-                  borderRadius: 10,
-                  color: "#fff",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                className="flex-1 py-2.5 bg-[#ff4444] border-none rounded-lg text-white font-mono text-xs font-bold cursor-pointer"
               >
                 I&apos;m out
               </button>
@@ -661,49 +579,23 @@ const SquadChat = ({
       {/* Kick member confirmation */}
       {kickTarget && localSquad && (
         <div
-          style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
           onClick={() => setKickTarget(null)}
         >
           <div
-            style={{
-              background: color.deep,
-              border: `1px solid ${color.border}`,
-              borderRadius: 16,
-              padding: "24px 20px",
-              maxWidth: 300,
-              width: "90%",
-              textAlign: "center",
-            }}
+            className="bg-deep border border-border rounded-2xl px-5 py-6 w-[90%] max-w-[300px] text-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 6 }}>
+            <p className="font-serif text-lg text-primary mb-1.5" style={{ fontWeight: 400 }}>
               Kick {kickTarget.name}?
             </p>
-            <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 20 }}>
+            <p className="font-mono text-xs text-dim mb-5">
               they&apos;ll be removed from the squad. no take-backs (jk you can re-add them)
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setKickTarget(null)}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  background: "none",
-                  border: `1px solid ${color.border}`,
-                  borderRadius: 10,
-                  color: color.text,
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
+                className="flex-1 py-2.5 bg-transparent border border-border rounded-lg text-primary font-mono text-xs cursor-pointer"
               >
                 Nah
               </button>
@@ -728,18 +620,7 @@ const SquadChat = ({
                     setKickTarget(null);
                   }
                 }}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  background: "#ff4444",
-                  border: "none",
-                  borderRadius: 10,
-                  color: "#fff",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                className="flex-1 py-2.5 bg-[#ff4444] border-none rounded-lg text-white font-mono text-xs font-bold cursor-pointer"
               >
                 Yeet 🥾
               </button>
@@ -795,136 +676,69 @@ const SquadChat = ({
         };
 
         return (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-            }}
-          >
+          <div className="fixed inset-0 z-[9999] flex items-end justify-center">
             <div
               onClick={() => setShowEditEvent(false)}
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.7)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-              }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-[8px]"
+              style={{ WebkitBackdropFilter: "blur(8px)" }}
             />
             <div
-              style={{
-                position: "relative",
-                background: color.surface,
-                borderRadius: "24px 24px 0 0",
-                width: "100%",
-                maxWidth: 420,
-                padding: "20px 24px 0",
-                maxHeight: "80vh",
-                display: "flex",
-                flexDirection: "column",
-                animation: "slideUp 0.3s ease-out",
-              }}
+              className="relative bg-surface rounded-t-3xl w-full max-w-[420px] px-6 pt-5 pb-0 max-h-[80vh] flex flex-col animate-slide-up"
             >
               {/* Drag handle */}
-              <div style={{ width: 40, height: 4, background: color.faint, borderRadius: 2, margin: "0 auto 20px" }} />
+              <div className="w-10 h-1 bg-faint rounded-sm mx-auto mb-5" />
 
-              <div style={{ overflowY: "auto", overflowX: "hidden", flex: 1, paddingBottom: 24 }}>
+              <div className="overflow-y-auto overflow-x-hidden flex-1 pb-6">
                 {/* Title */}
-                <h2 style={{ fontFamily: font.serif, fontSize: 18, color: color.text, margin: "0 0 20px", fontWeight: 400 }}>
+                <h2 className="font-serif text-lg text-primary m-0 mb-5" style={{ fontWeight: 400 }}>
                   Edit event
                 </h2>
 
                 {/* Event title textarea */}
-                <div style={{ marginBottom: 16 }}>
+                <div className="mb-4">
                   <textarea
                     value={editEventTitle}
                     onChange={(e) => setEditEventTitle(e.target.value.slice(0, 280))}
                     placeholder="What's the plan?"
                     autoFocus
                     rows={3}
-                    style={{
-                      width: "100%",
-                      background: color.deep,
-                      border: `1px solid ${color.borderMid}`,
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                      color: color.text,
-                      fontFamily: font.mono,
-                      fontSize: 13,
-                      outline: "none",
-                      resize: "none",
-                      lineHeight: 1.5,
-                      boxSizing: "border-box",
-                    }}
+                    className="w-full bg-deep border border-border-mid rounded-xl p-3.5 px-4 text-primary font-mono text-sm outline-none resize-none leading-relaxed box-border"
+                    style={{ fontSize: 13 }}
                   />
                 </div>
 
                 {/* When / Where inputs */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+                <div className="flex gap-2 mb-1">
                   <input
                     type="text"
                     placeholder="tmr 7pm"
                     value={editWhenInput}
                     onChange={(e) => setEditWhenInput(e.target.value)}
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      padding: "10px 12px",
-                      background: color.deep,
-                      border: `1px solid ${color.borderMid}`,
-                      borderRadius: 10,
-                      fontFamily: font.mono,
-                      fontSize: 11,
-                      color: color.text,
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
+                    className="flex-1 min-w-0 py-2.5 px-3 bg-deep border border-border-mid rounded-lg font-mono text-xs text-primary outline-none box-border"
                   />
                   <input
                     type="text"
                     placeholder="where?"
                     value={editWhereInput}
                     onChange={(e) => setEditWhereInput(e.target.value)}
-                    style={{
-                      flex: 0.6,
-                      minWidth: 0,
-                      padding: "10px 12px",
-                      background: color.deep,
-                      border: `1px solid ${color.borderMid}`,
-                      borderRadius: 10,
-                      fontFamily: font.mono,
-                      fontSize: 11,
-                      color: color.text,
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
+                    className="min-w-0 py-2.5 px-3 bg-deep border border-border-mid rounded-lg font-mono text-xs text-primary outline-none box-border"
+                    style={{ flex: 0.6 }}
                   />
                 </div>
               </div>
 
               {/* Save button */}
-              <div style={{ padding: "12px 0 24px", flexShrink: 0 }}>
+              <div className="py-3 pb-6 shrink-0">
                 <button
                   onClick={handleSaveEvent}
                   disabled={savingEvent}
-                  style={{
-                    width: "100%",
-                    background: !savingEvent ? color.accent : color.borderMid,
-                    color: !savingEvent ? "#000" : color.dim,
-                    border: "none",
-                    borderRadius: 12,
-                    padding: "14px",
-                    fontFamily: font.mono,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: !savingEvent ? "pointer" : "default",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
+                  className={cn(
+                    "w-full border-none rounded-xl p-3.5 font-mono text-xs font-bold uppercase",
+                    savingEvent
+                      ? "bg-border-mid text-dim cursor-default"
+                      : "bg-dt text-black cursor-pointer"
+                  )}
+                  style={{ letterSpacing: "0.08em" }}
                 >
                   {savingEvent ? "Saving..." : "Save"}
                 </button>
@@ -935,27 +749,16 @@ const SquadChat = ({
       })()}
 
       {/* Messages + Input blur wrapper */}
-      <div style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        filter: (showSquadPopup || showEditEvent) ? 'blur(4px)' : 'none',
-        opacity: (showSquadPopup || showEditEvent) ? 0.3 : 1,
-        pointerEvents: (showSquadPopup || showEditEvent) ? 'none' : 'auto',
-        transition: 'filter 0.2s, opacity 0.2s',
-        minHeight: 0,
-      }}>
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-h-0 transition-[filter,opacity] duration-200",
+          (showSquadPopup || showEditEvent) && "blur-[4px] opacity-30 pointer-events-none"
+        )}
+      >
       {/* Messages */}
       <div
-        style={{
-          flex: 1,
-          overflowY: dragX > 0 ? "hidden" : "auto",
-          overscrollBehavior: "contain",
-          padding: "12px 20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-        }}
+        className="flex-1 overscroll-contain px-5 py-3 flex flex-col gap-0.5"
+        style={{ overflowY: dragX > 0 ? "hidden" : "auto" }}
       >
         {(() => {
           const lastConfirmIdx = messages.reduce((acc, m, idx) => m.messageType === 'date_confirm' ? idx : acc, -1);
@@ -988,34 +791,20 @@ const SquadChat = ({
 
       {/* Input — hidden for waitlisted users */}
       {localSquad.isWaitlisted ? (
-        <div
-          style={{
-            padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
-            borderTop: `1px solid ${color.border}`,
-            textAlign: "center",
-          }}
-        >
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>
+        <div className="px-5 py-3 border-t border-border text-center" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
+          <span className="font-mono text-xs text-faint">
             You&apos;re on the waitlist — read only
           </span>
         </div>
       ) : (
-      <div style={{ borderTop: `1px solid ${color.border}` }}>
+      <div className="border-t border-border">
         {/* Sticky date confirm bar */}
         {(dateConfirmStatus === 'pending' || (dateConfirmStatus === 'loading' && localSquad.dateStatus === 'proposed')) && !confirmLoading && (
-          <div style={{
-            borderTop: `1px solid ${color.border}`,
-            padding: '12px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 10,
-            background: color.card,
-          }}>
-            <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>
+          <div className="border-t border-border px-5 py-3 flex flex-col items-center gap-2.5 bg-card">
+            <span className="font-mono text-tiny text-dim">
               are you still down?
             </span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="flex gap-2">
               <button
                 onClick={async () => {
                   if (!localSquad?.id || confirmLoading) return;
@@ -1030,33 +819,13 @@ const SquadChat = ({
                     setConfirmLoading(false);
                   }
                 }}
-                style={{
-                  background: color.accent,
-                  color: '#000',
-                  border: 'none',
-                  borderRadius: 10,
-                  padding: '6px 16px',
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
+                className="bg-dt text-black border-none rounded-lg px-4 py-1.5 font-mono text-xs font-bold cursor-pointer"
               >
                 STILL DOWN
               </button>
               <button
                 onClick={() => setShowImOutConfirm(true)}
-                style={{
-                  background: 'transparent',
-                  color: color.text,
-                  border: `1px solid ${color.borderMid}`,
-                  borderRadius: 10,
-                  padding: '6px 16px',
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
+                className="bg-transparent text-primary border border-border-mid rounded-lg px-4 py-1.5 font-mono text-xs font-bold cursor-pointer"
               >
                 I&apos;M OUT
               </button>
@@ -1067,36 +836,16 @@ const SquadChat = ({
         {activePoll?.status === 'active' && (
           <div
             onClick={() => pollMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 20px', cursor: 'pointer' }}
+            className="flex items-center gap-1.5 px-5 py-1.5 cursor-pointer"
           >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: color.card,
-              border: `1px solid ${color.accent}`,
-              borderRadius: 20,
-              padding: '6px 12px',
-              flex: 1,
-              minWidth: 0,
-            }}>
-              <span style={{ fontSize: 12, flexShrink: 0 }}>📊</span>
-              <span style={{
-                fontFamily: font.mono,
-                fontSize: 11,
-                color: color.text,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1,
-              }}>{activePoll.question}</span>
-              <span style={{
-                fontFamily: font.mono,
-                fontSize: 10,
-                fontWeight: 700,
-                color: color.accent,
-                flexShrink: 0,
-              }}>{new Set(pollVotes.map((v) => v.userId)).size}</span>
+            <div className="flex items-center gap-1.5 bg-card border border-dt rounded-2xl px-3 py-1.5 flex-1 min-w-0">
+              <span className="text-xs shrink-0">📊</span>
+              <span className="font-mono text-xs text-primary overflow-hidden text-ellipsis whitespace-nowrap flex-1">
+                {activePoll.question}
+              </span>
+              <span className="font-mono text-tiny font-bold text-dt shrink-0">
+                {new Set(pollVotes.map((v) => v.userId)).size}
+              </span>
             </div>
           </div>
         )}
@@ -1106,45 +855,25 @@ const SquadChat = ({
           .map((r) => (
             <div
               key={r.userId}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 20px",
-                borderTop: `1px solid ${color.border}`,
-              }}
+              className="flex items-center gap-2.5 px-5 py-2.5 border-t border-border"
             >
-              <div style={{
-                width: 24, height: 24, borderRadius: "50%",
-                background: color.borderLight, color: color.dim,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: font.mono, fontSize: 10, fontWeight: 700, flexShrink: 0,
-              }}>
+              <div className="w-6 h-6 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-tiny font-bold shrink-0">
                 {r.avatar}
               </div>
-              <span style={{ fontFamily: font.mono, fontSize: 11, color: color.accent, flex: 1, minWidth: 0 }}>
+              <span className="font-mono text-xs text-dt flex-1 min-w-0">
                 {r.name} wants to join
               </span>
               <button
                 onClick={() => onRespondToJoinRequest(r.squadId, r.userId, true)}
-                style={{
-                  background: color.accent, color: "#000", border: "none",
-                  borderRadius: 8, padding: "6px 12px",
-                  fontFamily: font.mono, fontSize: 10, fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: "0.08em", cursor: "pointer",
-                }}
+                className="bg-dt text-black border-none rounded-lg px-3 py-1.5 font-mono text-tiny font-bold uppercase cursor-pointer"
+                style={{ letterSpacing: "0.08em" }}
               >
                 Accept
               </button>
               <button
                 onClick={() => onRespondToJoinRequest(r.squadId, r.userId, false)}
-                style={{
-                  background: "transparent", color: color.dim,
-                  border: `1px solid ${color.borderMid}`,
-                  borderRadius: 8, padding: "6px 12px",
-                  fontFamily: font.mono, fontSize: 10, fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: "0.08em", cursor: "pointer",
-                }}
+                className="bg-transparent text-dim border border-border-mid rounded-lg px-3 py-1.5 font-mono text-tiny font-bold uppercase cursor-pointer"
+                style={{ letterSpacing: "0.08em" }}
               >
                 Decline
               </button>
@@ -1194,37 +923,25 @@ const SquadChat = ({
       {showPollCreator && (
         <div
           onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiSelect(true); }}
-          style={{
-            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
-          }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: color.deep, border: `1px solid ${color.border}`,
-              borderRadius: 16, padding: "24px 20px", maxWidth: 340, width: "90%",
-            }}
+            className="bg-deep border border-border rounded-2xl px-5 py-6 w-[90%] max-w-[340px]"
           >
-            <h3 style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 16, textAlign: 'center' }}>
+            <h3 className="font-serif text-lg text-primary mb-4 text-center">
               Create a poll
             </h3>
             <input
               value={pollQuestion}
               onChange={(e) => setPollQuestion(e.target.value)}
               placeholder="What's the question?"
-              style={{
-                width: '100%', background: color.card,
-                border: `1px solid ${color.borderMid}`, borderRadius: 10,
-                padding: '10px 12px', color: color.text,
-                fontFamily: font.mono, fontSize: 13, outline: 'none',
-                marginBottom: 12, boxSizing: 'border-box',
-              }}
+              className="w-full bg-card border border-border-mid rounded-lg py-2.5 px-3 text-primary font-mono outline-none mb-3 box-border"
+              style={{ fontSize: 13 }}
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+            <div className="flex flex-col gap-2 mb-3">
               {pollOptions.map((opt, i) => (
-                <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <div key={i} className="flex gap-1.5 items-center">
                   <input
                     value={opt}
                     onChange={(e) => {
@@ -1233,20 +950,12 @@ const SquadChat = ({
                       setPollOptions(next);
                     }}
                     placeholder={`Option ${i + 1}`}
-                    style={{
-                      flex: 1, background: color.card,
-                      border: `1px solid ${color.borderMid}`, borderRadius: 10,
-                      padding: '8px 12px', color: color.text,
-                      fontFamily: font.mono, fontSize: 12, outline: 'none',
-                    }}
+                    className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
                   />
                   {pollOptions.length > 2 && (
                     <button
                       onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
-                      style={{
-                        background: 'none', border: 'none', color: color.faint,
-                        fontFamily: font.mono, fontSize: 16, cursor: 'pointer', padding: '0 4px',
-                      }}
+                      className="bg-transparent border-none text-faint font-mono text-base cursor-pointer px-1"
                     >
                       ×
                     </button>
@@ -1257,44 +966,31 @@ const SquadChat = ({
             {pollOptions.length < 10 && (
               <button
                 onClick={() => setPollOptions([...pollOptions, ""])}
-                style={{
-                  background: 'none', border: `1px solid ${color.borderMid}`,
-                  borderRadius: 10, padding: '6px 12px', color: color.dim,
-                  fontFamily: font.mono, fontSize: 11, cursor: 'pointer',
-                  width: '100%', marginBottom: 16,
-                }}
+                className="bg-transparent border border-border-mid rounded-lg px-3 py-1.5 text-dim font-mono text-xs cursor-pointer w-full mb-4"
               >
                 + Add option
               </button>
             )}
             <div
               onClick={() => setPollMultiSelect(!pollMultiSelect)}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 0', marginBottom: 12, cursor: 'pointer',
-              }}
+              className="flex items-center justify-between py-2.5 mb-3 cursor-pointer"
             >
-              <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>Allow multiple selections</span>
-              <div style={{
-                width: 36, height: 20, borderRadius: 10,
-                background: pollMultiSelect ? color.accent : color.borderMid,
-                position: 'relative', transition: 'background 0.2s',
-              }}>
-                <div style={{
-                  width: 16, height: 16, borderRadius: '50%', background: '#fff',
-                  position: 'absolute', top: 2, left: pollMultiSelect ? 18 : 2, transition: 'left 0.2s',
-                }} />
+              <span className="font-mono text-xs text-dim">Allow multiple selections</span>
+              <div
+                className="w-9 h-5 rounded-lg relative transition-colors duration-200"
+                style={{ background: pollMultiSelect ? '#e8ff5a' : '#333' }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-[left] duration-200"
+                  style={{ left: pollMultiSelect ? 18 : 2 }}
+                />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="flex gap-2.5">
               <button
                 onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiSelect(true); }}
-                style={{
-                  flex: 1, background: 'transparent', color: color.text,
-                  border: `1px solid ${color.borderMid}`, borderRadius: 12, padding: '12px',
-                  fontFamily: font.mono, fontSize: 12, fontWeight: 700,
-                  cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em',
-                }}
+                className="flex-1 bg-transparent text-primary border border-border-mid rounded-xl p-3 font-mono text-xs font-bold cursor-pointer uppercase"
+                style={{ letterSpacing: '0.08em' }}
               >
                 Cancel
               </button>
@@ -1317,15 +1013,13 @@ const SquadChat = ({
                     setPollCreating(false);
                   }
                 }}
-                style={{
-                  flex: 1,
-                  background: (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2) ? color.borderMid : color.accent,
-                  color: (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2) ? color.dim : '#000',
-                  border: 'none', borderRadius: 12, padding: '12px',
-                  fontFamily: font.mono, fontSize: 12, fontWeight: 700,
-                  cursor: (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2) ? 'default' : 'pointer',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                }}
+                className={cn(
+                  "flex-1 border-none rounded-xl p-3 font-mono text-xs font-bold uppercase",
+                  (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2)
+                    ? "bg-border-mid text-dim cursor-default"
+                    : "bg-dt text-black cursor-pointer"
+                )}
+                style={{ letterSpacing: '0.08em' }}
               >
                 {pollCreating ? '...' : 'Create'}
               </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { font, color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 import type { Event, InterestCheck } from "@/lib/ui-types";
 import EventCard from "@/features/events/components/EventCard";
 import { generateICSCalendar, downloadICS, buildGoogleCalendarUrl, type ICSEventParams } from "@/lib/ics";
@@ -326,77 +326,56 @@ const CalendarView = ({
   };
 
   return (
-    <div style={{ padding: "0 20px", animation: "fadeIn 0.3s ease" }}>
-      <h2
-        style={{
-          fontFamily: font.serif,
-          fontSize: 28,
-          color: color.text,
-          marginBottom: 4,
-          fontWeight: 400,
-        }}
-      >
+    <div className="px-5 animate-fade-in">
+      <h2 className="font-serif text-primary mb-1 font-normal" style={{ fontSize: 28 }}>
         Your Events
       </h2>
-      <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 24 }}>
+      <p className="font-mono text-xs text-dim mb-6" style={{ fontSize: 11 }}>
         {monthLabel}
       </p>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 4,
-          marginBottom: 28,
-        }}
-      >
+      <div className="grid grid-cols-7 gap-1 mb-7">
         {days.map((d, i) => {
           const isSelected = selectedDateKey === d.dateKey;
           const dotColor = isSelected
             ? "#5B9CF6"
             : d.hasEvent
-              ? color.accent
+              ? undefined
               : CHECK_DOT_COLOR;
           return (
           <div
             key={i}
             onClick={() => setSelectedDateKey(isSelected ? null : d.dateKey)}
-            style={{
-              textAlign: "center",
-              padding: "8px 0",
-              borderRadius: 10,
-              background: isSelected ? "#1C3A5E" : d.today ? "#222" : "transparent",
-              cursor: "pointer",
-            }}
+            className={cn(
+              "text-center py-2 rounded-lg cursor-pointer",
+              isSelected && "bg-[#1C3A5E]",
+              !isSelected && d.today && "bg-[#222]",
+              !isSelected && !d.today && "bg-transparent",
+            )}
           >
-            <div
-              style={{
-                fontFamily: font.mono,
-                fontSize: 9,
-                color: color.faint,
-                marginBottom: 4,
-              }}
-            >
+            <div className="font-mono text-faint mb-1" style={{ fontSize: 9 }}>
               {d.label}
             </div>
             <div
+              className={cn(
+                "font-mono text-sm",
+                (d.hasDot || isSelected) ? "font-bold" : "font-normal",
+              )}
               style={{
-                fontFamily: font.mono,
                 fontSize: 13,
-                color: isSelected ? "#5B9CF6" : d.hasDot ? (d.hasEvent ? color.accent : CHECK_DOT_COLOR) : color.dim,
-                fontWeight: d.hasDot || isSelected ? 700 : 400,
+                color: isSelected ? "#5B9CF6" : d.hasDot ? (d.hasEvent ? "#e8ff5a" : CHECK_DOT_COLOR) : undefined,
               }}
             >
               {d.num}
             </div>
             {d.hasDot && (
               <div
+                className={cn(
+                  "w-1 h-1 rounded-full mx-auto mt-1",
+                  !isSelected && d.hasEvent && "bg-dt",
+                )}
                 style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: "50%",
-                  background: dotColor,
-                  margin: "4px auto 0",
+                  ...(dotColor ? { background: dotColor } : {}),
                 }}
               />
             )}
@@ -405,39 +384,15 @@ const CalendarView = ({
         })}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 12,
-        }}
-      >
-        <span style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          color: color.dim,
-        }}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-mono text-tiny uppercase text-dim" style={{ letterSpacing: "0.15em" }}>
           {countLabel}
         </span>
         {totalItems > 0 && (
           <button
             onClick={openSyncModal}
-            style={{
-              background: "transparent",
-              border: `1px solid ${color.borderMid}`,
-              borderRadius: 8,
-              padding: "4px 10px",
-              fontFamily: font.mono,
-              fontSize: 9,
-              fontWeight: 700,
-              color: color.dim,
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}
+            className="bg-transparent border border-border-mid rounded-lg font-mono font-bold text-dim cursor-pointer uppercase"
+            style={{ padding: "4px 10px", fontSize: 9, letterSpacing: "0.08em" }}
           >
             Sync
           </button>
@@ -445,16 +400,7 @@ const CalendarView = ({
       </div>
 
       {totalItems === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px 20px",
-            color: color.faint,
-            fontFamily: font.mono,
-            fontSize: 12,
-            lineHeight: 1.8,
-          }}
-        >
+        <div className="text-center text-faint font-mono text-xs" style={{ padding: "40px 20px", lineHeight: 1.8, fontSize: 12 }}>
           {selectedDateKey ? "Nothing on this day." : (<>No events saved yet.<br />Hit + to save your first event.</>)}
         </div>
       ) : (
@@ -467,46 +413,21 @@ const CalendarView = ({
               <div
                 key={e.id}
                 onClick={() => setSelectedEvent(e)}
-                style={{
-                  background: color.card,
-                  borderRadius: 14,
-                  padding: 16,
-                  marginBottom: 8,
-                  border: `1px solid ${color.border}`,
-                  display: "flex",
-                  gap: 14,
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
+                className="bg-card rounded-xl p-4 mb-2 border border-border flex gap-3.5 items-center cursor-pointer"
               >
-                <div style={{ minWidth: 44, textAlign: "center" }}>
-                  <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 9,
-                      color: color.accent,
-                      textTransform: "uppercase",
-                    }}
-                  >
+                <div className="min-w-[44px] text-center">
+                  <div className="font-mono text-dt uppercase" style={{ fontSize: 9 }}>
                     {eDateLabel}
                   </div>
-                  <div style={{ fontFamily: font.serif, fontSize: 26, color: color.text }}>
+                  <div className="font-serif text-primary" style={{ fontSize: 26 }}>
                     {eDateDay}
                   </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: font.serif,
-                      fontSize: 16,
-                      color: color.text,
-                      marginBottom: 2,
-                      fontWeight: 400,
-                    }}
-                  >
+                <div className="flex-1 min-w-0">
+                  <div className="font-serif text-base text-primary mb-0.5 font-normal" style={{ fontSize: 16 }}>
                     {e.title}
                   </div>
-                  <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                  <div className="font-mono text-xs text-dim" style={{ fontSize: 11 }}>
                     {e.venue} · {e.time}
                   </div>
                 </div>
@@ -519,51 +440,29 @@ const CalendarView = ({
               return (
                 <div
                   key={`check-${c.id}`}
-                  style={{
-                    background: color.card,
-                    borderRadius: 14,
-                    padding: 16,
-                    marginBottom: 8,
-                    border: `1px solid ${color.border}`,
-                    display: "flex",
-                    gap: 14,
-                    alignItems: "center",
-                  }}
+                  className="bg-card rounded-xl p-4 mb-2 border border-border flex gap-3.5 items-center"
                 >
-                  <div style={{ minWidth: 44, textAlign: "center" }}>
-                    <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 9,
-                        color: CHECK_DOT_COLOR,
-                        textTransform: "uppercase",
-                      }}
-                    >
+                  <div className="min-w-[44px] text-center">
+                    <div className="font-mono uppercase" style={{ fontSize: 9, color: CHECK_DOT_COLOR }}>
                       {cDateLabel}
                     </div>
-                    <div style={{ fontFamily: font.serif, fontSize: 26, color: color.text }}>
+                    <div className="font-serif text-primary" style={{ fontSize: 26 }}>
                       {cDateDay}
                     </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontFamily: font.serif,
-                        fontSize: 16,
-                        color: color.text,
-                        marginBottom: 2,
-                        fontWeight: 400,
-                      }}
-                    >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-serif text-base text-primary mb-0.5 font-normal" style={{ fontSize: 16 }}>
                       {c.text}
                     </div>
-                    <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, display: "flex", alignItems: "center", gap: 6 }}>
+                    <div className="font-mono text-xs text-dim flex items-center gap-1.5" style={{ fontSize: 11 }}>
                       {c.eventTime && <span>{c.eventTime}</span>}
                       {c.eventTime && <span>·</span>}
-                      <span style={{
-                        color: response === "down" ? color.accent : response === "waitlist" ? color.muted : color.dim,
-                        fontWeight: 700,
-                      }}>
+                      <span
+                        className="font-bold"
+                        style={{
+                          color: response === "down" ? "#e8ff5a" : response === "waitlist" ? "#888" : "#666",
+                        }}
+                      >
                         {response === "down" ? "✓ Down" : response === "waitlist" ? "✓ Waitlisted" : "Yours"}
                       </span>
                     </div>
@@ -577,17 +476,7 @@ const CalendarView = ({
 
       {leftChecks.length > 0 && !selectedDateKey && (
         <>
-          <div
-            style={{
-              fontFamily: font.mono,
-              fontSize: 10,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: color.dim,
-              marginTop: 24,
-              marginBottom: 12,
-            }}
-          >
+          <div className="font-mono text-tiny uppercase text-dim mt-6 mb-3" style={{ letterSpacing: "0.15em" }}>
             Left ({leftChecks.length})
           </div>
           {leftChecks.map((c) => {
@@ -595,67 +484,30 @@ const CalendarView = ({
             return (
               <div
                 key={`left-${c.id}`}
-                style={{
-                  background: color.card,
-                  borderRadius: 14,
-                  padding: 16,
-                  marginBottom: 8,
-                  border: `1px solid ${color.border}`,
-                  display: "flex",
-                  gap: 14,
-                  alignItems: "center",
-                  opacity: 0.6,
-                }}
+                className="bg-card rounded-xl p-4 mb-2 border border-border flex gap-3.5 items-center opacity-60"
               >
                 {cardDate && (
-                  <div style={{ minWidth: 44, textAlign: "center" }}>
-                    <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 9,
-                        color: color.faint,
-                        textTransform: "uppercase",
-                      }}
-                    >
+                  <div className="min-w-[44px] text-center">
+                    <div className="font-mono text-faint uppercase" style={{ fontSize: 9 }}>
                       {cardDate.label}
                     </div>
-                    <div style={{ fontFamily: font.serif, fontSize: 26, color: color.muted }}>
+                    <div className="font-serif text-muted" style={{ fontSize: 26 }}>
                       {cardDate.day}
                     </div>
                   </div>
                 )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: font.serif,
-                      fontSize: 16,
-                      color: color.muted,
-                      marginBottom: 2,
-                      fontWeight: 400,
-                    }}
-                  >
+                <div className="flex-1 min-w-0">
+                  <div className="font-serif text-base text-muted mb-0.5 font-normal" style={{ fontSize: 16 }}>
                     {c.text}
                   </div>
-                  <div style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>
+                  <div className="font-mono text-xs text-faint" style={{ fontSize: 11 }}>
                     {c.author}{c.eventTime ? ` · ${c.eventTime}` : ""}
                   </div>
                 </div>
                 <button
                   onClick={() => onRedownFromLeft?.(c.id)}
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    color: color.accent,
-                    background: "transparent",
-                    border: `1px solid ${color.borderMid}`,
-                    borderRadius: 12,
-                    padding: "8px 14px",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
+                  className="font-mono text-xs font-bold uppercase text-dt bg-transparent border border-border-mid rounded-xl cursor-pointer whitespace-nowrap"
+                  style={{ letterSpacing: "0.08em", padding: "8px 14px", fontSize: 12 }}
                 >
                   Re-down
                 </button>
@@ -670,47 +522,18 @@ const CalendarView = ({
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-          }}
+          className="fixed inset-0 z-100 flex items-end justify-center"
         >
           <div
             onClick={() => setSelectedEvent(null)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.7)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-            }}
+            className="absolute inset-0 bg-black/70 backdrop-blur-[8px]"
+            style={{ WebkitBackdropFilter: "blur(8px)" }}
           />
           <div
-            style={{
-              position: "relative",
-              background: color.surface,
-              borderRadius: "24px 24px 0 0",
-              width: "100%",
-              maxWidth: 420,
-              padding: "16px 16px 40px",
-              maxHeight: "85vh",
-              overflowY: "auto",
-              animation: "slideUp 0.3s ease-out",
-            }}
+            className="relative bg-surface rounded-t-3xl w-full max-w-[420px] max-h-[85vh] overflow-y-auto animate-slide-up"
+            style={{ padding: "16px 16px 40px" }}
           >
-            <div
-              style={{
-                width: 40,
-                height: 4,
-                background: color.faint,
-                borderRadius: 2,
-                margin: "0 auto 12px",
-              }}
-            />
+            <div className="w-10 h-1 bg-faint rounded-sm mx-auto mb-3" />
             <EventCard
               event={selectedEvent}
               userId={userId}
@@ -733,20 +556,12 @@ const CalendarView = ({
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-          }}
+          className="fixed inset-0 z-[9999] flex items-end justify-center"
         >
           <div
             onClick={closeSyncModal}
+            className="absolute inset-0"
             style={{
-              position: "absolute",
-              inset: 0,
               background: "rgba(0,0,0,0.7)",
               backdropFilter: syncClosing ? "blur(0px)" : "blur(8px)",
               WebkitBackdropFilter: syncClosing ? "blur(0px)" : "blur(8px)",
@@ -755,15 +570,8 @@ const CalendarView = ({
             }}
           />
           <div
+            className="relative bg-surface rounded-t-3xl max-w-[420px] w-full max-h-[75vh] flex flex-col"
             style={{
-              position: "relative",
-              background: color.surface,
-              borderRadius: "24px 24px 0 0",
-              maxWidth: 420,
-              width: "100%",
-              maxHeight: "75vh",
-              display: "flex",
-              flexDirection: "column",
               animation: syncClosing ? undefined : "slideUp 0.3s ease-out",
               transform: syncClosing ? "translateY(100%)" : `translateY(${syncDragOffset}px)`,
               transition: syncClosing ? "transform 0.2s ease-in" : (syncDragOffset === 0 ? "transform 0.2s ease-out" : "none"),
@@ -774,33 +582,29 @@ const CalendarView = ({
               onTouchStart={syncHandleSwipeStart}
               onTouchMove={syncHandleSwipeMove}
               onTouchEnd={syncHandleSwipeEnd}
-              style={{ touchAction: "none", padding: "16px 20px 0" }}
+              className="touch-none"
+              style={{ padding: "16px 20px 0" }}
             >
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                <div style={{ width: 40, height: 4, background: color.faint, borderRadius: 2 }} />
+              <div className="flex justify-center mb-3">
+                <div className="w-10 h-1 bg-faint rounded-sm" />
               </div>
-              <h3 style={{ fontFamily: font.serif, fontSize: 18, color: color.text, margin: "0 0 12px", fontWeight: 400 }}>
+              <h3 className="font-serif text-lg text-primary font-normal mb-3" style={{ margin: "0 0 12px" }}>
                 Sync to Calendar
               </h3>
 
               {/* Tabs */}
-              <div style={{ display: "flex", gap: 0, marginBottom: 12, borderBottom: `1px solid ${color.border}` }}>
+              <div className="flex gap-0 mb-3 border-b border-border">
                 {(["export", "subscribe"] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setSyncTab(tab)}
+                    className={cn(
+                      "flex-1 py-2 bg-transparent border-none font-mono text-xs cursor-pointer uppercase",
+                      syncTab === tab ? "font-bold text-dt" : "font-normal text-dim",
+                    )}
                     style={{
-                      flex: 1,
-                      padding: "8px 0",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: syncTab === tab ? `2px solid ${color.accent}` : "2px solid transparent",
-                      fontFamily: font.mono,
+                      borderBottom: syncTab === tab ? "2px solid #e8ff5a" : "2px solid transparent",
                       fontSize: 11,
-                      fontWeight: syncTab === tab ? 700 : 400,
-                      color: syncTab === tab ? color.accent : color.dim,
-                      cursor: "pointer",
-                      textTransform: "uppercase",
                       letterSpacing: "0.08em",
                     }}
                   >
@@ -814,8 +618,8 @@ const CalendarView = ({
             {syncTab === "export" ? (
               <>
                 {/* Select all / count */}
-                <div style={{ padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>
+                <div className="flex items-center justify-between mb-2" style={{ padding: "0 20px" }}>
+                  <span className="font-mono text-tiny text-dim">
                     {syncSelected.size} of {allExportable.length} selected
                   </span>
                   <button
@@ -823,17 +627,8 @@ const CalendarView = ({
                       if (syncSelected.size === allExportable.length) setSyncSelected(new Set());
                       else setSyncSelected(new Set(allExportable.map((e) => e.id)));
                     }}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      color: color.accent,
-                      cursor: "pointer",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      padding: "4px 0",
-                    }}
+                    className="bg-transparent border-none font-mono text-tiny text-dt cursor-pointer uppercase py-1"
+                    style={{ letterSpacing: "0.08em", padding: "4px 0" }}
                   >
                     {syncSelected.size === allExportable.length ? "Deselect All" : "Select All"}
                   </button>
@@ -845,7 +640,8 @@ const CalendarView = ({
                   onTouchStart={syncHandleScrollTouchStart}
                   onTouchMove={syncHandleScrollTouchMove}
                   onTouchEnd={syncHandleScrollTouchEnd}
-                  style={{ flex: 1, overflowY: "auto", padding: "0 20px", overscrollBehavior: "contain" }}
+                  className="flex-1 overflow-y-auto overscroll-contain"
+                  style={{ padding: "0 20px" }}
                 >
                   {allExportable.map((item) => {
                     const selected = syncSelected.has(item.id);
@@ -853,41 +649,26 @@ const CalendarView = ({
                       <div
                         key={item.id}
                         onClick={() => toggleSyncItem(item.id)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          padding: "10px 0",
-                          borderBottom: `1px solid ${color.border}`,
-                          cursor: "pointer",
-                        }}
+                        className="flex items-center gap-3 cursor-pointer border-b border-border"
+                        style={{ padding: "10px 0" }}
                       >
-                        <div style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 6,
-                          border: `2px solid ${selected ? color.accent : color.borderMid}`,
-                          background: selected ? color.accent : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          transition: "all 0.15s",
-                        }}>
-                          {selected && <span style={{ color: "#000", fontSize: 12, lineHeight: 1 }}>✓</span>}
+                        <div
+                          className={cn(
+                            "w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-all duration-150",
+                            selected ? "bg-dt border-2 border-dt" : "bg-transparent border-2 border-border-mid",
+                          )}
+                          style={{ borderRadius: 6 }}
+                        >
+                          {selected && <span className="text-black text-xs leading-none" style={{ fontSize: 12 }}>✓</span>}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontFamily: font.mono,
-                            fontSize: 12,
-                            color: selected ? color.text : color.muted,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}>
+                        <div className="flex-1 min-w-0">
+                          <div className={cn(
+                            "font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis",
+                            selected ? "text-primary" : "text-muted",
+                          )} style={{ fontSize: 12 }}>
                             {item.label}
                           </div>
-                          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
+                          <div className="font-mono text-tiny text-faint">
                             {item.sub}
                           </div>
                         </div>
@@ -897,44 +678,26 @@ const CalendarView = ({
                 </div>
 
                 {/* Export action buttons */}
-                <div style={{ padding: "16px 20px calc(16px + env(safe-area-inset-bottom, 0px))", display: "flex", gap: 8 }}>
+                <div className="flex gap-2" style={{ padding: "16px 20px calc(16px + env(safe-area-inset-bottom, 0px))" }}>
                   <button
                     onClick={() => handleSync("google")}
                     disabled={syncSelected.size === 0}
-                    style={{
-                      flex: 1,
-                      padding: "12px 0",
-                      background: "transparent",
-                      border: `1px solid ${syncSelected.size > 0 ? color.borderMid : color.border}`,
-                      borderRadius: 12,
-                      color: syncSelected.size > 0 ? color.text : color.faint,
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: syncSelected.size > 0 ? "pointer" : "default",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
+                    className={cn(
+                      "flex-1 py-3 bg-transparent rounded-xl font-mono text-xs font-bold uppercase",
+                      syncSelected.size > 0 ? "text-primary cursor-pointer border border-border-mid" : "text-faint cursor-default border border-border",
+                    )}
+                    style={{ fontSize: 12, letterSpacing: "0.08em" }}
                   >
                     Google Cal
                   </button>
                   <button
                     onClick={() => handleSync("ics")}
                     disabled={syncSelected.size === 0}
-                    style={{
-                      flex: 1,
-                      padding: "12px 0",
-                      background: syncSelected.size > 0 ? color.accent : color.border,
-                      border: "none",
-                      borderRadius: 12,
-                      color: syncSelected.size > 0 ? "#000" : color.faint,
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: syncSelected.size > 0 ? "pointer" : "default",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
+                    className={cn(
+                      "flex-1 py-3 border-none rounded-xl font-mono text-xs font-bold uppercase",
+                      syncSelected.size > 0 ? "bg-dt text-black cursor-pointer" : "bg-border text-faint cursor-default",
+                    )}
+                    style={{ fontSize: 12, letterSpacing: "0.08em" }}
                   >
                     Download .ics
                   </button>
@@ -943,81 +706,51 @@ const CalendarView = ({
             ) : (
               /* Subscribe tab */
               <div style={{ padding: "0 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
-                <p style={{ fontFamily: font.mono, fontSize: 11, color: color.muted, lineHeight: 1.6, marginBottom: 16 }}>
+                <p className="font-mono text-xs text-muted mb-4" style={{ fontSize: 11, lineHeight: 1.6 }}>
                   Subscribe once and your calendar app will automatically stay in sync. New events you save will appear automatically — no duplicates.
                 </p>
 
                 {tokenLoading ? (
-                  <div style={{ fontFamily: font.mono, fontSize: 11, color: color.faint, textAlign: "center", padding: 20 }}>
+                  <div className="font-mono text-xs text-faint text-center p-5" style={{ fontSize: 11 }}>
                     Loading...
                   </div>
                 ) : webcalUrl ? (
                   <>
                     {/* URL display */}
-                    <div style={{
-                      background: color.deep,
-                      border: `1px solid ${color.border}`,
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      marginBottom: 12,
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      color: color.dim,
-                      wordBreak: "break-all",
-                      lineHeight: 1.5,
-                    }}>
+                    <div
+                      className="bg-deep border border-border rounded-lg font-mono text-tiny text-dim mb-3 break-all"
+                      style={{ padding: "10px 12px", lineHeight: 1.5 }}
+                    >
                       {webcalUrl}
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div className="flex flex-col gap-2">
                       <a
                         href={webcalUrl}
-                        style={{
-                          display: "block",
-                          padding: "12px 0",
-                          background: color.accent,
-                          border: "none",
-                          borderRadius: 12,
-                          color: "#000",
-                          fontFamily: font.mono,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          textAlign: "center",
-                          textDecoration: "none",
-                        }}
+                        className="block py-3 bg-dt border-none rounded-xl text-black font-mono text-xs font-bold cursor-pointer uppercase text-center no-underline"
+                        style={{ fontSize: 12, letterSpacing: "0.08em" }}
                       >
                         Subscribe in Calendar App
                       </a>
                       <button
                         onClick={copySubscribeUrl}
-                        style={{
-                          padding: "12px 0",
-                          background: "transparent",
-                          border: `1px solid ${color.borderMid}`,
-                          borderRadius: 12,
-                          color: copied ? color.accent : color.text,
-                          fontFamily: font.mono,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                        }}
+                        className={cn(
+                          "py-3 bg-transparent border border-border-mid rounded-xl font-mono text-xs font-bold cursor-pointer uppercase",
+                          copied ? "text-dt" : "text-primary",
+                        )}
+                        style={{ fontSize: 12, letterSpacing: "0.08em" }}
                       >
                         {copied ? "Copied!" : "Copy URL"}
                       </button>
                     </div>
 
-                    <p style={{ fontFamily: font.mono, fontSize: 9, color: color.faint, lineHeight: 1.5, marginTop: 14, textAlign: "center" }}>
+                    <p className="font-mono text-faint text-center mt-3.5" style={{ fontSize: 9, lineHeight: 1.5 }}>
                       Works with Apple Calendar, Google Calendar, Outlook, and any app that supports webcal subscriptions. Your calendar will refresh automatically.
                     </p>
                   </>
                 ) : (
-                  <div style={{ fontFamily: font.mono, fontSize: 11, color: color.faint, textAlign: "center", padding: 20 }}>
+                  <div className="font-mono text-xs text-faint text-center p-5" style={{ fontSize: 11 }}>
                     Could not load subscription URL.
                   </div>
                 )}
