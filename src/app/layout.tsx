@@ -3,6 +3,7 @@ import { Instrument_Serif, Space_Mono } from 'next/font/google';
 import DevProdBanner from '@/app/components/DevProdBanner';
 import UpdateBanner from '@/app/components/UpdateBanner';
 import Grain from '@/app/components/Grain';
+import ThemeHydrator from '@/app/components/ThemeHydrator';
 
 import './global.css';
 import './animations.css';
@@ -66,6 +67,7 @@ export default function RootLayout({
         `}</style>
       </head>
       <body className="h-full bg-neutral-950 font-mono font-normal text-neutral-500 antialiased">
+        <ThemeHydrator />
         <Grain />
         <DevProdBanner />
         <UpdateBanner />
