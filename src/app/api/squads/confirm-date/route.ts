@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // --- "no" flow ---
+  // --- "no" flow --- user stays in squad but can't make the date
 
   // System message
   await adminClient
@@ -74,46 +74,10 @@ export async function POST(req: NextRequest) {
       is_system: true,
     });
 
-  // Remove from squad
-  await adminClient
-    .from('squad_members')
-    .delete()
-    .eq('squad_id', squadId)
-    .eq('user_id', user.id);
-
-  // Keep confirm row with response='no' so promote_from_waitlist can exclude this user
-
-  // Promote from waitlist if squad has a linked check
-  const { data: squad } = await adminClient
-    .from('squads')
-    .select('check_id')
-    .eq('id', squadId)
-    .single();
-
-  if (squad?.check_id) {
-    // Get the date_confirm message id for the promoted user's confirm row
-    const { data: confirmMsg } = await adminClient
-      .from('messages')
-      .select('id')
-      .eq('squad_id', squadId)
-      .eq('message_type', 'date_confirm')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (confirmMsg) {
-      await adminClient.rpc('promote_from_waitlist', {
-        p_squad_id: squadId,
-        p_check_id: squad.check_id,
-        p_confirm_message_id: confirmMsg.id,
-      });
-    }
-  }
-
-  // Check if remaining members are all confirmed
+  // Check if remaining confirmable members are all in
   await checkAndAutoLock(adminClient, squadId);
 
-  return NextResponse.json({ ok: true, removed: true });
+  return NextResponse.json({ ok: true });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,9 +101,10 @@ async function checkAndAutoLock(adminClient: any, squadId: string) {
   if (!confirms || confirms.length === 0) return;
 
   const allResponded = confirms.every((c: { response: string | null }) => c.response !== null);
-  const allYes = allResponded && confirms.every((c: { response: string }) => c.response === 'yes');
+  const hasAtLeastOneYes = confirms.some((c: { response: string | null }) => c.response === 'yes');
+  const canLock = allResponded && hasAtLeastOneYes;
 
-  if (allYes) {
+  if (canLock) {
     await adminClient
       .from('squads')
       .update({ date_status: 'locked' })

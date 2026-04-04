@@ -82,6 +82,11 @@ export default function ChatMessage({
               you&apos;re in
             </div>
           )}
+          {dateConfirmStatus === 'no' && !confirmLoading && (
+            <div className="font-mono text-tiny text-faint mt-1.5">
+              can&apos;t make it
+            </div>
+          )}
           {dateConfirmStatus === 'none' && !confirmLoading && (
             <div className="font-mono text-tiny text-neutral-700 mt-1.5">
               waiting for responses
