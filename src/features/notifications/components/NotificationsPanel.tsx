@@ -2,9 +2,10 @@
 
 import { useRef, useState, useEffect } from "react";
 import * as db from "@/lib/db";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import { formatTimeAgo } from "@/lib/utils";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
+import cn from "@/lib/tailwindMerge";
 import type { Tab } from "@/lib/ui-types";
 
 interface Notification {
@@ -96,21 +97,11 @@ const NotificationsPanel = ({
   if (!visible) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-end justify-center">
       <div
         onClick={close}
+        className="absolute inset-0"
         style={{
-          position: "absolute",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
@@ -120,58 +111,30 @@ const NotificationsPanel = ({
       />
       <div
         ref={panelRef}
+        className="relative bg-surface w-full max-w-[420px] flex flex-col pt-6"
         style={{
-          position: "relative",
-          background: color.surface,
           borderRadius: "24px 24px 0 0",
-          width: "100%",
-          maxWidth: 420,
           maxHeight: "80vh",
-          padding: "24px 0 0",
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
           transition: closing ? "transform 0.2s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
-          display: "flex",
-          flexDirection: "column",
         }}
       >
         <div
           onTouchStart={handleSwipeStart}
           onTouchMove={handleSwipeMove}
           onTouchEnd={handleSwipeEnd}
-          style={{ touchAction: "none" }}
+          className="touch-none"
         >
-          <div
-            style={{
-              width: 40,
-              height: 4,
-              background: color.faint,
-              borderRadius: 2,
-              margin: "0 auto 16px",
-            }}
-          />
+          <div className="w-10 h-1 bg-faint rounded-sm mx-auto mb-4" />
         </div>
         <div
           onTouchStart={handleSwipeStart}
           onTouchMove={handleSwipeMove}
           onTouchEnd={handleSwipeEnd}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "0 20px 16px",
-            borderBottom: `1px solid ${color.border}`,
-            touchAction: "none",
-          }}
+          className="flex justify-between items-center px-5 pb-4 border-b border-border touch-none"
         >
-          <h2
-            style={{
-              fontFamily: font.serif,
-              fontSize: 22,
-              color: color.text,
-              fontWeight: 400,
-            }}
-          >
+          <h2 className="font-serif text-2xl text-primary font-normal">
             Notifications
           </h2>
           {notifications.some((n) => !n.is_read) && (
@@ -189,16 +152,8 @@ const NotificationsPanel = ({
                 setNotifications((prev) => prev.map((n) => pendingFriendRequestIds.has(n.id) ? n : { ...n, is_read: true }));
                 setUnreadCount(pendingFriendRequestIds.size);
               }}
-              style={{
-                background: "none",
-                border: "none",
-                color: color.accent,
-                fontFamily: font.mono,
-                fontSize: 11,
-                cursor: "pointer",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
+              className="bg-transparent border-none text-dt font-mono text-xs cursor-pointer uppercase"
+              style={{ letterSpacing: "0.08em" }}
             >
               Mark all read
             </button>
@@ -209,37 +164,14 @@ const NotificationsPanel = ({
           onTouchStart={handleScrollTouchStart}
           onTouchMove={handleScrollTouchMove}
           onTouchEnd={handleScrollTouchEnd}
-          style={{
-            overflowY: isDragging.current ? "hidden" : "auto",
-            overflowX: "hidden",
-            flex: 1,
-            padding: "0 0 32px",
-          }}
+          className={cn("overflow-x-hidden flex-1 pb-8", isDragging.current ? "overflow-y-hidden" : "overflow-y-auto")}
         >
           {notifications.length === 0 ? (
-            <div
-              style={{
-                padding: "40px 20px",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: font.serif,
-                  fontSize: 18,
-                  color: color.muted,
-                  marginBottom: 8,
-                }}
-              >
+            <div className="py-10 px-5 text-center">
+              <div className="font-serif text-lg text-muted mb-2">
                 No notifications yet
               </div>
-              <p
-                style={{
-                  fontFamily: font.mono,
-                  fontSize: 11,
-                  color: color.faint,
-                }}
-              >
+              <p className="font-mono text-xs text-faint">
                 You&apos;ll see friend requests, check responses, and squad invites here
               </p>
             </div>
@@ -327,23 +259,15 @@ const NotificationsPanel = ({
                     onNavigate({ type: "feed", checkId: n.related_check_id ?? undefined });
                   }
                 }}
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "14px 20px",
-                  background: n.is_read ? "transparent" : "rgba(232, 255, 90, 0.04)",
-                  border: "none",
-                  borderBottom: `1px solid ${color.border}`,
-                  cursor: "pointer",
-                  width: "100%",
-                  textAlign: "left",
-                }}
+                className={cn(
+                  "flex gap-3 w-full border-none border-b border-border cursor-pointer text-left",
+                  n.is_read ? "bg-transparent" : "bg-[rgba(232,255,90,0.04)]"
+                )}
+                style={{ padding: "14px 20px", borderBottom: `1px solid ${color.border}` }}
               >
                 <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0"
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
                     background: n.type === "friend_request" ? "#E8FF5A22"
                       : n.type === "friend_accepted" ? "#34C75922"
                       : n.type === "check_response" ? "#FF9F0A22"
@@ -354,11 +278,6 @@ const NotificationsPanel = ({
                       : n.type === "event_down" ? "#E8FF5A22"
                       : n.type === "friend_event" ? "#E8FF5A22"
                       : "#5856D622",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 16,
-                    flexShrink: 0,
                   }}
                 >
                   {n.type === "friend_request" ? "👋"
@@ -372,58 +291,28 @@ const NotificationsPanel = ({
                     : n.type === "friend_event" ? "🎉"
                     : "💬"}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      color: n.is_read ? color.muted : color.text,
-                      fontWeight: n.is_read ? 400 : 700,
-                      marginBottom: 2,
-                    }}
+                    className={cn(
+                      "font-mono text-xs mb-0.5",
+                      n.is_read ? "text-muted font-normal" : "text-primary font-bold"
+                    )}
                   >
                     {n.title}
                   </div>
                   {n.body && (
                     <div
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 11,
-                        color: color.dim,
-                        lineHeight: 1.4,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        wordBreak: "break-all",
-                      }}
+                      className="font-mono text-xs text-dim leading-relaxed overflow-hidden break-all line-clamp-2"
                     >
                       {n.body}
                     </div>
                   )}
-                  <div
-                    style={{
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      color: color.faint,
-                      marginTop: 4,
-                    }}
-                  >
+                  <div className="font-mono text-tiny text-faint mt-1">
                     {formatTimeAgo(new Date(n.created_at))}
                   </div>
                 </div>
                 {!n.is_read && (
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: color.accent,
-                      flexShrink: 0,
-                      alignSelf: "center",
-                    }}
-                  />
+                  <div className="w-2 h-2 rounded-full bg-dt shrink-0 self-center" />
                 )}
               </button>
             ))

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import type { Squad } from "@/lib/ui-types";
 
 interface MessageComposerProps {
@@ -53,11 +53,8 @@ export default function MessageComposer({
         );
         if (filtered.length === 0) return null;
         return (
-          <div style={{ padding: "4px 20px", background: color.surface }}>
-            <div style={{
-              background: color.deep, border: `1px solid ${color.borderMid}`,
-              borderRadius: 10, maxHeight: 120, overflowY: "auto",
-            }}>
+          <div className="px-5 bg-surface">
+            <div className="bg-deep border border-border-mid rounded-lg max-h-[120px] overflow-y-auto">
               {filtered.slice(0, 6).map((m) => (
                 <button
                   key={m.userId}
@@ -70,22 +67,12 @@ export default function MessageComposer({
                     setChatMentionIdx(-1);
                     msgInputRef.current?.focus();
                   }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    width: "100%", padding: "8px 12px",
-                    background: "transparent", border: "none", cursor: "pointer",
-                    borderBottom: `1px solid ${color.border}`,
-                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 bg-transparent border-none cursor-pointer border-b border-border"
                 >
-                  <div style={{
-                    width: 24, height: 24, borderRadius: "50%",
-                    background: color.borderLight, color: color.dim,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: font.mono, fontSize: 10, fontWeight: 700,
-                  }}>
+                  <div className="w-6 h-6 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-tiny font-bold">
                     {m.avatar}
                   </div>
-                  <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>{m.name}</span>
+                  <span className="font-mono text-xs text-primary">{m.name}</span>
                 </button>
               ))}
             </div>
@@ -94,20 +81,13 @@ export default function MessageComposer({
       })()}
       {/* Input row */}
       <div
-        style={{
-          padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
-          display: "flex",
-          gap: 8,
-          alignItems: "flex-end",
-        }}
+        className="flex gap-2 items-end"
+        style={{ padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))" }}
       >
         {(!activePoll || activePoll.status === 'closed') && onOpenPollCreator && (
           <button
             onClick={onOpenPollCreator}
-            style={{
-              background: 'none', border: 'none', padding: 0,
-              fontSize: 20, opacity: 0.6, cursor: 'pointer', lineHeight: 1, marginBottom: 8,
-            }}
+            className="bg-none border-none p-0 text-xl opacity-60 cursor-pointer leading-none mb-2"
           >
             📊
           </button>
@@ -145,36 +125,22 @@ export default function MessageComposer({
           enterKeyHint="send"
           placeholder="Message..."
           rows={1}
+          className="flex-1 bg-card border border-border-mid rounded-[20px] text-primary font-mono outline-none resize-none max-h-[120px] overflow-y-auto"
           style={{
-            flex: 1,
-            background: color.card,
-            border: `1px solid ${color.borderMid}`,
-            borderRadius: 20,
             padding: "10px 16px",
-            color: color.text,
-            fontFamily: font.mono,
             fontSize: 16,
-            outline: "none",
-            resize: "none",
-            maxHeight: 120,
             lineHeight: 1.4,
-            overflowY: "auto",
           }}
         />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleSend}
           disabled={!newMsg.trim()}
+          className="border-none rounded-full w-10 h-10 font-bold text-base"
           style={{
             background: newMsg.trim() ? color.accent : color.borderMid,
             color: newMsg.trim() ? "#000" : color.dim,
-            border: "none",
-            borderRadius: "50%",
-            width: 40,
-            height: 40,
             cursor: newMsg.trim() ? "pointer" : "default",
-            fontWeight: 700,
-            fontSize: 16,
           }}
         >
           ↑

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { API_BASE } from "@/lib/db";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 
 type State = "loading" | "logged-out" | "ready" | "submitting" | "done";
 
@@ -40,28 +40,13 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
 
   if (state === "loading") return null;
 
-  const buttonStyle = {
-    display: "block",
-    width: "100%",
-    textAlign: "center" as const,
-    background: color.accent,
-    color: "#000",
-    borderRadius: 12,
-    padding: 14,
-    fontFamily: font.mono,
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.08em",
-    textDecoration: "none",
-    border: "none",
-    cursor: "pointer",
-  };
+  const baseClasses = "block w-full text-center bg-dt text-black rounded-xl font-mono text-xs font-bold uppercase no-underline border-none cursor-pointer";
+  const baseStyle = { padding: 14, letterSpacing: "0.08em" };
 
   // Not logged in — send through auth flow with pending check
   if (state === "logged-out") {
     return (
-      <a href={`/?pendingCheck=${checkId}`} style={buttonStyle}>
+      <a href={`/?pendingCheck=${checkId}`} className={baseClasses} style={baseStyle}>
         Join to respond
       </a>
     );
@@ -70,19 +55,14 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
   // Already responded
   if (state === "done") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="flex flex-col gap-2.5">
         <div
-          style={{
-            ...buttonStyle,
-            background: "transparent",
-            color: color.accent,
-            border: `1px solid ${color.borderMid}`,
-            cursor: "default",
-          }}
+          className={`${baseClasses} !bg-transparent !text-dt !cursor-default`}
+          style={{ ...baseStyle, border: `1px solid ${color.borderMid}` }}
         >
           {"You're down \u{1F919}"}
         </div>
-        <a href={`/?tab=feed&checkId=${checkId}`} style={{ ...buttonStyle, background: color.card, color: color.text }}>
+        <a href={`/?tab=feed&checkId=${checkId}`} className={`${baseClasses} !bg-card !text-primary`} style={baseStyle}>
           Open downto
         </a>
       </div>
@@ -94,8 +74,9 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
     <button
       onClick={handleRespond}
       disabled={state === "submitting"}
+      className={baseClasses}
       style={{
-        ...buttonStyle,
+        ...baseStyle,
         opacity: state === "submitting" ? 0.6 : 1,
       }}
     >

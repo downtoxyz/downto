@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import Grain from "@/app/components/Grain";
 
 /**
@@ -10,7 +10,7 @@ import Grain from "@/app/components/Grain";
  *
  * Landing page for one-time instant friendship links.
  * - If logged in: redeems immediately
- * - If not logged in: shows creator info + "Join to connect" → stores token, redirects to auth
+ * - If not logged in: shows creator info + "Join to connect" -> stores token, redirects to auth
  *
  * Security:
  * - UUID v4 token (128-bit, unguessable)
@@ -88,60 +88,30 @@ export default function FriendLinkPage() {
   }, []);
 
   return (
-    <div style={{
-      maxWidth: 420,
-      margin: "0 auto",
-      minHeight: "100vh",
-      background: color.bg,
-      padding: "80px 24px",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      textAlign: "center",
-    }}>
+    <div className="max-w-[420px] mx-auto min-h-screen bg-bg py-20 px-6 flex flex-col items-center text-center">
       <Grain />
 
       {status === "loading" && (
-        <p style={{ fontFamily: font.mono, fontSize: 12, color: color.dim }}>Loading...</p>
+        <p className="font-mono text-xs text-dim">Loading...</p>
       )}
 
       {status === "redeemed" && (
         <>
           {creatorAvatar && (
-            <div style={{
-              width: 64, height: 64, borderRadius: "50%",
-              background: color.accent, color: "#000",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: font.mono, fontSize: 24, fontWeight: 700,
-              marginBottom: 20,
-            }}>
+            <div className="w-16 h-16 rounded-full bg-dt text-black flex items-center justify-center font-mono text-2xl font-bold mb-5">
               {creatorAvatar}
             </div>
           )}
-          <h1 style={{ fontFamily: font.serif, fontSize: 32, color: color.text, fontWeight: 400, marginBottom: 8 }}>
+          <h1 className="font-serif text-[32px] text-primary font-normal mb-2">
             you&apos;re connected!
           </h1>
-          <p style={{ fontFamily: font.mono, fontSize: 13, color: color.dim, marginBottom: 32, lineHeight: 1.6 }}>
+          <p className="font-mono text-sm text-dim mb-8" style={{ lineHeight: 1.6 }}>
             you and {creatorName ?? "your friend"} are now friends on down to
           </p>
           <a
             href="/"
-            style={{
-              display: "block",
-              width: "100%",
-              padding: 16,
-              background: color.accent,
-              color: "#000",
-              border: "none",
-              borderRadius: 12,
-              fontFamily: font.mono,
-              fontSize: 14,
-              fontWeight: 700,
-              textAlign: "center",
-              textDecoration: "none",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-            }}
+            className="block w-full p-4 bg-dt text-black border-none rounded-xl font-mono text-sm font-bold text-center no-underline uppercase"
+            style={{ letterSpacing: "0.1em" }}
           >
             Open App
           </a>
@@ -150,30 +120,16 @@ export default function FriendLinkPage() {
 
       {status === "login-needed" && (
         <>
-          <h1 style={{ fontFamily: font.serif, fontSize: 32, color: color.text, fontWeight: 400, marginBottom: 8 }}>
+          <h1 className="font-serif text-[32px] text-primary font-normal mb-2">
             you&apos;ve been invited
           </h1>
-          <p style={{ fontFamily: font.mono, fontSize: 13, color: color.dim, marginBottom: 32, lineHeight: 1.6 }}>
+          <p className="font-mono text-sm text-dim mb-8" style={{ lineHeight: 1.6 }}>
             someone wants to connect with you on down to. sign up or log in to accept.
           </p>
           <a
             href="/?pendingFriend=1"
-            style={{
-              display: "block",
-              width: "100%",
-              padding: 16,
-              background: color.accent,
-              color: "#000",
-              border: "none",
-              borderRadius: 12,
-              fontFamily: font.mono,
-              fontSize: 14,
-              fontWeight: 700,
-              textAlign: "center",
-              textDecoration: "none",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-            }}
+            className="block w-full p-4 bg-dt text-black border-none rounded-xl font-mono text-sm font-bold text-center no-underline uppercase"
+            style={{ letterSpacing: "0.1em" }}
           >
             Join to Connect
           </a>
@@ -182,28 +138,17 @@ export default function FriendLinkPage() {
 
       {status === "error" && (
         <>
-          <h1 style={{ fontFamily: font.serif, fontSize: 32, color: color.text, fontWeight: 400, marginBottom: 8 }}>
+          <h1 className="font-serif text-[32px] text-primary font-normal mb-2">
             link expired
           </h1>
-          <p style={{ fontFamily: font.mono, fontSize: 13, color: color.dim, marginBottom: 32, lineHeight: 1.6 }}>
+          <p className="font-mono text-sm text-dim mb-8" style={{ lineHeight: 1.6 }}>
             {errorMsg || "This friend link is no longer valid. Ask your friend to send a new one."}
           </p>
           <a
             href="/"
+            className="block w-full p-4 bg-transparent text-primary rounded-xl font-mono text-sm font-bold text-center no-underline uppercase"
             style={{
-              display: "block",
-              width: "100%",
-              padding: 16,
-              background: "transparent",
-              color: color.text,
               border: `1px solid ${color.borderMid}`,
-              borderRadius: 12,
-              fontFamily: font.mono,
-              fontSize: 14,
-              fontWeight: 700,
-              textAlign: "center",
-              textDecoration: "none",
-              textTransform: "uppercase",
               letterSpacing: "0.1em",
             }}
           >

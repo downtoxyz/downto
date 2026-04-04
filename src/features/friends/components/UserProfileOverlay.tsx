@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import type { Profile } from "@/lib/types";
 import * as db from "@/lib/db";
 import { logError } from "@/lib/logger";
+import cn from "@/lib/tailwindMerge";
 
 const UserProfileOverlay = ({
   targetUserId,
@@ -87,110 +88,62 @@ const UserProfileOverlay = ({
     : "Add Friend";
 
   const actionDisabled = acting;
-  const actionColor =
-    friendStatus === "accepted" ? "#ff6b6b"
-    : friendStatus === "pending" && isRequester ? color.dim
-    : color.accent;
-  const actionBg =
-    friendStatus === "accepted" ? "transparent"
-    : friendStatus === "pending" && isRequester ? "transparent"
-    : color.accent;
   const actionTextColor =
     friendStatus === "accepted" ? "#ff6b6b"
     : friendStatus === "pending" && isRequester ? color.faint
     : "#000";
+  const actionBg =
+    friendStatus === "accepted" ? "transparent"
+    : friendStatus === "pending" && isRequester ? "transparent"
+    : color.accent;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       <div
         onClick={onClose}
+        className="absolute inset-0"
         style={{
-          position: "absolute",
-          inset: 0,
           background: "rgba(0,0,0,0.8)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
         }}
       />
-      <div
-        style={{
-          position: "relative",
-          background: color.surface,
-          borderRadius: 24,
-          width: "90%",
-          maxWidth: 340,
-          padding: "40px 24px 32px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          animation: "slideUp 0.2s ease-out",
-        }}
-      >
+      <div className="relative bg-surface rounded-3xl w-[90%] max-w-[340px] pt-10 px-6 pb-8 flex flex-col items-center animate-slide-up">
         {/* Close button */}
         <button
           onClick={onClose}
-          style={{
-            position: "absolute",
-            top: 14,
-            right: 14,
-            background: "none",
-            border: "none",
-            color: color.dim,
-            fontSize: 18,
-            cursor: "pointer",
-            padding: 4,
-            lineHeight: 1,
-          }}
+          className="absolute top-3.5 right-3.5 bg-transparent border-none text-dim text-lg cursor-pointer p-1 leading-none"
         >
           ✕
         </button>
 
         {loading ? (
-          <div style={{ padding: "40px 0", color: color.faint, fontFamily: font.mono, fontSize: 12 }}>
+          <div className="py-10 text-faint font-mono text-xs">
             <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}>Loading...</span>
           </div>
         ) : !profileData ? (
-          <div style={{ padding: "40px 0", color: color.faint, fontFamily: font.mono, fontSize: 12 }}>
+          <div className="py-10 text-faint font-mono text-xs">
             User not found
           </div>
         ) : (
           <>
             {/* Avatar */}
             <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: "50%",
-                background: isSelf ? color.accent : friendStatus === "accepted" ? color.accent : color.borderLight,
-                color: isSelf || friendStatus === "accepted" ? "#000" : color.dim,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: font.mono,
-                fontSize: 28,
-                fontWeight: 700,
-                marginBottom: 16,
-              }}
+              className={cn(
+                "w-[72px] h-[72px] rounded-full flex items-center justify-center font-mono text-[28px] font-bold mb-4",
+                (isSelf || friendStatus === "accepted") ? "bg-dt text-black" : "bg-border-light text-dim"
+              )}
             >
               {profileData.avatar_letter}
             </div>
 
             {/* Name */}
-            <div style={{ fontFamily: font.serif, fontSize: 22, color: color.text, marginBottom: 4 }}>
+            <div className="font-serif text-2xl text-primary mb-1">
               {profileData.display_name}
             </div>
 
             {/* Username */}
-            <div style={{ fontFamily: font.mono, fontSize: 13, color: color.dim, marginBottom: 4 }}>
+            <div className="font-mono text-sm text-dim mb-1">
               @{profileData.username}
             </div>
 
@@ -200,14 +153,14 @@ const UserProfileOverlay = ({
                 href={`https://instagram.com/${profileData.ig_handle}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontFamily: font.mono, fontSize: 11, color: color.faint, marginBottom: 8, textDecoration: "none" }}
+                className="font-mono text-xs text-faint mb-2 no-underline"
               >
                 ig: @{profileData.ig_handle}
               </a>
             )}
 
             {/* Availability */}
-            <div style={{ fontFamily: font.mono, fontSize: 12, color: color.faint, marginBottom: 32 }}>
+            <div className="font-mono text-xs text-faint mb-8">
               {profileData.availability === "open" && "✨ open to friends!"}
               {profileData.availability === "awkward" && "👀 awkward timing"}
               {profileData.availability === "not-available" && "🌙 not available"}
@@ -218,8 +171,11 @@ const UserProfileOverlay = ({
               <button
                 onClick={handleAction}
                 disabled={actionDisabled}
+                className={cn(
+                  "w-full rounded-xl py-3.5 px-6 font-mono text-xs font-bold uppercase",
+                  actionDisabled ? "cursor-default opacity-60" : "cursor-pointer opacity-100"
+                )}
                 style={{
-                  width: "100%",
                   background: actionBg,
                   color: actionTextColor,
                   border: friendStatus === "accepted"
@@ -227,15 +183,7 @@ const UserProfileOverlay = ({
                     : friendStatus === "pending" && isRequester
                       ? `1px solid ${color.borderMid}`
                       : "none",
-                  borderRadius: 12,
-                  padding: "14px 24px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: actionDisabled ? "default" : "pointer",
-                  textTransform: "uppercase",
                   letterSpacing: "0.08em",
-                  opacity: actionDisabled ? 0.6 : 1,
                 }}
               >
                 {acting ? "..." : actionLabel}

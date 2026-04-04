@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import * as db from "@/lib/db";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 
 interface PollMessageProps {
   poll: {
@@ -55,23 +56,16 @@ export default function PollMessage({
   const isCreator = userId === poll.createdBy;
 
   return (
-    <div ref={pollMessageRef} style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
-      <div style={{
-        background: color.card,
-        border: `1px solid ${color.borderMid}`,
-        borderRadius: 14,
-        padding: 16,
-        maxWidth: 300,
-        width: '100%',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <span style={{ fontSize: 16 }}>📊</span>
-          <span style={{ fontFamily: font.serif, fontSize: 16, color: color.text }}>{poll.question}</span>
+    <div ref={pollMessageRef} className="flex justify-center py-2">
+      <div className="bg-card border border-border-mid rounded-xl p-4 max-w-[300px] w-full">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-base">📊</span>
+          <span className="font-serif text-base text-primary">{poll.question}</span>
         </div>
-        <div style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, marginBottom: 10 }}>
+        <div className="font-mono text-tiny text-faint mb-2.5">
           {poll.multiSelect ? 'Select all that apply' : 'Pick one'}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="flex flex-col gap-1.5">
           {poll.options.map((opt, oi) => {
             const isMyVote = myVotes.has(oi);
             const votersForOption = votes.filter((v) => v.optionIndex === oi);
@@ -82,50 +76,39 @@ export default function PollMessage({
               <div
                 key={oi}
                 onClick={canVote ? () => handleVote(oi) : undefined}
-                style={{
-                  position: 'relative',
-                  border: isMyVote ? 'none' : `1px solid ${color.borderMid}`,
-                  background: isMyVote ? color.accent : 'transparent',
-                  borderRadius: 10,
-                  padding: '8px 12px',
-                  cursor: canVote ? 'pointer' : 'default',
-                  overflow: 'hidden',
-                }}
+                className={cn(
+                  "relative rounded-lg overflow-hidden",
+                  isMyVote ? "bg-dt border-none" : "bg-transparent border border-border-mid",
+                  canVote ? "cursor-pointer" : "cursor-default"
+                )}
+                style={{ padding: '8px 12px' }}
               >
                 {totalVoters > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    left: 0, top: 0, bottom: 0,
-                    width: `${pct}%`,
-                    background: isMyVote ? 'rgba(0,0,0,0.1)' : `${color.accent}15`,
-                    borderRadius: 10,
-                    transition: 'width 0.3s ease',
-                  }} />
+                  <div
+                    className="absolute left-0 top-0 bottom-0 rounded-lg transition-[width] duration-300 ease-in-out"
+                    style={{
+                      width: `${pct}%`,
+                      background: isMyVote ? 'rgba(0,0,0,0.1)' : `${color.accent}15`,
+                    }}
+                  />
                 )}
-                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{
-                    fontFamily: font.mono,
-                    fontSize: 12,
-                    color: isMyVote ? '#000' : color.text,
-                    fontWeight: isMyVote ? 700 : 400,
-                  }}>{opt}</span>
+                <div className="relative flex justify-between items-center">
+                  <span className={cn(
+                    "font-mono text-xs",
+                    isMyVote ? "text-black font-bold" : "text-primary font-normal"
+                  )}>{opt}</span>
                   {totalVoters > 0 && (
-                    <span style={{
-                      fontFamily: font.mono,
-                      fontSize: 10,
-                      color: isMyVote ? '#000' : color.dim,
-                      fontWeight: 700,
-                    }}>{pct}%</span>
+                    <span className={cn(
+                      "font-mono text-tiny font-bold",
+                      isMyVote ? "text-black" : "text-dim"
+                    )}>{pct}%</span>
                   )}
                 </div>
                 {count > 0 && (
-                  <div style={{
-                    position: 'relative',
-                    fontFamily: font.mono,
-                    fontSize: 10,
-                    color: isMyVote ? 'rgba(0,0,0,0.6)' : color.faint,
-                    marginTop: 2,
-                  }}>
+                  <div
+                    className="relative font-mono text-tiny mt-0.5"
+                    style={{ color: isMyVote ? 'rgba(0,0,0,0.6)' : color.faint }}
+                  >
                     {votersForOption.map((v) => v.userId === userId ? 'You' : v.displayName).join(', ')}
                   </div>
                 )}
@@ -133,24 +116,15 @@ export default function PollMessage({
             );
           })}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-          <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
+        <div className="flex justify-between items-center mt-2.5">
+          <span className="font-mono text-tiny text-faint">
             {totalVoters} vote{totalVoters !== 1 ? 's' : ''}{isClosed ? ' · closed' : ''}
           </span>
           {isCreator && !isClosed && (
             <button
               onClick={handleClose}
-              style={{
-                background: 'transparent',
-                border: `1px solid ${color.borderMid}`,
-                borderRadius: 8,
-                padding: '4px 10px',
-                fontFamily: font.mono,
-                fontSize: 10,
-                fontWeight: 700,
-                color: color.dim,
-                cursor: 'pointer',
-              }}
+              className="bg-transparent border border-border-mid rounded-lg font-mono text-tiny font-bold text-dim cursor-pointer"
+              style={{ padding: '4px 10px' }}
             >
               CLOSE POLL
             </button>

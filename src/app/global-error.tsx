@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { logError } from "@/lib/logger";
+import "./global.css";
 
 export default function GlobalError({
   error,
@@ -24,62 +25,21 @@ export default function GlobalError({
           rel="stylesheet"
         />
       </head>
-      <body
-        style={{
-          margin: 0,
-          padding: 0,
-          background: "#0a0a0a",
-          minHeight: "100vh",
-        }}
-      >
-        <div
-          style={{
-            minHeight: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "'Instrument Serif', serif",
-              fontSize: 48,
-              color: "#E8FF5A",
-              marginBottom: 12,
-            }}
-          >
+      <body className="m-0 p-0 bg-bg min-h-screen">
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+          <div className="font-serif text-dt mb-3" style={{ fontSize: 48 }}>
             oops
           </div>
           <p
-            style={{
-              fontFamily: "'Space Mono', monospace",
-              fontSize: 13,
-              color: "#999",
-              marginBottom: 24,
-              maxWidth: 300,
-              lineHeight: 1.6,
-            }}
+            className="font-mono text-sm text-muted mb-6 max-w-[300px]"
+            style={{ lineHeight: 1.6 }}
           >
             something broke — sorry about that
           </p>
           <button
             onClick={reset}
-            style={{
-              background: "#E8FF5A",
-              color: "#000",
-              border: "none",
-              borderRadius: 12,
-              padding: "14px 32px",
-              fontFamily: "'Space Mono', monospace",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-            }}
+            className="bg-dt text-black border-none rounded-xl font-mono text-xs font-bold cursor-pointer uppercase"
+            style={{ padding: "14px 32px", letterSpacing: "0.1em" }}
           >
             Try Again
           </button>

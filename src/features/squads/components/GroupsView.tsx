@@ -2,7 +2,7 @@
 
 import React from "react";
 import * as db from "@/lib/db";
-import { font, color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 import type { Squad } from "@/lib/ui-types";
 
 const formatExpiryShort = (expiresAt?: string): string | null => {
@@ -23,32 +23,16 @@ const GroupsView = ({
   onSelectSquad: (squad: Squad) => void;
 }) => {
   return (
-    <div style={{ padding: "0 20px" }}>
-      <h2
-        style={{
-          fontFamily: font.serif,
-          fontSize: 28,
-          color: color.text,
-          marginBottom: 4,
-          fontWeight: 400,
-        }}
-      >
+    <div className="px-5">
+      <h2 className="font-serif text-[28px] text-primary mb-1 font-normal">
         Your Squads
       </h2>
-      <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 24 }}>
+      <p className="font-mono text-xs text-dim mb-6">
         Groups formed around events
       </p>
 
       {squads.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px 20px",
-            color: color.faint,
-            fontFamily: font.mono,
-            fontSize: 12,
-          }}
-        >
+        <div className="text-center py-[60px] px-5 text-faint font-mono text-xs">
           No squads yet.<br />
           Say you&apos;re down on a friend&apos;s check and a squad forms automatically.
         </div>
@@ -57,35 +41,21 @@ const GroupsView = ({
           <div
             key={g.id}
             onClick={() => onSelectSquad({ ...g, hasUnread: false })}
-            style={{
-              background: color.card,
-              borderRadius: 16,
-              padding: 16,
-              marginBottom: 8,
-              border: `1px solid ${color.border}`,
-              cursor: "pointer",
-            }}
+            className="bg-card rounded-2xl p-4 mb-2 border border-border cursor-pointer"
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                marginBottom: 8,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <span style={{ fontFamily: font.serif, fontSize: 17, color: color.text, fontWeight: 400 }}>
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-start gap-2">
+                <span className="font-serif text-[17px] text-primary font-normal">
                   {g.name}
                   {g.hasUnread && (
-                    <span data-testid={`squad-unread-dot-${g.id}`} style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", marginLeft: 6, verticalAlign: "middle" }} />
+                    <span data-testid={`squad-unread-dot-${g.id}`} className="inline-block w-2 h-2 rounded-full bg-[#ff3b30] ml-1.5 align-middle" />
                   )}
                 </span>
                 {g.isWaitlisted && (
-                  <span style={{ fontFamily: font.mono, fontSize: 9, color: color.faint, border: `1px solid ${color.border}`, borderRadius: 4, padding: "1px 5px", flexShrink: 0, marginTop: 5 }}>waitlist</span>
+                  <span className="font-mono text-[9px] text-faint border border-border rounded px-[5px] py-px shrink-0 mt-[5px]">waitlist</span>
                 )}
               </div>
-              <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, flexShrink: 0 }}>
+              <span className="font-mono text-tiny text-faint shrink-0">
                 {g.time}
                 {(() => {
                   const exp = formatExpiryShort(g.expiresAt);
@@ -93,40 +63,21 @@ const GroupsView = ({
                   const msLeft = g.expiresAt ? new Date(g.expiresAt).getTime() - Date.now() : Infinity;
                   const isUrgent = msLeft < 24 * 60 * 60 * 1000;
                   return (
-                    <span style={{ color: isUrgent ? "#ff3b30" : color.faint }}>
+                    <span className={isUrgent ? "text-[#ff3b30]" : "text-faint"}>
                       {" · "}expires {exp}
                     </span>
                   );
                 })()}
               </span>
             </div>
-            <div
-              style={{
-                fontFamily: font.mono,
-                fontSize: 12,
-                color: color.muted,
-                marginBottom: 8,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <div className="font-mono text-xs text-muted mb-2 overflow-hidden text-ellipsis whitespace-nowrap">
               {g.lastMsg}
             </div>
           </div>
         ))
       )}
 
-      <div
-        style={{
-          textAlign: "center",
-          padding: "32px 20px",
-          color: color.borderMid,
-          fontFamily: font.mono,
-          fontSize: 11,
-          lineHeight: 1.8,
-        }}
-      >
+      <div className="text-center py-8 px-5 text-border-mid font-mono text-xs" style={{ lineHeight: 1.8 }}>
         squads dissolve after the event ✶
       </div>
     </div>

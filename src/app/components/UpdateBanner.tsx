@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { logVersionPing, API_BASE } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 
 const CLIENT_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "";
 const MIN_BACKGROUND_MS = 5 * 60 * 1000; // 5 minutes
@@ -86,30 +86,18 @@ export default function UpdateBanner() {
   if (reloading) {
     return (
       <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 9999,
-          background: color.bg,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 12,
-          animation: "fadeIn 0.3s ease-out",
-        }}
+        className="fixed inset-0 z-[9999] bg-bg flex flex-col items-center justify-center gap-3"
+        style={{ animation: "fadeIn 0.3s ease-out" }}
       >
         <div
+          className="w-6 h-6 rounded-full"
           style={{
-            width: 24,
-            height: 24,
             border: `2px solid ${color.borderMid}`,
             borderTopColor: color.accent,
-            borderRadius: "50%",
             animation: "spin 0.8s linear infinite",
           }}
         />
-        <p style={{ fontFamily: font.mono, fontSize: 12, color: color.dim }}>
+        <p className="font-mono text-xs text-dim">
           updating...
         </p>
       </div>
@@ -126,23 +114,11 @@ export default function UpdateBanner() {
           await new Promise((r) => setTimeout(r, 400));
           await clearCachesAndReload();
         }}
+        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] bg-dt text-black rounded-xl font-mono text-xs font-bold cursor-pointer whitespace-nowrap"
         style={{
-          position: "fixed",
-          bottom: 80,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
-          background: color.accent,
-          color: "#000",
-          borderRadius: 12,
           padding: "10px 20px",
-          fontFamily: font.mono,
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: "pointer",
           animation: "slideUp 0.3s ease-out",
           boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-          whiteSpace: "nowrap",
         }}
       >
         Update available — tap to refresh

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { font, color } from "@/lib/styles";
 import { isIOSNotStandalone } from "@/lib/pushNotifications";
 
 const DISMISSED_KEY = "pwa-install-banner-dismissed";
@@ -19,45 +18,19 @@ const IOSInstallBanner = () => {
 
   return (
     <div
+      className="fixed bottom-20 left-3 right-3 max-w-[396px] mx-auto bg-surface border border-border-light rounded-xl z-[200] flex items-start gap-3"
       style={{
-        position: "fixed",
-        bottom: 80,
-        left: 12,
-        right: 12,
-        maxWidth: 396,
-        margin: "0 auto",
-        background: color.surface,
-        border: `1px solid ${color.borderLight}`,
-        borderRadius: 14,
         padding: "14px 16px",
-        zIndex: 200,
         animation: "slideUp 0.3s ease",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
       }}
     >
-      <div style={{ flex: 1 }}>
-        <p
-          style={{
-            fontFamily: font.serif,
-            fontSize: 16,
-            color: color.text,
-            marginBottom: 6,
-          }}
-        >
+      <div className="flex-1">
+        <p className="font-serif text-base text-primary mb-1.5">
           install down to
         </p>
-        <p
-          style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            color: color.dim,
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="font-mono text-xs text-dim leading-relaxed">
           tap{" "}
-          <span style={{ fontSize: 14, verticalAlign: "middle" }}>
+          <span className="text-sm align-middle">
             {"\u{1F4E4}"}
           </span>{" "}
           then &quot;Add to Home Screen&quot; for notifications &amp; faster access
@@ -68,17 +41,7 @@ const IOSInstallBanner = () => {
           localStorage.setItem(DISMISSED_KEY, "1");
           setVisible(false);
         }}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: color.dim,
-          fontFamily: font.mono,
-          fontSize: 18,
-          cursor: "pointer",
-          padding: "0 4px",
-          lineHeight: 1,
-          flexShrink: 0,
-        }}
+        className="bg-transparent border-none text-dim font-mono text-lg cursor-pointer px-1 leading-none shrink-0"
         aria-label="Dismiss"
       >
         x

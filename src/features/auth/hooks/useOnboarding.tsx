@@ -291,7 +291,7 @@ export function useOnboarding({
 
   const computeOnboardingScreen = (): ReactNode | null => {
     if (isLoading) {
-      return <div style={{ minHeight: "100vh", background: "#111" }} />;
+      return <div className="min-h-screen bg-card" />;
     }
 
     // Eagerly persist pendingCheck from URL to localStorage (before any gate checks)
@@ -377,7 +377,7 @@ export function useOnboarding({
       }
 
       // Wait for feed data before setting up friend gate
-      if (!feedLoaded) return <div style={{ minHeight: "100vh", background: "#111" }} />;
+      if (!feedLoaded) return <div className="min-h-screen bg-card" />;
 
       // Set up friend gate with check author suggestion
       if (!friendGateInitRef.current) {
@@ -410,7 +410,7 @@ export function useOnboarding({
         })();
       }
       // Block rendering until friend gate is ready
-      return <div style={{ minHeight: "100vh", background: "#111" }} />;
+      return <div className="min-h-screen bg-card" />;
     }
 
     if (showFirstCheck) {

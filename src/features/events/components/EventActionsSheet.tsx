@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 
 export default function EventActionsSheet({
   open,
@@ -51,23 +51,9 @@ export default function EventActionsSheet({
   const actionRow = (label: string, icon: string, onClick: () => void) => (
     <button
       onClick={onClick}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        width: "100%",
-        padding: "14px 0",
-        background: "transparent",
-        border: "none",
-        borderBottom: `1px solid ${color.border}`,
-        fontFamily: font.mono,
-        fontSize: 13,
-        color: color.text,
-        cursor: "pointer",
-        textAlign: "left",
-      }}
+      className="flex items-center gap-3 w-full py-3.5 bg-transparent border-none border-b border-border font-mono text-sm text-primary cursor-pointer text-left"
     >
-      <span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{icon}</span>
+      <span className="text-base w-6 text-center">{icon}</span>
       {label}
     </button>
   );
@@ -79,40 +65,31 @@ export default function EventActionsSheet({
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[100]"
         style={{
-          position: "fixed",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
-          zIndex: 100,
         }}
       />
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        className="fixed bottom-0 left-0 right-0 bg-surface max-w-[420px] mx-auto z-[101]"
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: color.surface,
           borderRadius: "24px 24px 0 0",
-          maxWidth: 420,
-          margin: "0 auto",
-          zIndex: 101,
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
           transition: closing ? "transform 0.25s ease-in" : dragOffset > 0 ? undefined : "transform 0.25s ease-out",
           paddingBottom: "env(safe-area-inset-bottom, 20px)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 8px" }}>
-          <div style={{ width: 40, height: 4, background: color.faint, borderRadius: 2 }} />
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-10 h-1 bg-faint rounded-sm" />
         </div>
-        <div style={{ padding: "0 20px 20px" }}>
-          <p style={{ fontFamily: font.serif, fontSize: 18, color: color.text, margin: "0 0 8px", fontWeight: 400 }}>
+        <div className="px-5 pb-5">
+          <p className="font-serif text-lg text-primary mb-2 font-normal">
             Event actions
           </p>
           {onShare && actionRow("Share event", "🔗", () => { dismiss(); onShare(); })}

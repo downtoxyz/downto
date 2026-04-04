@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import type { Tab } from "@/lib/ui-types";
 import { TABS } from "@/lib/ui-types";
 
@@ -65,38 +65,18 @@ const BottomNav = ({
   const idx = TABS.indexOf(tab);
 
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        padding: "0px 16px 16px",
-        background: color.bg,
-      }}
-    >
+    <div className="shrink-0 px-4 pb-4 bg-bg">
       <div
-        style={{
-          display: "flex",
-          gap: 0,
-          background: color.card,
-          borderRadius: 18,
-          padding: "4px",
-          border: `1px solid ${color.border}`,
-          position: "relative",
-          height: 60,
-          alignItems: "stretch",
-        }}
+        className="flex bg-card rounded-[18px] p-1 border border-border relative items-stretch"
+        style={{ height: 60 }}
       >
         {/* Sliding highlight */}
         <div
           ref={highlightRef}
+          className="absolute top-1 bottom-1 bg-border-light rounded-xl opacity-30"
           style={{
-            position: "absolute",
-            top: 4,
-            bottom: 4,
             left: `calc(${idx} * (100% - 8px) / 4 + 4px)`,
             width: "calc((100% - 8px) / 4)",
-            background: color.borderLight,
-            borderRadius: 14,
-            opacity: 0.3,
             ...(settled ? { transition: "none" } : {}),
           }}
         />
@@ -104,31 +84,15 @@ const BottomNav = ({
           <button
             key={t}
             onClick={() => onTabChange(t)}
-            style={{
-              flex: 1,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "8px 0",
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-            }}
+            className="flex-1 bg-none border-none cursor-pointer py-2 relative z-[1] flex flex-col items-center justify-center gap-0.5"
           >
-            <span style={{ fontSize: 13, lineHeight: 1 }}>
+            <span className="text-sm leading-none">
               {tabIcons[t]}
             </span>
             <span
+              className="font-mono leading-none mt-[5px] uppercase"
               style={{
-                fontFamily: font.mono,
                 fontSize: 9,
-                lineHeight: 1,
-                marginTop: 5,
-                textTransform: "uppercase",
                 letterSpacing: "0.08em",
                 color: tab === t ? color.accent : color.faint,
                 fontWeight: tab === t ? 700 : 400,
@@ -139,15 +103,7 @@ const BottomNav = ({
             {t === "groups" && hasGroupsUnread && (
               <div
                 data-testid="squads-unread-dot"
-                style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 8,
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: "#ff3b30",
-                }}
+                className="absolute top-1 right-2 w-[7px] h-[7px] rounded-full bg-[#ff3b30]"
               />
             )}
           </button>

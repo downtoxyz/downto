@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, CSSProperties } from "react";
-import { font, color } from "@/lib/styles";
+import { useState, useEffect, useRef } from "react";
+import { color } from "@/lib/styles";
 import { parseNaturalDate, parseNaturalTime, parseDateToISO } from "@/lib/utils";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
+import cn from "@/lib/tailwindMerge";
 import type { Event } from "@/lib/ui-types";
 
 const EditEventModal = ({
@@ -87,44 +88,12 @@ const EditEventModal = ({
     || event.date;
   const resolvedTime = parsedTime ?? event.time;
 
-  const inputStyle: CSSProperties = {
-    background: color.deep,
-    border: `1px solid ${color.borderMid}`,
-    borderRadius: 10,
-    padding: "12px 14px",
-    color: color.text,
-    fontFamily: font.mono,
-    fontSize: 13,
-    outline: "none",
-    width: "100%",
-    boxSizing: "border-box",
-  };
-
-  const labelStyle: CSSProperties = {
-    fontFamily: font.mono,
-    fontSize: 10,
-    textTransform: "uppercase",
-    letterSpacing: "0.15em",
-    color: color.dim,
-    marginBottom: 6,
-  };
-
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-end justify-center">
       <div
         onClick={close}
+        className="absolute inset-0"
         style={{
-          position: "absolute",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
@@ -133,16 +102,8 @@ const EditEventModal = ({
         }}
       />
       <div
+        className="relative bg-surface rounded-t-3xl w-full max-w-[420px] px-6 pt-5 pb-0 max-h-[80vh] flex flex-col"
         style={{
-          position: "relative",
-          background: color.surface,
-          borderRadius: "24px 24px 0 0",
-          width: "100%",
-          maxWidth: 420,
-          padding: "20px 24px 0",
-          maxHeight: "80vh",
-          display: "flex",
-          flexDirection: "column",
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
           transition: closing ? "transform 0.2s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
@@ -155,7 +116,7 @@ const EditEventModal = ({
           onTouchEnd={finishSwipe}
           style={{ touchAction: "none" }}
         >
-          <div style={{ width: 40, height: 4, background: color.faint, borderRadius: 2, margin: "0 auto 20px" }} />
+          <div className="w-10 h-1 bg-faint rounded-sm mx-auto mb-5" />
         </div>
 
         <div
@@ -163,115 +124,93 @@ const EditEventModal = ({
           onTouchStart={handleScrollTouchStart}
           onTouchMove={handleScrollTouchMove}
           onTouchEnd={handleScrollTouchEnd}
-          style={{ overflowY: "auto", overflowX: "hidden", flex: 1, paddingBottom: 24 }}
+          className="overflow-y-auto overflow-x-hidden flex-1 pb-6"
         >
-          <h3
-            style={{
-              fontFamily: font.serif,
-              fontSize: 22,
-              color: color.text,
-              marginBottom: 20,
-              fontWeight: 400,
-            }}
-          >
+          <h3 className="font-serif text-2xl text-primary mb-5 font-normal">
             Edit event
           </h3>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="flex flex-col gap-3.5">
             <div>
-              <div style={labelStyle}>Title</div>
+              <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>Title</div>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Event name"
-                style={inputStyle}
+                className="bg-deep border border-border-mid rounded-lg py-3 px-3.5 text-primary font-mono text-sm outline-none w-full box-border"
               />
             </div>
 
             {/* When / Where — matching creation flow */}
-            <div style={{ display: "flex", gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <div style={labelStyle}>When</div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>When</div>
                 <input
                   type="text"
                   placeholder="e.g. fri 9pm"
                   value={whenInput}
                   onChange={(e) => setWhenInput(e.target.value)}
-                  style={inputStyle}
+                  className="bg-deep border border-border-mid rounded-lg py-3 px-3.5 text-primary font-mono text-sm outline-none w-full box-border"
                 />
               </div>
               <div style={{ flex: 0.6 }}>
-                <div style={labelStyle}>Where</div>
+                <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>Where</div>
                 <input
                   type="text"
                   value={venue}
                   onChange={(e) => setVenue(e.target.value)}
                   placeholder="Venue"
-                  style={inputStyle}
+                  className="bg-deep border border-border-mid rounded-lg py-3 px-3.5 text-primary font-mono text-sm outline-none w-full box-border"
                 />
               </div>
             </div>
             {whenPreview && (
-              <div style={{
-                fontFamily: font.mono,
-                fontSize: 10,
-                color: color.dim,
-                marginTop: -8,
-                paddingLeft: 2,
-              }}>
+              <div className="font-mono text-tiny text-dim -mt-2 pl-0.5">
                 {whenPreview}
               </div>
             )}
 
             <div>
-              <div style={labelStyle}>Vibes (comma-separated)</div>
+              <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>Vibes (comma-separated)</div>
               <input
                 type="text"
                 value={vibeText}
                 onChange={(e) => setVibeText(e.target.value)}
                 placeholder="e.g. techno, late night"
-                style={inputStyle}
+                className="bg-deep border border-border-mid rounded-lg py-3 px-3.5 text-primary font-mono text-sm outline-none w-full box-border"
               />
             </div>
             {event?.isPublic && (
               <div>
-                <div style={labelStyle}>Note</div>
+                <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>Note</div>
                 <input
                   type="text"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="e.g. DJ set starts at midnight"
                   maxLength={200}
-                  style={inputStyle}
+                  className="bg-deep border border-border-mid rounded-lg py-3 px-3.5 text-primary font-mono text-sm outline-none w-full box-border"
                 />
               </div>
             )}
           </div>
 
           {/* Save button */}
-          <div style={{ padding: "20px 0 0", flexShrink: 0 }}>
+          <div className="pt-5 shrink-0">
             <button
               onClick={() => {
                 const vibes = vibeText.split(",").map((v) => v.trim()).filter(Boolean);
                 onSave({ title, venue, date: resolvedDate, time: resolvedTime, vibe: vibes, note: note.trim() });
               }}
               disabled={!title.trim()}
-              style={{
-                width: "100%",
-                background: title.trim() ? color.accent : color.borderMid,
-                color: title.trim() ? "#000" : color.dim,
-                border: "none",
-                borderRadius: 12,
-                padding: "14px",
-                fontFamily: font.mono,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: title.trim() ? "pointer" : "not-allowed",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                opacity: title.trim() ? 1 : 0.5,
-              }}
+              className={cn(
+                "w-full border-none rounded-xl py-3.5 font-mono text-xs font-bold uppercase",
+                title.trim()
+                  ? "bg-dt text-black cursor-pointer opacity-100"
+                  : "bg-border-mid text-dim cursor-not-allowed opacity-50"
+              )}
+              style={{ letterSpacing: "0.08em" }}
             >
               Save Changes
             </button>

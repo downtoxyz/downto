@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getServiceClient } from "@/lib/supabase-admin";
-import { font, color } from "@/lib/styles";
 import CheckPreviewCTA from "./cta";
 
 interface CheckData {
@@ -82,86 +81,38 @@ export default async function CheckPreviewPage({ params }: { params: Promise<{ i
   const whenLine = dateParts.length > 0 ? dateParts.join(" · ") : null;
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: color.bg,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px 20px",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: 380 }}>
-        <p style={{
-          fontFamily: font.serif,
-          fontSize: 22,
-          color: color.text,
-          textAlign: "center",
-          marginBottom: 20,
-          fontWeight: 400,
-        }}>
+    <div className="min-h-dvh bg-bg flex flex-col items-center justify-center py-6 px-5">
+      <div className="w-full max-w-[380px]">
+        <p className="font-serif text-2xl text-primary text-center mb-5 font-normal">
           are you down?
         </p>
         {/* Card */}
-        <div
-          style={{
-            background: color.card,
-            borderRadius: 14,
-            border: `1px solid ${color.border}`,
-            padding: 20,
-            marginBottom: 24,
-          }}
-        >
+        <div className="bg-card rounded-xl border border-border p-5 mb-6">
           {/* Author */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: color.borderLight,
-                color: color.dim,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: font.mono,
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
+          <div className="flex items-center gap-2.5 mb-3.5">
+            <div className="w-8 h-8 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-sm font-bold">
               {check.author.avatar_letter}
             </div>
-            <span style={{ fontFamily: font.mono, fontSize: 12, color: color.muted }}>
+            <span className="font-mono text-xs text-muted">
               {check.author.display_name}
             </span>
           </div>
 
           {/* Check text */}
-          <p
-            style={{
-              fontFamily: font.serif,
-              fontSize: 20,
-              color: color.text,
-              lineHeight: 1.4,
-              margin: "0 0 14px",
-              fontWeight: 400,
-            }}
-          >
+          <p className="font-serif text-xl text-primary leading-[1.4] mb-3.5 font-normal" style={{ margin: "0 0 14px" }}>
             {check.text}
           </p>
 
           {/* When / Where */}
           {(whenLine || check.location) && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 14 }}>
+            <div className="flex flex-col gap-1 mb-3.5">
               {whenLine && (
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>
+                <span className="font-mono text-xs text-faint">
                   {whenLine}
                 </span>
               )}
               {check.location && (
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>
+                <span className="font-mono text-xs text-faint">
                   {check.location}
                 </span>
               )}
@@ -170,7 +121,7 @@ export default async function CheckPreviewPage({ params }: { params: Promise<{ i
 
           {/* Response count */}
           {check.responseCount > 0 && (
-            <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+            <span className="font-mono text-xs text-dim">
               {check.responseCount} {check.responseCount === 1 ? "person" : "people"} responded
             </span>
           )}
@@ -180,15 +131,7 @@ export default async function CheckPreviewPage({ params }: { params: Promise<{ i
         <CheckPreviewCTA checkId={check.id} />
 
         {/* Branding */}
-        <p
-          style={{
-            textAlign: "center",
-            fontFamily: font.serif,
-            fontSize: 14,
-            color: color.faint,
-            marginTop: 20,
-          }}
-        >
+        <p className="text-center font-serif text-sm text-faint mt-5">
           down to
         </p>
       </div>

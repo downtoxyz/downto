@@ -7,7 +7,7 @@ import { useEvents } from "@/features/events/hooks/useEvents";
 import { supabase } from "@/lib/supabase";
 import * as db from "@/lib/db";
 import { API_BASE } from "@/lib/db";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import { sanitize, sanitizeVibes, parseDateToISO, toLocalISODate } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 import type { Person, Event, Tab, ScrapedEvent, Squad } from "@/lib/ui-types";
@@ -688,7 +688,7 @@ export default function Home() {
       toggleSave: eventsHook.toggleSave,
       toggleDown: eventsHook.toggleDown,
     }}>
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh" }}>
+    <div className="flex flex-col h-dvh">
       <div>
         <Header
           unreadCount={notificationsHook.unreadCount}
@@ -708,28 +708,28 @@ export default function Home() {
       </div>
 
       {/* Scroll area with fade edges */}
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+      <div className="flex-1 relative overflow-hidden">
         {/* Top fade — visible when scrolled */}
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: 15,
-          background: `linear-gradient(${color.bg}, transparent)`,
-          zIndex: 10, pointerEvents: "none",
-          opacity: scrolledDown ? 1 : 0,
-          transition: "opacity 0.5s ease",
-        }} />
+        <div
+          className="absolute top-0 left-0 right-0 z-10 pointer-events-none transition-opacity duration-500"
+          style={{
+            height: 15,
+            background: `linear-gradient(${color.bg}, transparent)`,
+            opacity: scrolledDown ? 1 : 0,
+          }}
+        />
         {/* Bottom fade */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: 15,
-          background: `linear-gradient(transparent, ${color.bg})`,
-          zIndex: 10, pointerEvents: "none",
-        }} />
+        <div
+          className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none"
+          style={{
+            height: 15,
+            background: `linear-gradient(transparent, ${color.bg})`,
+          }}
+        />
         {/* Scroll container */}
         <div
           ref={scrollRef}
-          style={{
-            height: "100%",
-            overflowY: "auto",
-          }}
+          className="h-full overflow-y-auto"
           onScroll={() => {
             const scrolled = (scrollRef.current?.scrollTop ?? 0) > 0;
             if (scrolled !== scrolledDown) setScrolledDown(scrolled);
@@ -739,50 +739,34 @@ export default function Home() {
           onTouchEnd={handlePullEnd}
         >
         {/* Inner wrapper — translated by pull-to-refresh */}
-        <div ref={innerRef} style={{ position: "relative" }}>
+        <div ref={innerRef} className="relative">
         {/* Pull-to-refresh spinner */}
         <div
           ref={spinnerWrapRef}
-          style={{
-            position: "absolute",
-            top: -50,
-            left: 0,
-            right: 0,
-            display: "flex",
-            justifyContent: "center",
-            willChange: "transform, opacity",
-          }}
+          className="absolute left-0 right-0 flex justify-center"
+          style={{ top: -50, willChange: "transform, opacity" }}
         >
           <div
             ref={spinnerRef}
+            className="w-[22px] h-[22px] rounded-full"
             style={{
-              width: 22,
-              height: 22,
               border: `2px solid ${color.borderMid}`,
               borderTopColor: color.accent,
-              borderRadius: "50%",
               willChange: "transform",
             }}
           />
         </div>
         {!feedLoaded && (
-          <div style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "80px 20px",
-            gap: 12,
-          }}>
-            <div style={{
-              width: 24,
-              height: 24,
-              border: `2px solid ${color.borderMid}`,
-              borderTopColor: color.accent,
-              borderRadius: "50%",
-              animation: "spin 0.8s linear infinite",
-            }} />
-            <p style={{ fontFamily: font.mono, fontSize: 12, color: color.dim }}>
+          <div className="flex flex-col items-center justify-center px-5 gap-3" style={{ paddingTop: 80, paddingBottom: 80 }}>
+            <div
+              className="w-6 h-6 rounded-full"
+              style={{
+                border: `2px solid ${color.borderMid}`,
+                borderTopColor: color.accent,
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            <p className="font-mono text-xs text-dim">
               loading your feed...
             </p>
           </div>
