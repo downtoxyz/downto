@@ -62,6 +62,22 @@ const SquadChat = ({
   // Local squad state for non-message fields (members, sizes, dates, etc.)
   const [localSquad, setLocalSquad] = useState(squad);
 
+  // Sync non-message fields when parent squad prop updates (e.g. after loadRealData)
+  useEffect(() => {
+    setLocalSquad((prev) => ({
+      ...prev,
+      dateStatus: squad.dateStatus,
+      eventIsoDate: squad.eventIsoDate,
+      eventTime: squad.eventTime,
+      members: squad.members,
+      waitlistedMembers: squad.waitlistedMembers,
+      downResponders: squad.downResponders,
+      maxSquadSize: squad.maxSquadSize,
+      expiresAt: squad.expiresAt,
+      meetingSpot: squad.meetingSpot,
+    }));
+  }, [squad.dateStatus, squad.eventIsoDate, squad.eventTime, squad.members, squad.waitlistedMembers, squad.downResponders, squad.maxSquadSize, squad.expiresAt, squad.meetingSpot]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [entering, setEntering] = useState(true);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
