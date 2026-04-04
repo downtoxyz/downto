@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import Grain from "@/app/components/Grain";
 
 const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
@@ -60,76 +60,43 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
   };
 
   return (
-    <div
-      style={{
-        padding: "60px 24px",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div className="flex flex-col" style={{ padding: "60px 24px" }}>
       <Grain />
 
-      <h1
-        style={{
-          fontFamily: font.serif,
-          fontSize: 48,
-          color: color.text,
-          fontWeight: 400,
-          marginBottom: 8,
-        }}
-      >
+      <h1 className="font-serif text-5xl text-primary font-normal mb-2">
         down to
       </h1>
       <p
-        style={{
-          fontFamily: font.mono,
-          fontSize: 13,
-          color: color.dim,
-          marginBottom: pendingAddUser ? 12 : 48,
-        }}
+        className="font-mono text-sm text-dim"
+        style={{ marginBottom: pendingAddUser ? 12 : 48 }}
       >
         from idea to squad in 10 seconds
       </p>
       {pendingCheck && !pendingAddUser && (
         <div
+          className="rounded-xl mb-8"
           style={{
             background: "rgba(232,255,90,0.08)",
             border: `1px solid rgba(232,255,90,0.2)`,
-            borderRadius: 12,
             padding: "12px 16px",
-            marginBottom: 32,
           }}
         >
-          <p style={{ fontFamily: font.mono, fontSize: 12, color: color.accent, margin: 0, lineHeight: 1.5 }}>
+          <p className="font-mono text-xs text-dt m-0 leading-normal">
             sign up or log in to respond to this check
           </p>
-          <p style={{ fontFamily: font.mono, fontSize: 10, color: color.dim, margin: "4px 0 0" }}>
+          <p className="font-mono text-tiny text-dim" style={{ margin: "4px 0 0" }}>
             quick setup, then you&apos;re in
           </p>
         </div>
       )}
       {pendingAddUser && (
-        <p
-          style={{
-            fontFamily: font.mono,
-            fontSize: 12,
-            color: color.accent,
-            marginBottom: 36,
-          }}
-        >
+        <p className="font-mono text-xs text-dt mb-9">
           log in or create a profile to add @{pendingAddUser}
         </p>
       )}
 
       {error && (
-        <p
-          style={{
-            fontFamily: font.mono,
-            fontSize: 12,
-            color: "#ff6b6b",
-            marginBottom: 16,
-          }}
-        >
+        <p className="font-mono text-xs text-danger mb-4">
           {error}
         </p>
       )}
@@ -137,14 +104,8 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
       {step === "email" ? (
         <>
           <label
-            style={{
-              fontFamily: font.mono,
-              fontSize: 10,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: color.dim,
-              marginBottom: 8,
-            }}
+            className="font-mono text-tiny uppercase text-dim mb-2"
+            style={{ letterSpacing: "0.15em" }}
           >
             Email
           </label>
@@ -154,32 +115,16 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendCode()}
             placeholder="you@email.com"
-            style={{
-              background: color.card,
-              border: `1px solid ${color.borderMid}`,
-              borderRadius: 12,
-              padding: "16px",
-              color: color.text,
-              fontFamily: font.mono,
-              fontSize: 18,
-              outline: "none",
-              marginBottom: 16,
-            }}
+            className="bg-card border border-border-mid rounded-xl p-4 text-primary font-mono text-lg outline-none mb-4"
           />
           <button
             onClick={handleSendCode}
             disabled={!email.includes("@") || loading}
+            className="border-none rounded-xl p-4 font-mono text-sm font-bold uppercase"
             style={{
               background: email.includes("@") ? color.accent : color.borderMid,
               color: email.includes("@") ? "#000" : color.dim,
-              border: "none",
-              borderRadius: 12,
-              padding: "16px",
-              fontFamily: font.mono,
-              fontSize: 14,
-              fontWeight: 700,
               cursor: email.includes("@") ? "pointer" : "not-allowed",
-              textTransform: "uppercase",
               letterSpacing: "0.1em",
             }}
           >
@@ -188,26 +133,13 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
         </>
       ) : (
         <>
-          <p
-            style={{
-              fontFamily: font.mono,
-              fontSize: 12,
-              color: color.dim,
-              marginBottom: 20,
-            }}
-          >
+          <p className="font-mono text-xs text-dim mb-5">
             We sent a code to<br />
-            <span style={{ color: color.accent }}>{email}</span>
+            <span className="text-dt">{email}</span>
           </p>
           <label
-            style={{
-              fontFamily: font.mono,
-              fontSize: 10,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: color.dim,
-              marginBottom: 8,
-            }}
+            className="font-mono text-tiny uppercase text-dim mb-2"
+            style={{ letterSpacing: "0.15em" }}
           >
             Code
           </label>
@@ -220,66 +152,32 @@ const AuthScreen = ({ onLogin }: { onLogin: () => void }) => {
             onKeyDown={(e) => e.key === "Enter" && handleVerifyCode()}
             placeholder="00000000"
             autoFocus
-            style={{
-              background: color.card,
-              border: `1px solid ${color.borderMid}`,
-              borderRadius: 12,
-              padding: "16px",
-              color: color.text,
-              fontFamily: font.mono,
-              fontSize: 24,
-              letterSpacing: "0.3em",
-              textAlign: "center",
-              outline: "none",
-              marginBottom: 16,
-            }}
+            className="bg-card border border-border-mid rounded-xl p-4 text-primary font-mono text-2xl text-center outline-none mb-4"
+            style={{ letterSpacing: "0.3em" }}
           />
           <button
             onClick={handleVerifyCode}
             disabled={otp.length !== 8 || loading}
+            className="border-none rounded-xl p-4 font-mono text-sm font-bold uppercase mb-3"
             style={{
               background: otp.length === 8 ? color.accent : color.borderMid,
               color: otp.length === 8 ? "#000" : color.dim,
-              border: "none",
-              borderRadius: 12,
-              padding: "16px",
-              fontFamily: font.mono,
-              fontSize: 14,
-              fontWeight: 700,
               cursor: otp.length === 8 ? "pointer" : "not-allowed",
-              textTransform: "uppercase",
               letterSpacing: "0.1em",
-              marginBottom: 12,
             }}
           >
             {loading ? "Verifying..." : "Verify"}
           </button>
-          <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
+          <div className="flex justify-center gap-4">
             <button
               onClick={() => { setStep("email"); setOtp(""); setError(null); }}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: color.dim,
-                fontFamily: font.mono,
-                fontSize: 11,
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
+              className="bg-transparent border-none text-dim font-mono text-xs cursor-pointer underline"
             >
               Different email
             </button>
             <button
               onClick={() => { setOtp(""); setError(null); handleSendCode(); }}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: color.dim,
-                fontFamily: font.mono,
-                fontSize: 11,
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
+              className="bg-transparent border-none text-dim font-mono text-xs cursor-pointer underline"
             >
               Resend code
             </button>

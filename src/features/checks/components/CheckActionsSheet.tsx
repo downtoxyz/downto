@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 
 export default function CheckActionsSheet({
   open,
@@ -67,23 +67,14 @@ export default function CheckActionsSheet({
   const actionRow = (label: string, icon: string, onClick: () => void, destructive?: boolean) => (
     <button
       onClick={onClick}
+      className="flex items-center gap-3 w-full bg-transparent border-none border-b border-border font-mono text-sm cursor-pointer text-left"
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        width: "100%",
         padding: "14px 0",
-        background: "transparent",
-        border: "none",
-        borderBottom: `1px solid ${color.border}`,
-        fontFamily: font.mono,
-        fontSize: 13,
         color: destructive ? "#ff4444" : color.text,
-        cursor: "pointer",
-        textAlign: "left",
+        borderBottom: `1px solid ${color.border}`,
       }}
     >
-      <span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{icon}</span>
+      <span className="text-base w-6 text-center">{icon}</span>
       {label}
     </button>
   );
@@ -93,13 +84,11 @@ export default function CheckActionsSheet({
       {/* Backdrop */}
       <div
         onClick={dismiss}
+        className="fixed inset-0 z-[100]"
         style={{
-          position: "fixed",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
-          zIndex: 100,
         }}
       />
 
@@ -108,16 +97,9 @@ export default function CheckActionsSheet({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        className="fixed bottom-0 left-0 right-0 bg-surface max-w-[420px] mx-auto z-[101]"
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: color.surface,
           borderRadius: "24px 24px 0 0",
-          maxWidth: 420,
-          margin: "0 auto",
-          zIndex: 101,
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
           transition: closing ? "transform 0.25s ease-in" : dragOffset > 0 ? undefined : "transform 0.25s ease-out",
@@ -125,18 +107,12 @@ export default function CheckActionsSheet({
         }}
       >
         {/* Drag handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 8px" }}>
-          <div style={{ width: 40, height: 4, background: color.faint, borderRadius: 2 }} />
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-10 h-1 bg-faint rounded-sm" />
         </div>
 
-        <div style={{ padding: "0 20px 20px" }}>
-          <p style={{
-            fontFamily: font.serif,
-            fontSize: 18,
-            color: color.text,
-            margin: "0 0 8px",
-            fontWeight: 400,
-          }}>
+        <div className="px-5 pb-5">
+          <p className="font-serif text-lg text-primary font-normal mb-2 mt-0">
             Check actions
           </p>
 
@@ -151,61 +127,25 @@ export default function CheckActionsSheet({
       {confirmDelete && (
         <div
           onClick={() => setConfirmDelete(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.7)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.7)" }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: color.deep,
-              border: `1px solid ${color.border}`,
-              borderRadius: 16,
-              maxWidth: 300,
-              padding: "24px 20px",
-            }}
+            className="bg-deep border border-border rounded-2xl max-w-[300px]"
+            style={{ padding: "24px 20px" }}
           >
-            <p style={{
-              fontFamily: font.serif,
-              fontSize: 18,
-              color: color.text,
-              margin: "0 0 8px",
-              fontWeight: 400,
-            }}>
+            <p className="font-serif text-lg text-primary font-normal mb-2 mt-0">
               Delete check?
             </p>
-            <p style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              color: color.dim,
-              margin: "0 0 16px",
-              lineHeight: 1.5,
-            }}>
+            <p className="font-mono text-xs text-dim mb-4 mt-0 leading-normal">
               This will permanently remove the check and all responses. This can&apos;t be undone.
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setConfirmDelete(false)}
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  background: "transparent",
-                  border: `1px solid ${color.borderMid}`,
-                  borderRadius: 12,
-                  color: color.text,
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
+                className="flex-1 p-3 bg-transparent border border-border-mid rounded-xl text-primary font-mono text-xs font-bold cursor-pointer uppercase"
+                style={{ letterSpacing: "0.08em" }}
               >
                 Cancel
               </button>
@@ -215,20 +155,8 @@ export default function CheckActionsSheet({
                   onClose();
                   onDelete();
                 }}
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  background: "#ff4444",
-                  border: "none",
-                  borderRadius: 10,
-                  color: "#fff",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
+                className="flex-1 p-3 bg-[#ff4444] border-none rounded-lg text-white font-mono text-xs font-bold cursor-pointer uppercase"
+                style={{ letterSpacing: "0.08em" }}
               >
                 Delete
               </button>
