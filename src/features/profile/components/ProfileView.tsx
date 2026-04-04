@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import type { Profile } from "@/lib/types";
 import { API_BASE } from "@/lib/db";
-import { font, color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
 import type { Friend, AvailabilityStatus } from "@/lib/ui-types";
 import { AVAILABILITY_OPTIONS, EXPIRY_OPTIONS } from "@/lib/ui-types";
 
@@ -183,43 +183,28 @@ const ProfileView = ({
   };
 
   return (
-  <div style={{ padding: "0 20px 100px", animation: "fadeIn 0.3s ease" }}>
-    <div style={{ textAlign: "center", paddingTop: 20 }}>
+  <div className="px-5 pb-[100px] animate-fade-in">
+    <div className="text-center pt-5">
       <div
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: "50%",
-          background: color.accent,
-          color: "#000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: font.mono,
-          fontSize: 28,
-          fontWeight: 700,
-          margin: "0 auto 12px",
-        }}
+        className="w-[72px] h-[72px] rounded-full bg-dt text-black flex items-center justify-center font-mono text-[28px] font-bold mx-auto mb-3"
       >
         {avatarLetter}
       </div>
       <div
         onClick={onUpdateProfile ? openEditModal : undefined}
-        style={{
-          cursor: onUpdateProfile ? "pointer" : "default",
-          display: "inline-flex",
-          alignItems: "baseline",
-          gap: 8,
-        }}
+        className={cn(
+          "inline-flex items-baseline gap-2",
+          onUpdateProfile ? "cursor-pointer" : "cursor-default"
+        )}
       >
-        <h2 style={{ fontFamily: font.serif, fontSize: 24, color: color.text, fontWeight: 400 }}>
+        <h2 className="font-serif text-2xl text-primary font-normal">
           {displayName}
         </h2>
-        <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+        <span className="font-mono text-xs text-dim">
           @{profile?.username ?? "you"}
         </span>
         {onUpdateProfile && (
-          <span style={{ fontSize: 12, color: color.faint }}>✎</span>
+          <span className="text-xs text-faint">✎</span>
         )}
       </div>
     </div>
@@ -227,99 +212,58 @@ const ProfileView = ({
     {/* Friends */}
     <button
       onClick={onOpenFriends}
-      style={{
-        width: "100%",
-        marginTop: 24,
-        background: color.card,
-        border: `1px solid ${color.border}`,
-        borderRadius: 16,
-        padding: "14px 16px",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
+      className="w-full mt-6 bg-card border border-border rounded-2xl py-3.5 px-4 cursor-pointer flex items-center justify-between"
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ display: "flex" }}>
+      <div className="flex items-center gap-3">
+        <div className="flex">
           {friends.slice(0, 4).map((f, i) => (
             <div
               key={f.id}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: color.accent,
-                color: "#000",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: font.mono,
-                fontSize: 12,
-                fontWeight: 700,
-                marginLeft: i > 0 ? -10 : 0,
-                border: `2px solid ${color.card}`,
-              }}
+              className={cn(
+                "w-8 h-8 rounded-full bg-dt text-black flex items-center justify-center font-mono text-xs font-bold border-2 border-card",
+                i > 0 && "-ml-2.5"
+              )}
             >
               {f.avatar}
             </div>
           ))}
         </div>
-        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>
+        <span className="font-mono text-xs text-primary">
           {friends.length} friends
         </span>
       </div>
-      <span style={{ color: color.dim, fontSize: 14 }}>→</span>
+      <span className="text-dim text-sm">→</span>
     </button>
 
     {/* Availability Meter */}
     <div
-      style={{
-        marginTop: 24,
-        background: color.card,
-        borderRadius: 16,
-        padding: 16,
-        border: `1px solid ${color.border}`,
-      }}
+      className="mt-6 bg-card rounded-2xl p-4 border border-border"
     >
       <div
-        style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          color: color.dim,
-          marginBottom: 14,
-        }}
+        className="font-mono text-tiny uppercase text-dim mb-3.5"
+        style={{ letterSpacing: "0.15em" }}
       >
         Right now
       </div>
       {!showExpiryPicker ? (
         <>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {AVAILABILITY_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleStatusSelect(option.value)}
+                className="flex items-center gap-2.5 py-3 px-3.5 rounded-xl cursor-pointer transition-all duration-200"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "12px 14px",
                   background: availability === option.value ? `${option.color}15` : "transparent",
-                  border: `1px solid ${availability === option.value ? option.color : color.borderMid}`,
-                  borderRadius: 12,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
+                  border: `1px solid ${availability === option.value ? option.color : "var(--color-border-mid, #333)"}`,
                 }}
               >
-                <span style={{ fontSize: 18 }}>{option.emoji}</span>
-                <div style={{ flex: 1, textAlign: "left" }}>
+                <span className="text-lg">{option.emoji}</span>
+                <div className="flex-1 text-left">
                   <span
+                    className="font-mono text-xs"
                     style={{
-                      fontFamily: font.mono,
-                      fontSize: 12,
-                      color: availability === option.value ? option.color : color.muted,
+                      color: availability === option.value ? option.color : undefined,
                       fontWeight: availability === option.value ? 700 : 400,
                     }}
                   >
@@ -327,12 +271,7 @@ const ProfileView = ({
                   </span>
                   {availability === option.value && expiry && (
                     <span
-                      style={{
-                        fontFamily: font.mono,
-                        fontSize: 10,
-                        color: color.dim,
-                        marginLeft: 8,
-                      }}
+                      className="font-mono text-tiny text-dim ml-2"
                     >
                       · expires in {expiry}
                     </span>
@@ -340,25 +279,15 @@ const ProfileView = ({
                 </div>
                 {availability === option.value && (
                   <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: option.color,
-                    }}
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: option.color }}
                   />
                 )}
               </button>
             ))}
           </div>
           <p
-            style={{
-              fontFamily: font.mono,
-              fontSize: 10,
-              color: color.faint,
-              marginTop: 12,
-              textAlign: "center",
-            }}
+            className="font-mono text-tiny text-faint mt-3 text-center"
           >
             friends can see this on your profile
           </p>
@@ -366,50 +295,30 @@ const ProfileView = ({
       ) : (
         <>
           <div
-            style={{
-              fontFamily: font.serif,
-              fontSize: 18,
-              color: color.text,
-              marginBottom: 4,
-            }}
+            className="font-serif text-lg text-primary mb-1"
           >
             {AVAILABILITY_OPTIONS.find((o) => o.value === pendingStatus)?.emoji}{" "}
             {AVAILABILITY_OPTIONS.find((o) => o.value === pendingStatus)?.label}
           </div>
           <p
-            style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              color: color.dim,
-              marginBottom: 16,
-            }}
+            className="font-mono text-xs text-dim mb-4"
           >
             {showCustomInput ? "Enter expiration" : "How long?"}
           </p>
           {!showCustomInput ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div className="flex flex-wrap gap-2">
               {EXPIRY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => handleExpirySelect(opt.value)}
-                  style={{
-                    background: color.surface,
-                    border: `1px solid ${color.borderMid}`,
-                    borderRadius: 20,
-                    padding: "8px 14px",
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                    color: color.muted,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
+                  className="bg-surface border border-border-mid rounded-2xl py-2 px-3.5 font-mono text-xs text-muted cursor-pointer transition-all duration-200"
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
           ) : (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <input
                 type="text"
                 value={customExpiry}
@@ -417,32 +326,17 @@ const ProfileView = ({
                 onKeyDown={(e) => e.key === "Enter" && handleCustomExpirySubmit()}
                 placeholder="e.g., 3 hours, 6pm, Friday"
                 autoFocus
-                style={{
-                  flex: 1,
-                  background: color.deep,
-                  border: `1px solid ${color.borderMid}`,
-                  borderRadius: 10,
-                  padding: "10px 14px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  color: color.text,
-                  outline: "none",
-                }}
+                className="flex-1 bg-deep border border-border-mid rounded-lg py-2.5 px-3.5 font-mono text-xs text-primary outline-none"
               />
               <button
                 onClick={handleCustomExpirySubmit}
                 disabled={!customExpiry.trim()}
-                style={{
-                  background: customExpiry.trim() ? color.accent : color.borderMid,
-                  color: customExpiry.trim() ? "#000" : color.dim,
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "10px 16px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: customExpiry.trim() ? "pointer" : "not-allowed",
-                }}
+                className={cn(
+                  "border-none rounded-lg py-2.5 px-4 font-mono text-xs font-bold",
+                  customExpiry.trim()
+                    ? "bg-dt text-black cursor-pointer"
+                    : "bg-border-mid text-dim cursor-not-allowed"
+                )}
               >
                 Set
               </button>
@@ -455,15 +349,7 @@ const ProfileView = ({
               setPendingStatus(null);
               setCustomExpiry("");
             }}
-            style={{
-              marginTop: 14,
-              background: "transparent",
-              border: "none",
-              fontFamily: font.mono,
-              fontSize: 11,
-              color: color.faint,
-              cursor: "pointer",
-            }}
+            className="mt-3.5 bg-transparent border-none font-mono text-xs text-faint cursor-pointer"
           >
             ← cancel
           </button>
@@ -472,70 +358,33 @@ const ProfileView = ({
     </div>
 
     {archivedChecks && archivedChecks.length > 0 && (
-      <div style={{ marginTop: 24 }}>
+      <div className="mt-6">
         <button
           onClick={() => setShowArchived(!showArchived)}
-          style={{
-            background: "transparent",
-            border: "none",
-            padding: 0,
-            fontFamily: font.mono,
-            fontSize: 10,
-            textTransform: "uppercase",
-            letterSpacing: "0.15em",
-            color: color.faint,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: showArchived ? 12 : 0,
-          }}
+          className={cn(
+            "bg-transparent border-none p-0 font-mono text-tiny uppercase text-faint cursor-pointer flex items-center gap-1.5",
+            showArchived ? "mb-3" : "mb-0"
+          )}
+          style={{ letterSpacing: "0.15em" }}
         >
           Archived checks ({archivedChecks.length})
           <span style={{ fontSize: 8 }}>{showArchived ? "▼" : "→"}</span>
         </button>
         {showArchived && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {archivedChecks.map((check) => (
               <div
                 key={check.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  padding: "10px 14px",
-                  background: color.card,
-                  border: `1px solid ${color.border}`,
-                  borderRadius: 12,
-                }}
+                className="flex items-center justify-between gap-3 py-2.5 px-3.5 bg-card border border-border rounded-xl"
               >
                 <span
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 12,
-                    color: color.muted,
-                    flex: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
+                  className="font-mono text-xs text-muted flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
                 >
                   {check.text}
                 </span>
                 <button
                   onClick={() => onRestoreCheck?.(check.id)}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${color.borderMid}`,
-                    borderRadius: 12,
-                    padding: "6px 12px",
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                    color: color.text,
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}
+                  className="bg-transparent border border-border-mid rounded-xl py-1.5 px-3 font-mono text-xs text-primary cursor-pointer shrink-0"
                 >
                   Restore
                 </button>
@@ -546,29 +395,20 @@ const ProfileView = ({
       </div>
     )}
 
-    <div style={{ marginTop: 32 }}>
+    <div className="mt-8">
       <div
-        style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          color: color.faint,
-          marginBottom: 16,
-        }}
+        className="font-mono text-tiny uppercase text-faint mb-4"
+        style={{ letterSpacing: "0.15em" }}
       >
         Settings
       </div>
       {editingIg ? (
         <div
-          style={{
-            padding: "14px 0",
-            borderBottom: `1px solid ${color.border}`,
-          }}
+          className="py-3.5 border-b border-border"
         >
-          <div style={{ fontFamily: font.mono, fontSize: 12, color: color.muted, marginBottom: 8 }}>Instagram</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ fontFamily: font.mono, fontSize: 12, color: color.dim }}>@</span>
+          <div className="font-mono text-xs text-muted mb-2">Instagram</div>
+          <div className="flex gap-2 items-center">
+            <span className="font-mono text-xs text-dim">@</span>
             <input
               type="text"
               value={igInput}
@@ -579,44 +419,17 @@ const ProfileView = ({
               }}
               placeholder="username"
               autoFocus
-              style={{
-                flex: 1,
-                background: color.deep,
-                border: `1px solid ${color.borderMid}`,
-                borderRadius: 10,
-                padding: "8px 12px",
-                fontFamily: font.mono,
-                fontSize: 12,
-                color: color.text,
-                outline: "none",
-              }}
+              className="flex-1 bg-deep border border-border-mid rounded-lg py-2 px-3 font-mono text-xs text-primary outline-none"
             />
             <button
               onClick={handleIgSave}
-              style={{
-                background: color.accent,
-                color: "#000",
-                border: "none",
-                borderRadius: 10,
-                padding: "8px 14px",
-                fontFamily: font.mono,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
+              className="bg-dt text-black border-none rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer"
             >
               Save
             </button>
             <button
               onClick={() => setEditingIg(false)}
-              style={{
-                background: "transparent",
-                border: "none",
-                fontFamily: font.mono,
-                fontSize: 11,
-                color: color.faint,
-                cursor: "pointer",
-              }}
+              className="bg-transparent border-none font-mono text-xs text-faint cursor-pointer"
             >
               Cancel
             </button>
@@ -630,54 +443,37 @@ const ProfileView = ({
               setEditingIg(true);
             }
           }}
-          style={{
-            padding: "14px 0",
-            borderBottom: `1px solid ${color.border}`,
-            fontFamily: font.mono,
-            fontSize: 12,
-            color: color.muted,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            cursor: onUpdateProfile ? "pointer" : "default",
-          }}
+          className={cn(
+            "py-3.5 border-b border-border font-mono text-xs text-muted flex justify-between items-center",
+            onUpdateProfile ? "cursor-pointer" : "cursor-default"
+          )}
         >
           <span>Instagram</span>
           {profile?.ig_handle ? (
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="flex items-center gap-2">
               <a
                 href={`https://instagram.com/${profile.ig_handle}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                style={{ color: color.dim, fontSize: 11, textDecoration: "none" }}
+                className="text-dim text-xs no-underline"
               >
                 @{profile.ig_handle}
               </a>
-              {onUpdateProfile && <span style={{ fontSize: 10, color: color.faint }}>✎</span>}
+              {onUpdateProfile && <span className="text-tiny text-faint">✎</span>}
             </span>
           ) : (
-            onUpdateProfile && <span style={{ color: color.faint, fontSize: 11 }}>Add →</span>
+            onUpdateProfile && <span className="text-faint text-xs">Add →</span>
           )}
         </div>
       )}
       {pushSupported && (
         <div
           onClick={onTogglePush}
-          style={{
-            padding: "14px 0",
-            borderBottom: `1px solid ${color.border}`,
-            fontFamily: font.mono,
-            fontSize: 12,
-            color: color.muted,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
+          className="py-3.5 border-b border-border font-mono text-xs text-muted flex justify-between items-center cursor-pointer"
         >
           <span>Push Notifications</span>
-          <span style={{ color: pushEnabled ? color.accent : color.borderMid, fontSize: 11 }}>
+          <span className={cn("text-xs", pushEnabled ? "text-dt" : "text-border-mid")}>
             {pushEnabled ? "✓ Enabled" : "Enable →"}
           </span>
         </div>
@@ -692,16 +488,8 @@ const ProfileView = ({
               showToast?.("Failed to reset");
             }
           }}
-          style={{
-            padding: "14px 0",
-            borderBottom: `1px solid ${color.border}`,
-            fontFamily: font.mono,
-            fontSize: 12,
-            color: "#f0ad4e",
-            display: "flex",
-            justifyContent: "space-between",
-            cursor: "pointer",
-          }}
+          className="py-3.5 border-b border-border font-mono text-xs flex justify-between cursor-pointer"
+          style={{ color: "#f0ad4e" }}
         >
           <span>Reset Onboarding</span>
           <span style={{ color: "#f0ad4e" }}>↺</span>
@@ -721,86 +509,49 @@ const ProfileView = ({
           el.addEventListener("pointerup", cancel);
           el.addEventListener("pointerleave", cancel);
         }}
-        style={{
-          padding: "14px 0",
-          borderBottom: `1px solid ${color.border}`,
-          fontFamily: font.mono,
-          fontSize: 12,
-          color: color.muted,
-          display: "flex",
-          justifyContent: "space-between",
-          cursor: "pointer",
-          userSelect: "none",
-        }}
+        className="py-3.5 border-b border-border font-mono text-xs text-muted flex justify-between cursor-pointer select-none"
       >
         <span>About</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="flex items-center gap-1.5">
           {isLatestBuild && (
-            <span style={{
-              background: "rgba(232,255,90,0.15)",
-              color: color.accent,
-              fontFamily: font.mono,
-              fontSize: 9,
-              fontWeight: 700,
-              padding: "2px 6px",
-              borderRadius: 4,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}>
+            <span
+              className="bg-[rgba(232,255,90,0.15)] text-dt font-mono font-bold py-0.5 px-1.5 rounded uppercase"
+              style={{ fontSize: 9, letterSpacing: "0.08em" }}
+            >
               latest
             </span>
           )}
-          <span style={{ color: color.faint, fontSize: 11 }}>
+          <span className="text-faint text-xs">
             v{(process.env.NEXT_PUBLIC_BUILD_ID ?? "dev").slice(0, 7)}
           </span>
         </span>
       </div>
       <div
         onClick={onLogout}
-        style={{
-          padding: "14px 0",
-          fontFamily: font.mono,
-          fontSize: 12,
-          color: "#ff6b6b",
-          display: "flex",
-          justifyContent: "space-between",
-          cursor: "pointer",
-        }}
+        className="py-3.5 font-mono text-xs text-danger flex justify-between cursor-pointer"
       >
         <span>Log out</span>
-        <span style={{ color: "#ff6b6b" }}>→</span>
+        <span className="text-danger">→</span>
       </div>
     </div>
     {showEditModal && (
       <div
         onClick={() => setShowEditModal(false)}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.7)",
-          zIndex: 9999,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="fixed inset-0 bg-[rgba(0,0,0,0.7)] z-[9999] flex items-center justify-center"
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{
-            background: color.deep,
-            border: `1px solid ${color.border}`,
-            borderRadius: 16,
-            maxWidth: 300,
-            width: "calc(100% - 40px)",
-            padding: "24px 20px",
-          }}
+          className="bg-deep border border-border rounded-2xl max-w-[300px] w-[calc(100%-40px)] py-6 px-5"
         >
-          <div style={{ fontFamily: font.serif, fontSize: 18, color: color.text, marginBottom: 20, textAlign: "center" }}>
+          <div className="font-serif text-lg text-primary mb-5 text-center">
             Edit profile
           </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontFamily: font.mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: color.dim, marginBottom: 6, display: "block" }}>
+          <div className="mb-4">
+            <label
+              className="font-mono text-tiny uppercase text-dim mb-1.5 block"
+              style={{ letterSpacing: "0.15em" }}
+            >
               Display name
             </label>
             <input
@@ -809,36 +560,21 @@ const ProfileView = ({
               onChange={(e) => { if (e.target.value.length <= 30) setNameInput(e.target.value); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleProfileSave(); }}
               autoFocus
-              style={{
-                width: "100%",
-                background: color.surface,
-                border: `1px solid ${color.borderMid}`,
-                borderRadius: 10,
-                padding: "10px 12px",
-                fontFamily: font.serif,
-                fontSize: 18,
-                color: color.text,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
+              className="w-full bg-surface border border-border-mid rounded-lg py-2.5 px-3 font-serif text-lg text-primary outline-none box-border"
             />
           </div>
 
           <div style={{ marginBottom: usernameError ? 4 : 20 }}>
-            <label style={{ fontFamily: font.mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: color.dim, marginBottom: 6, display: "block" }}>
+            <label
+              className="font-mono text-tiny uppercase text-dim mb-1.5 block"
+              style={{ letterSpacing: "0.15em" }}
+            >
               Username
             </label>
-            <div style={{ position: "relative" }}>
-              <span style={{
-                position: "absolute",
-                left: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                fontFamily: font.mono,
-                fontSize: 13,
-                color: color.dim,
-                pointerEvents: "none",
-              }}>@</span>
+            <div className="relative">
+              <span
+                className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-dim pointer-events-none"
+              >@</span>
               <input
                 type="text"
                 value={usernameInput}
@@ -848,113 +584,66 @@ const ProfileView = ({
                   setUsernameError("");
                 }}
                 onKeyDown={(e) => { if (e.key === "Enter") handleProfileSave(); }}
-                style={{
-                  width: "100%",
-                  background: color.surface,
-                  borderWidth: 1,
-                  borderStyle: "solid",
-                  borderColor: usernameError ? "#ff4444" : color.borderMid,
-                  borderRadius: 10,
-                  padding: "10px 12px 10px 26px",
-                  fontFamily: font.mono,
-                  fontSize: 13,
-                  color: color.text,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
+                className={cn(
+                  "w-full bg-surface rounded-lg py-2.5 pr-3 pl-[26px] font-mono text-sm text-primary outline-none box-border border",
+                  usernameError ? "border-[#ff4444]" : "border-border-mid"
+                )}
               />
             </div>
           </div>
           {usernameError && (
-            <p style={{ fontFamily: font.mono, fontSize: 10, color: "#ff4444", marginBottom: 16, textAlign: "center" }}>
+            <p className="font-mono text-tiny text-[#ff4444] mb-4 text-center">
               {usernameError}
             </p>
           )}
 
           {confirmingUsername ? (
             <div>
-              <p style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, marginBottom: 14, textAlign: "center", lineHeight: 1.5 }}>
+              <p className="font-mono text-xs text-dim mb-3.5 text-center leading-normal">
                 you can only change your username once every 24 hours
               </p>
-              <div style={{ display: "flex", gap: 10 }}>
+              <div className="flex gap-2.5">
                 <button
                   onClick={() => setConfirmingUsername(false)}
-                  style={{
-                    flex: 1,
-                    background: "transparent",
-                    border: `1px solid ${color.borderMid}`,
-                    borderRadius: 12,
-                    padding: 12,
-                    fontFamily: font.mono,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: color.dim,
-                    cursor: "pointer",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
+                  className="flex-1 bg-transparent border border-border-mid rounded-xl p-3 font-mono text-xs font-bold text-dim cursor-pointer uppercase"
+                  style={{ letterSpacing: "0.08em" }}
                 >
                   Nah
                 </button>
                 <button
                   onClick={() => handleProfileSave(true)}
                   disabled={saving}
-                  style={{
-                    flex: 2,
-                    background: saving ? color.borderMid : color.accent,
-                    color: saving ? color.dim : "#000",
-                    border: "none",
-                    borderRadius: 12,
-                    padding: 12,
-                    fontFamily: font.mono,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: saving ? "not-allowed" : "pointer",
-                    letterSpacing: "0.04em",
-                  }}
+                  className={cn(
+                    "flex-[2] border-none rounded-xl p-3 font-mono text-xs font-bold",
+                    saving
+                      ? "bg-border-mid text-dim cursor-not-allowed"
+                      : "bg-dt text-black cursor-pointer"
+                  )}
+                  style={{ letterSpacing: "0.04em" }}
                 >
                   {saving ? "Saving..." : "yes, I really wanna change it"}
                 </button>
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setShowEditModal(false)}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: `1px solid ${color.borderMid}`,
-                  borderRadius: 12,
-                  padding: 12,
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: color.dim,
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
+                className="flex-1 bg-transparent border border-border-mid rounded-xl p-3 font-mono text-xs font-bold text-dim cursor-pointer uppercase"
+                style={{ letterSpacing: "0.08em" }}
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleProfileSave()}
                 disabled={saving || !nameInput.trim()}
-                style={{
-                  flex: 1,
-                  background: nameInput.trim() && !saving ? color.accent : color.borderMid,
-                  color: nameInput.trim() && !saving ? "#000" : color.dim,
-                  border: "none",
-                  borderRadius: 12,
-                  padding: 12,
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: nameInput.trim() && !saving ? "pointer" : "not-allowed",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
+                className={cn(
+                  "flex-1 border-none rounded-xl p-3 font-mono text-xs font-bold uppercase",
+                  nameInput.trim() && !saving
+                    ? "bg-dt text-black cursor-pointer"
+                    : "bg-border-mid text-dim cursor-not-allowed"
+                )}
+                style={{ letterSpacing: "0.08em" }}
               >
                 {saving ? "Saving..." : "Save"}
               </button>

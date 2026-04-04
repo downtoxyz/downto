@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { font, color } from "@/lib/styles";
+import { font } from "@/lib/styles";
 import type { Event } from "@/lib/ui-types";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
+import cn from "@/lib/tailwindMerge";
 import EventActionsSheet from "./EventActionsSheet";
 
 const EventCard = ({
@@ -62,48 +63,42 @@ const EventCard = ({
   const bgImage = event.image && event.image !== "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80" && (
     <>
       <div
+        className="absolute inset-0 bg-cover bg-center rounded-[inherit]"
         style={{
-          position: "absolute",
-          inset: 0,
           backgroundImage: `url(${event.image})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
           opacity: 0.18,
-          borderRadius: "inherit",
         }}
       />
       <div
+        className="absolute inset-0 rounded-[inherit]"
         style={{
-          position: "absolute",
-          inset: 0,
           background: "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.5) 100%)",
-          borderRadius: "inherit",
         }}
       />
     </>
   );
 
   const actionButtons = (
-    <div style={{ display: "flex", gap: 8 }}>
+    <div className="flex gap-2">
       <button
         onClick={onToggleSave}
-        className="flex-1 rounded-lg py-1.5 font-mono text-tiny font-bold cursor-pointer uppercase tracking-[0.08em]"
-        style={{
-          background: event.saved ? color.accent : "transparent",
-          color: event.saved ? "#000" : color.accent,
-          border: event.saved ? "none" : `1px solid ${color.accent}`,
-        }}
+        className={cn(
+          "flex-1 rounded-lg py-1.5 font-mono text-tiny font-bold cursor-pointer uppercase tracking-[0.08em]",
+          event.saved
+            ? "bg-dt text-black border-none"
+            : "bg-transparent text-dt border border-dt"
+        )}
       >
         {event.saved ? "✓ Saved" : "Save to Cal"}
       </button>
       <button
         onClick={onToggleDown}
-        className="flex-1 rounded-lg py-1.5 font-mono text-tiny font-bold cursor-pointer uppercase tracking-[0.08em]"
-        style={{
-          background: event.isDown ? "rgba(232,255,90,0.15)" : "transparent",
-          color: event.isDown ? color.accent : color.text,
-          border: `1px solid ${event.isDown ? color.accent : color.borderMid}`,
-        }}
+        className={cn(
+          "flex-1 rounded-lg py-1.5 font-mono text-tiny font-bold cursor-pointer uppercase tracking-[0.08em] border",
+          event.isDown
+            ? "bg-dt/15 text-dt border-dt"
+            : "bg-transparent text-primary border-border-mid"
+        )}
       >
         {event.isDown ? "You're Down ✋" : "I'm Down ✋"}
       </button>
@@ -163,17 +158,17 @@ const EventCard = ({
         onPointerUp={clearLongPress}
         onPointerLeave={clearLongPress}
         onTouchMove={clearLongPress}
-        className={`rounded-xl overflow-hidden mb-2 transition-all ${
-          isNew ? "border border-dt/40" : hovered ? "border border-neutral-700" : "border border-neutral-900"
-        }`}
+        className={cn(
+          "rounded-xl overflow-hidden mb-2 transition-all relative border",
+          isNew ? "border-dt/40" : hovered ? "border-neutral-700" : "border-neutral-900"
+        )}
         style={{
           background: "rgba(232, 255, 90, 0.03)",
-          position: "relative",
           ...(isNew ? { animation: "accentGlow 2s ease-out forwards" } : {}),
         }}
       >
         {bgImage}
-        <div className="p-3.5" style={{ position: "relative" }}>
+        <div className="p-3.5 relative">
           {/* Tappable area opens detail sheet — ignores taps that dragged (e.g. pull-to-refresh) */}
           <div
             onTouchStart={(e) => {
@@ -186,26 +181,20 @@ const EventCard = ({
               if (Math.abs(dx) > 8 || Math.abs(dy) > 8) touchMoved.current = true;
             }}
             onClick={() => { if (!touchMoved.current) setShowDetail(true); }}
-            style={{ cursor: "pointer" }}
+            className="cursor-pointer"
           >
             {/* Title + edit */}
             <div className="flex justify-between items-start mb-2.5">
               <h3
-                style={{
-                  fontFamily: font.serif,
-                  fontSize: 20,
-                  color: color.text,
-                  margin: 0,
-                  lineHeight: 1.25,
-                  fontWeight: 400,
-                }}
+                className="font-serif text-xl text-primary m-0 leading-tight font-normal"
+                style={{ fontFamily: font.serif }}
               >
                 {event.title}
               </h3>
               {onLongPress && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setActionsOpen(true); }}
-                  className="bg-transparent border-none text-neutral-600 font-mono text-tiny cursor-pointer p-1 shrink-0 ml-2"
+                  className="bg-transparent border-none text-dim font-mono text-tiny cursor-pointer p-1 shrink-0 ml-2"
                 >
                   ⚙
                 </button>
@@ -214,7 +203,7 @@ const EventCard = ({
 
             {/* Date, time, venue */}
             <div className="mb-2">
-              <span style={{ fontFamily: font.mono, fontSize: 12, color: color.accent }}>
+              <span className="font-mono text-xs text-dt">
                 {event.date}
                 {event.time && event.time !== "TBD" && ` ${event.time}`}
               </span>
@@ -224,7 +213,7 @@ const EventCard = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  style={{ fontFamily: font.mono, fontSize: 12, color: color.dim, marginTop: 2, display: "block", textDecoration: "none" }}
+                  className="font-mono text-xs text-dim mt-0.5 block no-underline"
                 >
                   {event.venue}
                 </a>
@@ -233,41 +222,33 @@ const EventCard = ({
 
             {/* Inline social hint — placeholder while loading, avatar stack when loaded */}
             {event.isDown && (
-              <div style={{ height: 22, marginBottom: 12 }}>
+              <div className="mb-3" style={{ height: 22 }}>
                 {!event.socialLoaded ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{
-                      width: 22, height: 22, borderRadius: "50%",
-                      background: color.borderLight,
-                      animation: "pulse 1.5s ease-in-out infinite",
-                    }} />
-                    <div style={{
-                      width: 60, height: 10, borderRadius: 4,
-                      background: color.borderLight,
-                      animation: "pulse 1.5s ease-in-out infinite",
-                    }} />
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="rounded-full bg-border-light animate-pulse shrink-0"
+                      style={{ width: 22, height: 22 }}
+                    />
+                    <div
+                      className="rounded bg-border-light animate-pulse"
+                      style={{ width: 60, height: 10 }}
+                    />
                   </div>
                 ) : event.peopleDown.length > 0 ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ display: "flex", flexShrink: 0 }}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex shrink-0">
                       {event.peopleDown.slice(0, 3).map((p, i) => (
                         <div
                           key={p.name}
+                          className={cn(
+                            "rounded-full flex items-center justify-center font-mono font-bold border-2 border-deep relative",
+                            p.mutual ? "bg-dt text-black" : "bg-border-light text-dim"
+                          )}
                           style={{
                             width: 22,
                             height: 22,
-                            borderRadius: "50%",
-                            background: p.mutual ? color.accent : color.borderLight,
-                            color: p.mutual ? "#000" : color.dim,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontFamily: font.mono,
                             fontSize: 9,
-                            fontWeight: 700,
                             marginLeft: i > 0 ? -6 : 0,
-                            border: `2px solid ${color.deep}`,
-                            position: "relative",
                             zIndex: 3 - i,
                           }}
                         >
@@ -275,7 +256,7 @@ const EventCard = ({
                         </div>
                       ))}
                     </div>
-                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                    <span className="font-mono text-xs text-dim">
                       {event.peopleDown.length} down →
                     </span>
                   </div>
@@ -283,26 +264,20 @@ const EventCard = ({
               </div>
             )}
             {!event.isDown && event.socialLoaded && event.peopleDown.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <div style={{ display: "flex", flexShrink: 0 }}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex shrink-0">
                   {event.peopleDown.slice(0, 3).map((p, i) => (
                     <div
                       key={p.name}
+                      className={cn(
+                        "rounded-full flex items-center justify-center font-mono font-bold border-2 border-deep relative",
+                        p.mutual ? "bg-dt text-black" : "bg-border-light text-dim"
+                      )}
                       style={{
                         width: 22,
                         height: 22,
-                        borderRadius: "50%",
-                        background: p.mutual ? color.accent : color.borderLight,
-                        color: p.mutual ? "#000" : color.dim,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontFamily: font.mono,
                         fontSize: 9,
-                        fontWeight: 700,
                         marginLeft: i > 0 ? -6 : 0,
-                        border: `2px solid ${color.deep}`,
-                        position: "relative",
                         zIndex: 3 - i,
                       }}
                     >
@@ -310,7 +285,7 @@ const EventCard = ({
                     </div>
                   ))}
                 </div>
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.dim }}>
+                <span className="font-mono text-xs text-dim">
                   {event.peopleDown.length} down →
                 </span>
               </div>
@@ -384,50 +359,35 @@ function EventDetailSheet({
 
   if (!visible) return null;
 
-  const divider = <div style={{ height: 1, background: color.border, margin: "14px 0" }} />;
+  const divider = <div className="h-px bg-border my-3.5" />;
 
   return (
     <div
       onTouchStart={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
+      className="fixed inset-0 z-[100] flex items-end justify-center"
     >
       {/* Backdrop */}
       <div
         onClick={close}
+        className="absolute inset-0 transition-[opacity,backdrop-filter] duration-300 ease-in-out"
         style={{
-          position: "absolute",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           opacity: (entering || closing) ? 0 : 1,
-          transition: "opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       />
       {/* Panel */}
       <div
+        className="relative bg-surface rounded-t-3xl w-full flex flex-col pt-3"
         style={{
-          position: "relative",
-          background: color.surface,
-          borderRadius: "24px 24px 0 0",
-          width: "100%",
           maxWidth: 420,
           maxHeight: "80vh",
-          padding: "12px 0 0",
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
           transition: closing ? "transform 0.2s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
-          display: "flex",
-          flexDirection: "column",
         }}
       >
         {/* Drag handle area */}
@@ -435,10 +395,10 @@ function EventDetailSheet({
           onTouchStart={handleSwipeStart}
           onTouchMove={handleSwipeMove}
           onTouchEnd={handleSwipeEnd}
-          style={{ touchAction: "none" }}
+          className="touch-none"
         >
-          <div style={{ display: "flex", justifyContent: "center", padding: "0 20px 8px" }}>
-            <div style={{ width: 40, height: 4, background: color.faint, borderRadius: 2 }} />
+          <div className="flex justify-center px-5 pb-2">
+            <div className="w-10 h-1 bg-faint rounded-sm" />
           </div>
         </div>
 
@@ -448,12 +408,7 @@ function EventDetailSheet({
           onTouchStart={handleScrollTouchStart}
           onTouchMove={handleScrollTouchMove}
           onTouchEnd={handleScrollTouchEnd}
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            overscrollBehavior: "contain",
-            padding: "0 20px 20px",
-          }}
+          className="flex-1 overflow-y-auto overscroll-contain px-5 pb-5"
         >
           <SheetHero
             event={event} userId={userId} sourceLink={sourceLink}
@@ -487,28 +442,27 @@ function PosterInline({ event, userId, note, onViewProfile }: { event: Event; us
   const name = event.createdBy === userId ? "You" : event.posterName;
   const canTap = event.createdBy && event.createdBy !== userId && onViewProfile;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div className="flex items-center gap-1.5">
       <div
         onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(event.createdBy!); } : undefined}
-        style={{
-          width: 20, height: 20, borderRadius: "50%",
-          background: event.createdBy === userId ? color.accent : color.borderLight,
-          color: event.createdBy === userId ? "#000" : color.dim,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: font.mono, fontSize: 8, fontWeight: 700, flexShrink: 0,
-          cursor: canTap ? "pointer" : "default",
-        }}>
+        className={cn(
+          "rounded-full flex items-center justify-center font-mono font-bold shrink-0",
+          event.createdBy === userId ? "bg-dt text-black" : "bg-border-light text-dim",
+          canTap ? "cursor-pointer" : "cursor-default"
+        )}
+        style={{ width: 20, height: 20, fontSize: 8 }}
+      >
         {event.posterAvatar || event.posterName[0]?.toUpperCase()}
       </div>
-      <div style={{ fontFamily: font.mono, fontSize: 11, lineHeight: 1.5, minWidth: 0 }}>
+      <div className="font-mono text-xs min-w-0" style={{ lineHeight: 1.5 }}>
         <span
           onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(event.createdBy!); } : undefined}
-          style={{ color: color.muted, fontWeight: 700, cursor: canTap ? "pointer" : "default" }}
+          className={cn("text-muted font-bold", canTap ? "cursor-pointer" : "cursor-default")}
         >
           {name}
         </span>
         {note && event.note && (
-          <span style={{ color: color.dim }}>{" "}{event.note}</span>
+          <span className="text-dim">{" "}{event.note}</span>
         )}
       </div>
     </div>
@@ -520,11 +474,11 @@ function SourceLink({ sourceLink }: { sourceLink: SheetProps["sourceLink"] }) {
   if (!sourceLink) return null;
   return sourceLink.href ? (
     <a href={sourceLink.href} target="_blank" rel="noopener noreferrer"
-      style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, textDecoration: "none" }}>
+      className="font-mono text-tiny text-faint no-underline">
       {sourceLink.label} ↗
     </a>
   ) : (
-    <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint }}>
+    <span className="font-mono text-tiny text-faint">
       {sourceLink.label}
     </span>
   );
@@ -536,11 +490,10 @@ function VibePills({ vibes }: { vibes: string[] }) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {vibes.map((v) => (
-        <span key={v} style={{
-          background: color.deep, color: color.dim, padding: "4px 8px",
-          borderRadius: 10, fontFamily: font.mono, fontSize: 9,
-          textTransform: "uppercase", letterSpacing: "0.08em",
-        }}>{v}</span>
+        <span key={v} className="bg-deep text-dim px-2 py-1 rounded-lg font-mono uppercase tracking-[0.08em]"
+          style={{ fontSize: 9 }}>
+          {v}
+        </span>
       ))}
     </div>
   );
@@ -550,11 +503,7 @@ function VibePills({ vibes }: { vibes: string[] }) {
 function MoviePill({ event }: { event: Event }) {
   if (!event.movieTitle) return null;
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "4px 10px", background: color.deep, borderRadius: 8,
-      fontFamily: font.mono, fontSize: 10, color: color.muted,
-    }}>
+    <span className="inline-flex items-center gap-1 py-1 px-2.5 bg-deep rounded-lg font-mono text-tiny text-muted">
       🎬 {event.movieTitle}{event.movieYear && ` (${event.movieYear})`}{event.movieDirector && ` · ${event.movieDirector}`}
     </span>
   );
@@ -567,50 +516,58 @@ function SocialBlock(props: SheetProps) {
   return (
     <div
       onClick={event.socialLoaded ? onOpenSocial : undefined}
-      style={{
-        background: color.deep, borderRadius: 14, padding: "12px 14px",
-        cursor: event.socialLoaded ? "pointer" : "default",
-        border: `1px solid ${color.border}`, transition: "border-color 0.2s",
-      }}
-      onMouseEnter={(e) => event.socialLoaded && (e.currentTarget.style.borderColor = color.borderLight)}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = color.border)}
+      className={cn(
+        "bg-deep rounded-xl border border-border transition-[border-color] duration-200",
+        event.socialLoaded ? "cursor-pointer" : "cursor-default"
+      )}
+      style={{ padding: "12px 14px" }}
+      onMouseEnter={(e) => event.socialLoaded && (e.currentTarget.style.borderColor = "#2a2a2a")}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1a1a1a")}
     >
       {!event.socialLoaded ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 26, height: 26, borderRadius: "50%", background: color.borderLight, animation: "pulse 1.5s ease-in-out infinite", flexShrink: 0 }} />
-          <span style={{ fontFamily: font.mono, fontSize: 11, color: color.faint }}>Loading...</span>
+        <div className="flex items-center gap-2">
+          <div className="rounded-full bg-border-light animate-pulse shrink-0" style={{ width: 26, height: 26 }} />
+          <span className="font-mono text-xs text-faint">Loading...</span>
         </div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
             {event.peopleDown.length > 0 && (
-              <div style={{ display: "flex", marginRight: 4, flexShrink: 0 }}>
+              <div className="flex mr-1 shrink-0">
                 {[...poolPeople, ...event.peopleDown.filter((p) => !p.inPool)].slice(0, 4).map((p, i) => (
-                  <div key={p.name} style={{
-                    width: 26, height: 26, borderRadius: "50%",
-                    background: p.mutual ? color.accent : color.borderLight,
-                    color: p.mutual ? "#000" : color.dim,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: font.mono, fontSize: 10, fontWeight: 700,
-                    marginLeft: i > 0 ? -8 : 0,
-                    border: `2px solid ${p.inPool ? color.pool : color.deep}`,
-                    position: "relative", zIndex: 4 - i,
-                  }}>{p.avatar}</div>
+                  <div key={p.name}
+                    className={cn(
+                      "rounded-full flex items-center justify-center font-mono text-tiny font-bold relative",
+                      p.mutual ? "bg-dt text-black" : "bg-border-light text-dim"
+                    )}
+                    style={{
+                      width: 26, height: 26,
+                      marginLeft: i > 0 ? -8 : 0,
+                      border: `2px solid ${p.inPool ? "#00D4FF" : "#0d0d0d"}`,
+                      zIndex: 4 - i,
+                    }}>
+                    {p.avatar}
+                  </div>
                 ))}
               </div>
             )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <div className="flex flex-col gap-0.5 min-w-0">
               {event.peopleDown.length === 0 && !event.userInPool ? (
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: color.pool }}>
+                <span className="font-mono text-xs text-pool">
                   Looking for a squad?{" "}
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: event.isPublic ? "rgba(255,255,255,0.06)" : "rgba(232,255,90,0.12)", color: event.isPublic ? color.faint : color.accent, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <span className="font-bold uppercase tracking-[0.06em]"
+                    style={{
+                      fontSize: 9, padding: "1px 4px", borderRadius: 3,
+                      background: event.isPublic ? "rgba(255,255,255,0.06)" : "rgba(232,255,90,0.12)",
+                      color: event.isPublic ? "#444" : "#E8FF5A",
+                    }}>
                     {event.isPublic ? "public" : "friends"}
                   </span>
                 </span>
               ) : hasPool || event.userInPool ? (
                 <>
-                  <span style={{ fontFamily: font.mono, fontSize: 11 }}>
-                    <span style={{ color: color.pool }}>
+                  <span className="font-mono text-xs">
+                    <span className="text-pool">
                       {event.userInPool ? (
                         poolFriends.length > 0
                           ? `You, ${poolFriends.map((p) => p.name).join(", ")}${poolStrangerCount > 0 ? ` + ${poolStrangerCount}` : ""} looking for a squad`
@@ -629,26 +586,26 @@ function SocialBlock(props: SheetProps) {
                     </span>
                   </span>
                   {nonPoolFriends.length > 0 && (
-                    <span style={{ fontFamily: font.mono, fontSize: 10, color: color.dim }}>
+                    <span className="font-mono text-tiny text-dim">
                       {nonPoolFriends.map((p) => p.name).join(", ")} {nonPoolFriends.length === 1 ? "is" : "are"} down
                     </span>
                   )}
                 </>
               ) : (
-                <span style={{ fontFamily: font.mono, fontSize: 11 }}>
+                <span className="font-mono text-xs">
                   {mutuals.length > 0 ? (
                     <>
-                      <span style={{ color: color.accent }}>{mutuals.map((m) => m.name).join(", ")}</span>
-                      {others.length > 0 && <span style={{ color: color.dim }}> + {others.length} others</span>}
+                      <span className="text-dt">{mutuals.map((m) => m.name).join(", ")}</span>
+                      {others.length > 0 && <span className="text-dim"> + {others.length} others</span>}
                     </>
                   ) : (
-                    <span style={{ color: color.dim }}>{others.length} {others.length === 1 ? "person" : "people"} down</span>
+                    <span className="text-dim">{others.length} {others.length === 1 ? "person" : "people"} down</span>
                   )}
                 </span>
               )}
             </div>
           </div>
-          <span style={{ color: color.faint, fontSize: 16, flexShrink: 0 }}>→</span>
+          <span className="text-faint text-base shrink-0">→</span>
         </div>
       )}
     </div>
@@ -668,47 +625,43 @@ function SheetHero(props: SheetProps) {
         return (
           <Wrapper
             {...linkProps}
-            style={{
-              display: "block",
-              height: 140,
-              borderRadius: 14,
-              overflow: "hidden",
-              marginBottom: 14,
-              position: "relative",
-              textDecoration: "none",
-              cursor: heroUrl ? "pointer" : "default",
-            }}
+            className={cn(
+              "block rounded-xl overflow-hidden mb-3.5 relative no-underline",
+              heroUrl ? "cursor-pointer" : "cursor-default"
+            )}
+            style={{ height: 140 }}
           >
-            <div style={{
-              position: "absolute", inset: 0,
-              backgroundImage: `url(${event.image})`,
-              backgroundSize: "cover", backgroundPosition: "center",
-            }} />
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
-            }} />
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${event.image})` }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)" }}
+            />
             {/* Title over image */}
-            <div style={{ position: "absolute", bottom: 12, left: 14, right: 14, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-              <h3 style={{ fontFamily: font.serif, fontSize: 22, color: color.text, margin: 0, lineHeight: 1.25, fontWeight: 400, flex: 1 }}>
+            <div className="absolute bottom-3 left-3.5 right-3.5 flex items-end justify-between">
+              <h3 className="font-serif text-2xl text-primary m-0 leading-tight font-normal flex-1"
+                style={{ fontFamily: font.serif }}>
                 {event.title}
               </h3>
               {heroUrl && (
-                <span style={{ fontFamily: font.mono, fontSize: 10, color: color.faint, flexShrink: 0, marginLeft: 8 }}>↗</span>
+                <span className="font-mono text-tiny text-faint shrink-0 ml-2">↗</span>
               )}
             </div>
           </Wrapper>
         );
       })()}
       {!hasImage && (
-        <h3 style={{ fontFamily: font.serif, fontSize: 22, color: color.text, margin: "0 0 8px", lineHeight: 1.25, fontWeight: 400 }}>
+        <h3 className="font-serif text-2xl text-primary mb-2 mt-0 leading-tight font-normal"
+          style={{ fontFamily: font.serif }}>
           {event.title}
         </h3>
       )}
 
       {/* Metadata row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.accent }}>
+      <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+        <span className="font-mono text-xs text-dt">
           {event.date}{event.time && event.time !== "TBD" && ` ${event.time}`}
         </span>
         {event.venue && event.venue !== "TBD" && (
@@ -717,29 +670,34 @@ function SheetHero(props: SheetProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            style={{ fontFamily: font.mono, fontSize: 12, color: color.dim, textDecoration: "none" }}
+            className="font-mono text-xs text-dim no-underline"
           >
             {event.venue}
           </a>
         )}
-        <span style={{ fontFamily: font.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.06em", background: event.isPublic ? "rgba(255,255,255,0.06)" : "rgba(232,255,90,0.12)", color: event.isPublic ? color.faint : color.accent }}>
+        <span className="font-mono font-bold uppercase tracking-[0.06em]"
+          style={{
+            fontSize: 9, padding: "1px 5px", borderRadius: 3,
+            background: event.isPublic ? "rgba(255,255,255,0.06)" : "rgba(232,255,90,0.12)",
+            color: event.isPublic ? "#444" : "#E8FF5A",
+          }}>
           {event.isPublic ? "public" : "friends"}
         </span>
       </div>
 
       {/* Poster + note + source (when no tags) */}
       {(event.posterName || event.note || sourceLink) && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-1 min-w-0">
             <PosterInline event={event} userId={userId} note onViewProfile={props.onViewProfile} />
             {!event.posterName && event.note && (
-              <div style={{ fontFamily: font.mono, fontSize: 11, color: color.dim, lineHeight: 1.5 }}>
+              <div className="font-mono text-xs text-dim" style={{ lineHeight: 1.5 }}>
                 {event.note}
               </div>
             )}
           </div>
           {!(event.movieTitle || event.vibe.length > 0) && sourceLink && (
-            <div style={{ flexShrink: 0, marginLeft: 8 }}>
+            <div className="shrink-0 ml-2">
               <SourceLink sourceLink={sourceLink} />
             </div>
           )}
@@ -748,17 +706,17 @@ function SheetHero(props: SheetProps) {
 
       {/* Tags row: movie + vibes + source */}
       {(event.movieTitle || event.vibe.length > 0) && (
-        <div className="flex items-center gap-1.5 flex-wrap" style={{ marginBottom: 8 }}>
+        <div className="flex items-center gap-1.5 flex-wrap mb-2">
           {event.movieTitle && <MoviePill event={event} />}
           <VibePills vibes={event.vibe} />
-          {sourceLink && <span style={{ marginLeft: "auto" }}><SourceLink sourceLink={sourceLink} /></span>}
+          {sourceLink && <span className="ml-auto"><SourceLink sourceLink={sourceLink} /></span>}
         </div>
       )}
 
       {/* Social */}
       <SocialBlock {...props} />
 
-      <div style={{ marginTop: 12 }}>{actionButtons}</div>
+      <div className="mt-3">{actionButtons}</div>
     </>
   );
 }
