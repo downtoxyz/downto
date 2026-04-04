@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { font, color } from "@/lib/styles";
+import { color } from "@/lib/styles";
 import { parseNaturalDate, parseNaturalTime, parseDateToISO } from "@/lib/utils";
 import type { InterestCheck } from "@/lib/ui-types";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
+import cn from "@/lib/tailwindMerge";
 
 const EditCheckModal = ({
   check,
@@ -140,21 +141,11 @@ const EditCheckModal = ({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-end justify-center">
       <div
         onClick={close}
+        className="absolute inset-0"
         style={{
-          position: "absolute",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
@@ -163,16 +154,8 @@ const EditCheckModal = ({
         }}
       />
       <div
+        className="relative bg-surface rounded-t-3xl w-full max-w-[420px] pt-5 px-6 max-h-[80vh] flex flex-col"
         style={{
-          position: "relative",
-          background: color.surface,
-          borderRadius: "24px 24px 0 0",
-          width: "100%",
-          maxWidth: 420,
-          padding: "20px 24px 0",
-          maxHeight: "80vh",
-          display: "flex",
-          flexDirection: "column",
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
           transition: closing ? "transform 0.2s ease-in" : (dragOffset === 0 ? "transform 0.2s ease-out" : "none"),
@@ -185,7 +168,7 @@ const EditCheckModal = ({
           onTouchEnd={finishSwipe}
           style={{ touchAction: "none" }}
         >
-          <div style={{ width: 40, height: 4, background: color.faint, borderRadius: 2, margin: "0 auto 20px" }} />
+          <div className="w-10 h-1 bg-faint rounded-sm mx-auto mb-5" />
         </div>
 
         <div
@@ -193,15 +176,15 @@ const EditCheckModal = ({
           onTouchStart={handleScrollTouchStart}
           onTouchMove={handleScrollTouchMove}
           onTouchEnd={handleScrollTouchEnd}
-          style={{ overflowY: "auto", overflowX: "hidden", flex: 1, paddingBottom: 24 }}
+          className="overflow-y-auto overflow-x-hidden flex-1 pb-6"
         >
           {/* Title */}
-          <h2 style={{ fontFamily: font.serif, fontSize: 18, color: color.text, margin: "0 0 20px", fontWeight: 400 }}>
+          <h2 className="font-serif text-lg text-primary font-normal mb-5 mt-0">
             Edit check
           </h2>
 
           {/* Text */}
-          <div style={{ marginBottom: 16 }}>
+          <div className="mb-4">
             <textarea
               ref={textareaRef}
               value={text}
@@ -227,30 +210,14 @@ const EditCheckModal = ({
               }}
               maxLength={280}
               rows={3}
-              style={{
-                width: "100%",
-                background: color.deep,
-                border: `1px solid ${color.borderMid}`,
-                borderRadius: 12,
-                padding: "14px 16px",
-                color: color.text,
-                fontFamily: font.mono,
-                fontSize: 13,
-                outline: "none",
-                resize: "none",
-                lineHeight: 1.5,
-                boxSizing: "border-box",
-              }}
+              className="w-full bg-deep border border-border-mid rounded-xl py-3.5 px-4 text-primary font-mono text-sm outline-none resize-none leading-relaxed box-border"
             />
             {/* @mention autocomplete dropdown */}
             {mentionQuery !== null && friends && friends.length > 0 && (() => {
               const filtered = friends.filter(f => f.name.toLowerCase().includes(mentionQuery));
               if (filtered.length === 0) return null;
               return (
-                <div style={{
-                  background: color.deep, border: `1px solid ${color.borderMid}`,
-                  borderRadius: 10, marginTop: 4, maxHeight: 140, overflowY: "auto",
-                }}>
+                <div className="bg-deep border border-border-mid rounded-lg mt-1 max-h-[140px] overflow-y-auto">
                   {filtered.slice(0, 6).map(f => (
                     <button
                       key={f.id}
@@ -263,22 +230,12 @@ const EditCheckModal = ({
                         setMentionIdx(-1);
                         textareaRef.current?.focus();
                       }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        width: "100%", padding: "8px 12px",
-                        background: "transparent", border: "none", cursor: "pointer",
-                        borderBottom: `1px solid ${color.border}`,
-                      }}
+                      className="flex items-center gap-2 w-full py-2 px-3 bg-transparent border-none cursor-pointer border-b border-b-border"
                     >
-                      <div style={{
-                        width: 24, height: 24, borderRadius: "50%",
-                        background: color.borderLight, color: color.dim,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: font.mono, fontSize: 10, fontWeight: 700,
-                      }}>
+                      <div className="w-6 h-6 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-tiny font-bold">
                         {f.avatar}
                       </div>
-                      <span style={{ fontFamily: font.mono, fontSize: 12, color: color.text }}>{f.name}</span>
+                      <span className="font-mono text-xs text-primary">{f.name}</span>
                     </button>
                   ))}
                 </div>
@@ -287,79 +244,43 @@ const EditCheckModal = ({
           </div>
 
           {/* When / Where inputs — matching creation flow */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+          <div className="flex gap-2 mb-1">
             <input
               type="text"
               placeholder="when? (e.g. tmr 7pm)"
               value={whenInput}
               onChange={(e) => setWhenInput(e.target.value)}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: "10px 12px",
-                background: color.deep,
-                border: `1px solid ${color.borderMid}`,
-                borderRadius: 10,
-                fontFamily: font.mono,
-                fontSize: 11,
-                color: color.text,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
+              className="flex-1 min-w-0 py-2.5 px-3 bg-deep border border-border-mid rounded-lg font-mono text-xs text-primary outline-none box-border"
             />
             <input
               type="text"
               placeholder="where?"
               value={whereInput}
               onChange={(e) => setWhereInput(e.target.value)}
-              style={{
-                flex: 0.6,
-                minWidth: 0,
-                padding: "10px 12px",
-                background: color.deep,
-                border: `1px solid ${color.borderMid}`,
-                borderRadius: 10,
-                fontFamily: font.mono,
-                fontSize: 11,
-                color: color.text,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
+              className="min-w-0 py-2.5 px-3 bg-deep border border-border-mid rounded-lg font-mono text-xs text-primary outline-none box-border"
+              style={{ flex: 0.6 }}
             />
           </div>
           {whenPreview && (
-            <div style={{
-              fontFamily: font.mono,
-              fontSize: 10,
-              color: color.dim,
-              marginBottom: 8,
-              paddingLeft: 2,
-            }}>
+            <div className="font-mono text-tiny text-dim mb-2" style={{ paddingLeft: 2 }}>
               {whenPreview}
             </div>
           )}
-          {!whenPreview && <div style={{ marginBottom: 8 }} />}
+          {!whenPreview && <div className="mb-2" />}
         </div>
 
         {/* Save button */}
-        <div style={{ padding: "12px 0 24px", flexShrink: 0 }}>
+        <div className="py-3 pb-6 shrink-0">
           <button
             onClick={handleSave}
             disabled={!text.trim()}
-            style={{
-              width: "100%",
-              background: text.trim() ? color.accent : color.borderMid,
-              color: text.trim() ? "#000" : color.dim,
-              border: "none",
-              borderRadius: 12,
-              padding: "14px",
-              fontFamily: font.mono,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: text.trim() ? "pointer" : "default",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}
+            className={cn(
+              "w-full border-none rounded-xl py-3.5 font-mono text-xs font-bold cursor-pointer uppercase",
+              text.trim()
+                ? "bg-dt text-black"
+                : "bg-border-mid text-dim cursor-default"
+            )}
+            style={{ letterSpacing: "0.08em" }}
           >
             Save
           </button>

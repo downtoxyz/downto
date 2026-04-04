@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { font, color } from "@/lib/styles";
+import cn from "@/lib/tailwindMerge";
+import { color } from "@/lib/styles";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
 import type { Event, Person } from "@/lib/ui-types";
 
@@ -110,36 +111,24 @@ const EventLobby = ({
     return (
       <div
         onClick={() => existingSquadId && onGoToSquad?.(existingSquadId)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 0",
-          borderBottom: `1px solid ${isFriend ? "#222" : color.surface}`,
-          cursor: existingSquadId ? "pointer" : "default",
-        }}
+        className={cn(
+          "flex items-center justify-between py-2.5",
+          existingSquadId ? "cursor-pointer" : "cursor-default"
+        )}
+        style={{ borderBottom: `1px solid ${isFriend ? "#222" : color.surface}` }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
             {shown.map((p, i) => (
               <div
                 key={p.userId ?? p.name}
+                className={cn(
+                  "w-9 h-9 rounded-full flex items-center justify-center font-mono text-sm font-bold shrink-0 relative",
+                  isFriend ? "bg-dt text-black" : "bg-border-light text-dim"
+                )}
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  background: isFriend ? color.accent : color.borderLight,
-                  color: isFriend ? "#000" : color.dim,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: font.mono,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  flexShrink: 0,
                   marginLeft: i === 0 ? 0 : -8,
                   border: `2px solid ${color.surface}`,
-                  position: "relative",
                   zIndex: maxShow - i,
                 }}
               >
@@ -147,22 +136,12 @@ const EventLobby = ({
               </div>
             ))}
             {overflow > 0 && (
-              <span style={{
-                fontFamily: font.mono,
-                fontSize: 8,
-                fontWeight: 700,
-                color: color.dim,
-                marginLeft: 4,
-              }}>
+              <span className="font-mono text-[8px] font-bold text-dim ml-1">
                 +{overflow}
               </span>
             )}
           </div>
-          <span style={{
-            fontFamily: font.mono,
-            fontSize: 11,
-            color: color.faint,
-          }}>
+          <span className="font-mono text-xs text-faint">
             Your squad
           </span>
         </div>
@@ -186,84 +165,56 @@ const EventLobby = ({
           else if (!isSelecting && canRequest && p.inSquadId && p.inSquadName) onRequestToJoin!(p.inSquadId, p.inSquadName);
           else if (!isSelecting && p.userId && onViewProfile) onViewProfile(p.userId);
         }}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 0",
-          borderBottom: `1px solid ${isFriend ? "#222" : color.surface}`,
-          cursor: effectiveSelectable || (!isSelecting && (canRequest || p.userId)) ? "pointer" : "default",
-        }}
+        className={cn(
+          "flex items-center justify-between py-2.5",
+          (effectiveSelectable || (!isSelecting && (canRequest || p.userId))) ? "cursor-pointer" : "cursor-default"
+        )}
+        style={{ borderBottom: `1px solid ${isFriend ? "#222" : color.surface}` }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: isFriend ? color.accent : color.borderLight,
-              color: isFriend ? "#000" : color.dim,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: font.mono,
-              fontSize: 14,
-              fontWeight: 700,
-              flexShrink: 0,
-              ...(p.inPool ? { boxShadow: `0 0 0 2px ${color.pool}` } : {}),
-            }}
+            className={cn(
+              "w-9 h-9 rounded-full flex items-center justify-center font-mono text-sm font-bold shrink-0",
+              isFriend ? "bg-dt text-black" : "bg-border-light text-dim"
+            )}
+            style={p.inPool ? { boxShadow: `0 0 0 2px ${color.pool}` } : undefined}
           >
             {p.avatar}
           </div>
-          <span style={{ fontFamily: font.mono, fontSize: 13, color: isFriend ? color.text : color.muted }}>
+          <span className={cn(
+            "font-mono text-sm",
+            isFriend ? "text-primary" : "text-muted"
+          )}>
             {p.name}
           </span>
           {hasSquad && (
-            <span style={{
-              fontFamily: font.mono,
-              fontSize: 9,
-              color: color.faint,
-              border: `1px solid ${color.faint}`,
-              borderRadius: 6,
-              padding: "1px 6px",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}>
+            <span className="font-mono text-[9px] text-faint border border-faint rounded-md shrink-0 whitespace-nowrap"
+              style={{ padding: "1px 6px" }}
+            >
               in squad
             </span>
           )}
         </div>
         {/* Request to join indicator */}
         {!isSelecting && hasSquad && !inSameSquad && (
-          <span style={{
-            fontFamily: font.mono,
-            fontSize: 9,
-            color: color.accent,
-            opacity: alreadyRequested ? 0.6 : 1,
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-            marginLeft: 8,
-          }}>
+          <span className={cn(
+            "font-mono text-[9px] text-dt whitespace-nowrap shrink-0 ml-2",
+            alreadyRequested && "opacity-60"
+          )}>
             {alreadyRequested ? "Requested" : "Request to join →"}
           </span>
         )}
         {selectingMembers && effectiveSelectable && p.userId && (
           <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 6,
-              border: `2px solid ${selectedIds.has(p.userId) ? color.accent : color.borderMid}`,
-              background: selectedIds.has(p.userId) ? color.accent : "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.15s ease",
-              flexShrink: 0,
-            }}
+            className={cn(
+              "w-[22px] h-[22px] rounded-md flex items-center justify-center transition-all duration-150 ease-in-out shrink-0",
+              selectedIds.has(p.userId)
+                ? "border-2 border-dt bg-dt"
+                : "border-2 border-border-mid bg-transparent"
+            )}
           >
             {selectedIds.has(p.userId) && (
-              <span style={{ color: "#000", fontSize: 14, fontWeight: 700 }}>&#10003;</span>
+              <span className="text-black text-sm font-bold">&#10003;</span>
             )}
           </div>
         )}
@@ -272,26 +223,15 @@ const EventLobby = ({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-end justify-center">
       <div
         onClick={close}
+        className="absolute inset-0 transition-[opacity,backdrop-filter,-webkit-backdrop-filter] duration-300 ease-in-out"
         style={{
-          position: "absolute",
-          inset: 0,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           WebkitBackdropFilter: (entering || closing) ? "blur(0px)" : "blur(8px)",
           opacity: (entering || closing) ? 0 : 1,
-          transition: "opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       />
       <div
@@ -299,78 +239,42 @@ const EventLobby = ({
         onTouchStart={handleScrollTouchStart}
         onTouchMove={handleScrollTouchMove}
         onTouchEnd={handleScrollTouchEnd}
+        className="relative bg-surface rounded-t-3xl w-full max-w-[420px] max-h-[70vh] overscroll-contain"
         style={{
-          position: "relative",
-          background: color.surface,
-          borderRadius: "24px 24px 0 0",
-          width: "100%",
-          maxWidth: 420,
           padding: "32px 24px 40px",
-          maxHeight: "70vh",
           overflowY: isDragging.current ? "hidden" : "auto",
-          overscrollBehavior: "contain",
           animation: closing ? undefined : "slideUp 0.3s ease-out",
           transform: closing ? "translateY(100%)" : `translateY(${dragOffset}px)`,
           transition: isDragging.current ? "none" : "transform 0.25s ease-out",
         }}
       >
-        <div
-          style={{
-            width: 40,
-            height: 4,
-            background: color.faint,
-            borderRadius: 2,
-            margin: "0 auto 24px",
-          }}
-        />
-        <h3
-          style={{
-            fontFamily: font.serif,
-            fontSize: 22,
-            color: color.text,
-            marginBottom: 4,
-            fontWeight: 400,
-          }}
-        >
+        <div className="w-10 h-1 bg-faint rounded-sm mx-auto mb-6" />
+        <h3 className="font-serif text-2xl text-primary mb-1 font-normal">
           Who&rsquo;s down?
         </h3>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: poolCount > 0 ? 12 : 24 }}>
-          <p
-            style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              color: color.dim,
-              margin: 0,
-            }}
-          >
+        <div className={cn("flex items-center gap-2", poolCount > 0 ? "mb-3" : "mb-6")}>
+          <p className="font-mono text-xs text-dim m-0">
             {event.title}
           </p>
-          <span style={{
-            fontFamily: font.mono,
-            fontSize: 9,
-            fontWeight: 700,
-            padding: "2px 6px",
-            borderRadius: 4,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            background: event.isPublic ? "rgba(255,255,255,0.08)" : "rgba(232,255,90,0.15)",
-            color: event.isPublic ? color.dim : color.accent,
-            flexShrink: 0,
-          }}>
+          <span
+            className="font-mono text-[9px] font-bold rounded shrink-0 uppercase"
+            style={{
+              padding: "2px 6px",
+              letterSpacing: "0.08em",
+              background: event.isPublic ? "rgba(255,255,255,0.08)" : "rgba(232,255,90,0.15)",
+              color: event.isPublic ? color.dim : color.accent,
+            }}
+          >
             {event.isPublic ? "public" : "friends & FoF"}
           </span>
         </div>
 
         {poolCount > 0 && (
           <div
+            className="font-mono text-xs text-pool rounded-lg mb-5"
             style={{
-              fontFamily: font.mono,
-              fontSize: 11,
-              color: color.pool,
               background: "rgba(0,212,255,0.08)",
-              borderRadius: 10,
               padding: "8px 12px",
-              marginBottom: 20,
             }}
           >
             {poolCount} looking for a squad
@@ -379,45 +283,27 @@ const EventLobby = ({
 
         {/* Loading shimmer while waiting for squad enrichment */}
         {!peopleReady && (friends.length > 0 || others.length > 0) && (
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "16px 0",
-          }}>
+          <div className="flex items-center gap-2.5 py-4">
             {[...Array(Math.min(friends.length + others.length, 5))].map((_, i) => (
-              <div key={i} style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: color.borderLight,
-                opacity: 0.4,
-                marginLeft: i === 0 ? 0 : -10,
-                border: `2px solid ${color.surface}`,
-                flexShrink: 0,
-              }} />
+              <div key={i}
+                className="w-9 h-9 rounded-full bg-border-light opacity-40 shrink-0"
+                style={{
+                  marginLeft: i === 0 ? 0 : -10,
+                  border: `2px solid ${color.surface}`,
+                }}
+              />
             ))}
-            <div style={{
-              width: 60, height: 8, borderRadius: 4,
-              background: color.borderLight, opacity: 0.3, marginLeft: 4,
-            }} />
+            <div className="w-[60px] h-2 rounded bg-border-light opacity-30 ml-1" />
           </div>
         )}
 
         {peopleReady && (
-          <div style={{ animation: "fadeIn 0.2s ease" }}>
+          <div className="animate-fade-in">
             {/* Friends section */}
             {friends.length > 0 && (
               <>
-                <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    color: color.accent,
-                    marginBottom: 12,
-                  }}
+                <div className="font-mono text-tiny uppercase text-dt mb-3"
+                  style={{ letterSpacing: "0.15em" }}
                 >
                   Friends ({friends.length})
                 </div>
@@ -431,16 +317,8 @@ const EventLobby = ({
             {/* Others section */}
             {others.length > 0 && (
               <>
-                <div
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    color: color.dim,
-                    marginTop: 20,
-                    marginBottom: 12,
-                  }}
+                <div className="font-mono text-tiny uppercase text-dim mt-5 mb-3"
+                  style={{ letterSpacing: "0.15em" }}
                 >
                   Also down ({others.length})
                 </div>
@@ -454,46 +332,22 @@ const EventLobby = ({
         )}
 
         {/* CTAs */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24 }}>
+        <div className="flex flex-col gap-2.5 mt-6">
           {/* Start a squad / Go to squad — visible when anyone is down */}
           {(friends.length > 0 || others.length > 0) && peopleReady && !isSelecting && (
             existingSquadId ? (
               <button
                 onClick={() => { onGoToSquad?.(existingSquadId); close(); }}
-                style={{
-                  width: "100%",
-                  background: color.accent,
-                  color: "#000",
-                  border: "none",
-                  borderRadius: 12,
-                  padding: "14px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                }}
+                className="w-full bg-dt text-black border-none rounded-xl p-3.5 font-mono text-xs font-bold cursor-pointer uppercase"
+                style={{ letterSpacing: "0.1em" }}
               >
                 Go to Squad →
               </button>
             ) : (
               <button
                 onClick={() => { setSelectingMembers(true); setSelectedIds(new Set()); }}
-                style={{
-                  width: "100%",
-                  background: color.accent,
-                  color: "#000",
-                  border: "none",
-                  borderRadius: 12,
-                  padding: "14px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                }}
+                className="w-full bg-dt text-black border-none rounded-xl p-3.5 font-mono text-xs font-bold cursor-pointer uppercase"
+                style={{ letterSpacing: "0.1em" }}
               >
                 Start a Squad →
               </button>
@@ -502,22 +356,11 @@ const EventLobby = ({
 
           {/* Confirm selection (shared by both friend and pool selection modes) */}
           {isSelecting && (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <button
                 onClick={() => { setSelectingMembers(false); setSelectedIds(new Set()); }}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  color: color.dim,
-                  border: `1px solid ${color.borderMid}`,
-                  borderRadius: 12,
-                  padding: "14px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                }}
+                className="flex-1 bg-transparent text-dim border border-border-mid rounded-xl p-3.5 font-mono text-xs cursor-pointer uppercase"
+                style={{ letterSpacing: "0.1em" }}
               >
                 Cancel
               </button>
@@ -530,21 +373,13 @@ const EventLobby = ({
                   }
                 }}
                 disabled={selectedIds.size === 0}
-                style={{
-                  flex: 2,
-                  background: selectedIds.size > 0 ? color.accent : color.borderMid,
-                  color: selectedIds.size > 0 ? "#000" : color.dim,
-                  border: "none",
-                  borderRadius: 12,
-                  padding: "14px",
-                  fontFamily: font.mono,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: selectedIds.size > 0 ? "pointer" : "default",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  whiteSpace: "nowrap",
-                }}
+                className={cn(
+                  "flex-[2] border-none rounded-xl p-3.5 font-mono text-xs font-bold uppercase whitespace-nowrap",
+                  selectedIds.size > 0
+                    ? "bg-dt text-black cursor-pointer"
+                    : "bg-border-mid text-dim cursor-default"
+                )}
+                style={{ letterSpacing: "0.1em" }}
               >
                 Create Squad ({selectedIds.size}) →
               </button>
@@ -555,20 +390,13 @@ const EventLobby = ({
           {!isSelecting && (
             <button
               onClick={() => onJoinSquadPool(event)}
-              style={{
-                width: "100%",
-                background: inSquadPool ? color.card : "transparent",
-                color: inSquadPool ? color.accent : color.text,
-                border: `1px solid ${inSquadPool ? color.accent : color.borderMid}`,
-                borderRadius: 12,
-                padding: "14px",
-                fontFamily: font.mono,
-                fontSize: 12,
-                fontWeight: inSquadPool ? 700 : 400,
-                cursor: "pointer",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-              }}
+              className={cn(
+                "w-full rounded-xl p-3.5 font-mono text-xs cursor-pointer uppercase",
+                inSquadPool
+                  ? "bg-card text-dt border border-dt font-bold"
+                  : "bg-transparent text-primary border border-border-mid font-normal"
+              )}
+              style={{ letterSpacing: "0.1em" }}
             >
               {inSquadPool
                 ? "Leave squad pool"
