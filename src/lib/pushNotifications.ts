@@ -1,7 +1,17 @@
 import { supabase } from '@/lib/supabase';
 import { API_BASE } from '@/lib/db';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+
+// ---------------------------------------------------------------------------
+// Platform detection
+// ---------------------------------------------------------------------------
+
+export function isNativePlatform(): boolean {
+  return Capacitor.isNativePlatform();
+}
 
 export function isIOS(): boolean {
   if (typeof window === 'undefined') return false;
@@ -18,6 +28,7 @@ export function isIOSNotStandalone(): boolean {
 }
 
 export function isPushSupported(): boolean {
+  if (isNativePlatform()) return true;
   return (
     typeof window !== 'undefined' &&
     'serviceWorker' in navigator &&
@@ -25,6 +36,10 @@ export function isPushSupported(): boolean {
     'Notification' in window
   );
 }
+
+// ---------------------------------------------------------------------------
+// Web push (existing — unchanged)
+// ---------------------------------------------------------------------------
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
@@ -110,5 +125,92 @@ export async function unsubscribeFromPush(
     await subscription.unsubscribe();
   } catch (err) {
     console.warn('Push unsubscribe failed:', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Native push (Capacitor — iOS / Android)
+// ---------------------------------------------------------------------------
+
+export async function registerNativePush(): Promise<void> {
+  try {
+    const permResult = await PushNotifications.requestPermissions();
+    if (permResult.receive !== 'granted') {
+      console.warn('Native push permission not granted');
+      return;
+    }
+
+    await PushNotifications.register();
+
+    // Listen for the registration token
+    PushNotifications.addListener('registration', async (token) => {
+      console.log('Native push token:', token.value);
+      await saveNativeTokenToServer(token.value);
+    });
+
+    PushNotifications.addListener('registrationError', (err) => {
+      console.error('Native push registration error:', err.error);
+    });
+
+    // Foreground notification received
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      console.log('Push received in foreground:', notification);
+    });
+
+    // User tapped on a notification
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      console.log('Push action performed:', action);
+    });
+  } catch (err) {
+    console.warn('Native push registration failed:', err);
+  }
+}
+
+async function saveNativeTokenToServer(deviceToken: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  const platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android';
+
+  await fetch(`${API_BASE}/api/push/subscribe`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      platform,
+      deviceToken,
+    }),
+  });
+}
+
+export async function unregisterNativePush(): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      // We don't have the token readily available, so we rely on server
+      // cleaning up all native tokens for this user on explicit unregister.
+      // For now, native unsubscribe is a no-op on the client side.
+      // The server can clean up stale tokens when APNs returns errors.
+    }
+    await PushNotifications.removeAllListeners();
+  } catch (err) {
+    console.warn('Native push unregister failed:', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Unified registration — picks web or native based on platform
+// ---------------------------------------------------------------------------
+
+export async function registerPush(): Promise<void> {
+  if (isNativePlatform()) {
+    await registerNativePush();
+  } else {
+    const registration = await registerServiceWorker();
+    if (registration) {
+      await subscribeToPush(registration);
+    }
   }
 }

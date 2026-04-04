@@ -29,10 +29,12 @@ interface NotificationPayload {
 export async function sendPushToUser(notification: NotificationPayload): Promise<number> {
   const supabase = getServiceClient();
 
+  // Only send to web subscriptions for now — native APNs/FCM sending will be added in #246
   const { data: subscriptions } = await supabase
     .from('push_subscriptions')
     .select('*')
-    .eq('user_id', notification.user_id);
+    .eq('user_id', notification.user_id)
+    .eq('platform', 'web');
 
   if (!subscriptions?.length) return 0;
 
