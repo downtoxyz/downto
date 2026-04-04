@@ -19,6 +19,7 @@
     "@capacitor/core": "^7.2.0",
     "@capacitor/ios": "^7.2.0",
     "@capacitor/push-notifications": "^7.0.6",
+    "@parse/node-apn": "^8.0.0",
     "@sentry/nextjs": "^10.42.0",
     "@supabase/supabase-js": "^2.95.3",
     "@types/node": "^25.2.3",
