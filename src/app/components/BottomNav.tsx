@@ -65,7 +65,7 @@ const BottomNav = ({
   const idx = TABS.indexOf(tab);
 
   return (
-    <div className="shrink-0 px-4 pb-4 bg-bg">
+    <div className="shrink-0 px-4 bg-bg" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
       <div
         className="flex bg-card rounded-[18px] p-1 border border-border relative items-stretch"
         style={{ height: 60 }}

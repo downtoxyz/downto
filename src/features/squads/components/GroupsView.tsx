@@ -41,11 +41,11 @@ const GroupsView = ({
           <div
             key={g.id}
             onClick={() => onSelectSquad({ ...g, hasUnread: false })}
-            className="bg-card rounded-2xl p-4 mb-2 border border-border cursor-pointer"
+            className="bg-card rounded-2xl p-4 mb-2 border border-border cursor-pointer overflow-hidden"
           >
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-start gap-2">
-                <span className="font-serif text-[17px] text-primary font-normal">
+            <div className="flex justify-between items-start mb-2 min-w-0">
+              <div className="flex items-start gap-2 min-w-0 flex-1">
+                <span className="font-serif text-[17px] text-primary font-normal line-clamp-2 break-words">
                   {g.name}
                   {g.hasUnread && (
                     <span data-testid={`squad-unread-dot-${g.id}`} className="inline-block w-2 h-2 rounded-full bg-[#ff3b30] ml-1.5 align-middle" />
