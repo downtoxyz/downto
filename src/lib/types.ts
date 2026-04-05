@@ -13,6 +13,7 @@ export interface Profile {
   onboarded: boolean;
   is_test: boolean;
   timezone: string;
+  theme_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

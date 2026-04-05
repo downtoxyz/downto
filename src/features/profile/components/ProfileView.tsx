@@ -247,8 +247,8 @@ const ProfileView = ({
       <span className="text-dim text-sm">→</span>
     </button>
 
-    {/* Theme Switcher */}
-    <div className="mt-6 bg-card rounded-2xl p-4 border border-border">
+    {/* Theme Switcher — only for users with theme_enabled flag */}
+    {profile?.theme_enabled && <div className="mt-6 bg-card rounded-2xl p-4 border border-border">
       <div
         className="font-mono text-tiny uppercase text-faint mb-3.5"
         style={{ letterSpacing: "0.15em" }}
@@ -278,7 +278,7 @@ const ProfileView = ({
           );
         })}
       </div>
-    </div>
+    </div>}
 
     {/* Availability Meter */}
     <div
