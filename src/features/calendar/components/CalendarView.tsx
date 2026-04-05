@@ -424,7 +424,7 @@ const CalendarView = ({
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-serif text-base text-primary mb-0.5 font-normal" style={{ fontSize: 16 }}>
+                  <div className="font-serif text-base text-primary mb-0.5 font-normal line-clamp-2 break-words" style={{ fontSize: 16 }}>
                     {e.title}
                   </div>
                   <div className="font-mono text-xs text-dim" style={{ fontSize: 11 }}>
@@ -451,7 +451,7 @@ const CalendarView = ({
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-serif text-base text-primary mb-0.5 font-normal" style={{ fontSize: 16 }}>
+                    <div className="font-serif text-base text-primary mb-0.5 font-normal line-clamp-2 break-words" style={{ fontSize: 16 }}>
                       {c.text}
                     </div>
                     <div className="font-mono text-xs text-dim flex items-center gap-1.5" style={{ fontSize: 11 }}>

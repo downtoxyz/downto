@@ -13,7 +13,15 @@ const Header = ({
   onOpenAdd: () => void;
   glowAdd?: boolean;
 }) => (
-  <div className="pt-4 px-5 pb-1 flex justify-between items-center shrink-0 bg-bg">
+  <div
+    className="px-5 pb-2 flex justify-between items-center fixed top-0 left-0 right-0 z-40 max-w-[420px] mx-auto"
+    style={{
+      paddingTop: "calc(env(safe-area-inset-top, 16px) + 4px)",
+      background: "transparent",
+      backdropFilter: "saturate(180%) blur(20px)",
+      WebkitBackdropFilter: "saturate(180%) blur(20px)",
+    }}
+  >
     <h1
       className="font-serif text-primary font-normal"
       style={{ fontSize: 28, letterSpacing: "-0.02em" }}

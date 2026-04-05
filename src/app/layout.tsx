@@ -1,9 +1,10 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Instrument_Serif, Space_Mono } from 'next/font/google';
 import DevProdBanner from '@/app/components/DevProdBanner';
 import UpdateBanner from '@/app/components/UpdateBanner';
 import Grain from '@/app/components/Grain';
 import ThemeHydrator from '@/app/components/ThemeHydrator';
+import NativeStatusBar from '@/app/components/NativeStatusBar';
 
 import './global.css';
 import './animations.css';
@@ -18,6 +19,14 @@ const spaceMono = Space_Mono({
   variable: '--font-space-mono',
   subsets: ['latin'],
 });
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover' as const,
+};
 
 export const metadata: Metadata = {
   title: 'down to',
@@ -56,10 +65,6 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
           rel="stylesheet"
         />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-        />
         <meta name="theme-color" content="#0a0a0a" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <style>{`
@@ -68,6 +73,7 @@ export default function RootLayout({
       </head>
       <body className="h-full bg-neutral-950 font-mono font-normal text-neutral-500 antialiased">
         <ThemeHydrator />
+        <NativeStatusBar />
         <Grain />
         <DevProdBanner />
         <UpdateBanner />

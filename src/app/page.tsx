@@ -689,23 +689,21 @@ export default function Home() {
       toggleDown: eventsHook.toggleDown,
     }}>
     <div className="flex flex-col h-dvh">
-      <div>
-        <Header
-          unreadCount={notificationsHook.unreadCount}
-          onOpenNotifications={() => {
-            notificationsHook.setNotificationsOpen(true);
-            if (notificationsHook.unreadCount > 0) {
-              if (userId) {
-                db.markAllNotificationsRead();
-              }
-              notificationsHook.setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-              notificationsHook.setUnreadCount(0);
+      <Header
+        unreadCount={notificationsHook.unreadCount}
+        onOpenNotifications={() => {
+          notificationsHook.setNotificationsOpen(true);
+          if (notificationsHook.unreadCount > 0) {
+            if (userId) {
+              db.markAllNotificationsRead();
             }
-          }}
-          onOpenAdd={() => { setAddModalOpen(true); clearAddGlowRef.current(); }}
-          glowAdd={onboarding.showAddGlow}
-        />
-      </div>
+            notificationsHook.setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+            notificationsHook.setUnreadCount(0);
+          }
+        }}
+        onOpenAdd={() => { setAddModalOpen(true); clearAddGlowRef.current(); }}
+        glowAdd={onboarding.showAddGlow}
+      />
 
       {/* Scroll area with fade edges */}
       <div className="flex-1 relative overflow-hidden">
@@ -730,6 +728,7 @@ export default function Home() {
         <div
           ref={scrollRef}
           className="h-full overflow-y-auto"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 16px) + 72px)" }}
           onScroll={() => {
             const scrolled = (scrollRef.current?.scrollTop ?? 0) > 0;
             if (scrolled !== scrolledDown) setScrolledDown(scrolled);

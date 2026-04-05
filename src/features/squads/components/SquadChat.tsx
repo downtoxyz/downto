@@ -480,6 +480,7 @@ const SquadChat = ({
       ref={chatContainerRef}
       className="flex flex-col fixed top-0 left-0 right-0 h-dvh z-50 bg-bg overflow-hidden overscroll-none"
       style={{
+        paddingTop: "env(safe-area-inset-top, 0px)",
         transform: (closing || entering) ? "translateX(100%)" : `translateX(${dragX}px)`,
         transition: closing ? "transform 0.25s ease-in" : (entering || dragX === 0) ? "transform 0.3s ease-out" : "none",
       }}

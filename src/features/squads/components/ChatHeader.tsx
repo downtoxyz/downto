@@ -63,7 +63,9 @@ export default function ChatHeader({
     (squad.expiresAt && new Date(squad.expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000);
 
   return (
-    <div className={`px-5 pb-3 border-b border-neutral-900 relative bg-neutral-950 shrink-0 ${hasOpenModal ? "z-10000" : "z-auto"}`}>
+    <div
+      className={`px-5 pb-3 pt-3 border-b border-neutral-900 relative bg-transparent shrink-0 ${hasOpenModal ? "z-10000" : "z-auto"}`}
+    >
       <div className="flex items-center justify-between cursor-pointer">
         <button
           onClick={(e) => { e.stopPropagation(); onBack(); }}
