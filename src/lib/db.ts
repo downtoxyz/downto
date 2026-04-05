@@ -1157,14 +1157,24 @@ export async function getSquads(): Promise<Squad[]> {
 }
 
 export async function getSquadByCheckId(checkId: string): Promise<Squad | null> {
+  // Prefer active squad, but return archived if that's all there is
   const { data, error } = await supabase
     .from('squads')
     .select('*')
     .eq('check_id', checkId)
+    .order('archived_at', { ascending: true, nullsFirst: true })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw error;
   return data;
+}
+
+/** Reactivate an archived squad — clears archived_at/warned_at and resets expiry from its check's event_date. */
+export async function reactivateSquad(squadId: string): Promise<Squad> {
+  const { data, error } = await supabase.rpc('reactivate_squad', { p_squad_id: squadId });
+  if (error) throw error;
+  return data as Squad;
 }
 
 export async function joinSquad(squadId: string): Promise<void> {

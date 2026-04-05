@@ -269,10 +269,21 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
     let squadDbId: string | undefined;
     if (check.id) {
       try {
-        const memberIds = Array.from(memberSet);
-        const dbSquad = await db.createSquad(squadName, memberIds, undefined, check.id);
-        await db.sendMessage(dbSquad.id, opener);
-        squadDbId = dbSquad.id;
+        // Check for an archived squad for this check and reactivate it instead of creating a duplicate
+        const existing = await db.getSquadByCheckId(check.id);
+        if (existing && existing.archived_at) {
+          const reactivated = await db.reactivateSquad(existing.id);
+          squadDbId = reactivated.id;
+        } else if (!existing) {
+          const memberIds = Array.from(memberSet);
+          const dbSquad = await db.createSquad(squadName, memberIds, undefined, check.id);
+          await db.sendMessage(dbSquad.id, opener);
+          squadDbId = dbSquad.id;
+        } else {
+          // Active squad already exists — shouldn't happen (squadId would be set), bail out
+          setCreatingSquad(false);
+          return;
+        }
       } catch (err: unknown) {
         // Unique constraint = squad already exists for this check, skip silently
         setCreatingSquad(false);
