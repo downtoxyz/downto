@@ -103,6 +103,8 @@ export interface FeedViewProps {
   installBannerVariant?: 'install' | 'notifications';
   onDismissInstallBanner?: () => void;
   onEnableNotifications?: () => void;
+  sortBy: 'recent' | 'upcoming';
+  onSortChange: (sort: 'recent' | 'upcoming') => void;
 }
 
 export default function FeedView({
@@ -124,6 +126,8 @@ export default function FeedView({
   installBannerVariant = 'install',
   onDismissInstallBanner,
   onEnableNotifications,
+  sortBy,
+  onSortChange,
 }: FeedViewProps) {
   const {
     checks,
@@ -136,7 +140,7 @@ export default function FeedView({
   } = useFeedContext();
 
   const [showHidden, setShowHidden] = useState(false);
-  const [sortBy, setSortBy] = useState<'recent' | 'upcoming'>('recent');
+
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
     {}
   );
@@ -226,32 +230,6 @@ export default function FeedView({
                 loadRealData={loadRealData}
               />
             ))}
-
-            {/* Sort toggle */}
-            {chronoItems.length > 0 && (
-              <div className="mb-3 flex gap-2 px-1">
-                <button
-                  onClick={() => setSortBy('recent')}
-                  className={`text-tiny cursor-pointer rounded-lg border px-2.5 py-1 font-mono font-bold tracking-[0.08em] uppercase transition-colors ${
-                    sortBy === 'recent'
-                      ? 'bg-dt border-dt text-black'
-                      : 'border-neutral-800 bg-transparent text-neutral-500'
-                  }`}
-                >
-                  Recent
-                </button>
-                <button
-                  onClick={() => setSortBy('upcoming')}
-                  className={`text-tiny cursor-pointer rounded-lg border px-2.5 py-1 font-mono font-bold tracking-[0.08em] uppercase transition-colors ${
-                    sortBy === 'upcoming'
-                      ? 'bg-dt border-dt text-black'
-                      : 'border-neutral-800 bg-transparent text-neutral-500'
-                  }`}
-                >
-                  Upcoming
-                </button>
-              </div>
-            )}
 
             {/* Chrono: open checks + events interleaved */}
             {chronoItems.map((item) =>

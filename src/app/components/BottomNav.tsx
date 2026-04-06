@@ -65,10 +65,10 @@ const BottomNav = ({
   const idx = TABS.indexOf(tab);
 
   return (
-    <div className="shrink-0 px-4 pb-4 bg-bg">
+    <div className="shrink-0 px-4 pb-3 bg-bg">
       <div
-        className="flex bg-card rounded-[18px] p-1 border border-border relative items-stretch"
-        style={{ height: 60 }}
+        className="flex bg-card rounded-[14px] p-1 border border-border relative items-stretch"
+        style={{ height: 48 }}
       >
         {/* Sliding highlight */}
         <div
@@ -84,13 +84,13 @@ const BottomNav = ({
           <button
             key={t}
             onClick={() => onTabChange(t)}
-            className="flex-1 bg-none border-none cursor-pointer py-2 relative z-[1] flex flex-col items-center justify-center gap-0.5"
+            className="flex-1 bg-none border-none cursor-pointer py-1 relative z-[1] flex flex-col items-center justify-center gap-0"
           >
-            <span className="text-sm leading-none">
+            <span className="text-xs leading-none">
               {tabIcons[t]}
             </span>
             <span
-              className="font-mono leading-none mt-[5px] uppercase"
+              className="font-mono leading-none mt-[3px] uppercase"
               style={{
                 fontSize: 9,
                 letterSpacing: "0.08em",
