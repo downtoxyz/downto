@@ -688,7 +688,7 @@ export default function Home() {
       toggleSave: eventsHook.toggleSave,
       toggleDown: eventsHook.toggleDown,
     }}>
-    <div className="flex flex-col h-dvh overflow-x-hidden">
+    <div className="flex flex-col fixed inset-0 overflow-x-hidden">
       <Header
         unreadCount={notificationsHook.unreadCount}
         onOpenNotifications={() => {
