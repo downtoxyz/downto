@@ -2,6 +2,9 @@
 
 import { color } from "@/lib/styles";
 
+/** Total header height = safe-area-inset-top + this value */
+export const HEADER_HEIGHT_PX = 52;
+
 const Header = ({
   unreadCount,
   onOpenNotifications,

@@ -23,7 +23,7 @@ import OnboardingFriendsPopup from "@/features/friends/components/OnboardingFrie
 import GroupsView from "@/features/squads/components/GroupsView";
 import SquadChat from "@/features/squads/components/SquadChat";
 import ProfileView from "@/features/profile/components/ProfileView";
-import Header from "@/app/components/Header";
+import Header, { HEADER_HEIGHT_PX } from "@/app/components/Header";
 import BottomNav from "@/app/components/BottomNav";
 import Toast from "@/app/components/Toast";
 import NotificationsPanel from "@/features/notifications/components/NotificationsPanel";
@@ -727,7 +727,7 @@ export default function Home() {
         <div
           ref={scrollRef}
           className="h-full overflow-y-auto"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 16px) + 72px)" }}
+          style={{ paddingTop: `calc(env(safe-area-inset-top, 16px) + ${HEADER_HEIGHT_PX + 4}px)` }}
           onScroll={() => {
             const scrolled = (scrollRef.current?.scrollTop ?? 0) > 0;
             if (scrolled !== scrolledDown) setScrolledDown(scrolled);

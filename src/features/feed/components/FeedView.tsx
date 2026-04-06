@@ -204,7 +204,7 @@ export default function FeedView({
           onEnableNotifications={onEnableNotifications}
         />
       )}
-      <div className="px-4 pt-2">
+      <div className="px-4">
         {hasContent ? (
           <>
             {/* Pinned: expiring checks */}
