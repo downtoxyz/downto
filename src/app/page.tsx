@@ -414,6 +414,16 @@ export default function Home() {
     }
   }, [squadsHook.autoSelectSquadId, squadsHook.squads]);
 
+  // Close squad chat if user is no longer a member (e.g. after un-downing)
+  useEffect(() => {
+    if (!selectedSquad) return;
+    const stillIn = squadsHook.squads.some(s => s.id === selectedSquad.id);
+    if (!stillIn) {
+      setSelectedSquad(null);
+      setSquadChatOrigin(null);
+    }
+  }, [squadsHook.squads, selectedSquad]);
+
   // ─── Squad API handlers ──────────────────────────────────────────────────
 
   const handleSetSquadDate = async (squadDbId: string, date: string, time?: string | null, locked?: boolean) => {
