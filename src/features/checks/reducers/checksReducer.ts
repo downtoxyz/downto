@@ -40,7 +40,7 @@ export const CheckActionType = {
 
 export type ChecksAction =
   // Serves both loadChecks (checks-only) and hydrateChecks (checks + hiddenIds + responses)
-  | { type: typeof CheckActionType.SYNC_CHECKS; checks: InterestCheck[]; hiddenIds?: string[]; responses?: Record<string, "down" | "waitlist"> }
+  | { type: typeof CheckActionType.SYNC_CHECKS; checks: InterestCheck[]; hiddenIds?: string[]; responses?: Record<string, "down" | "waitlist">; avatarLetter?: string }
   // Prepends if new id, shallow-merges if existing
   | { type: typeof CheckActionType.UPSERT_CHECK; check: InterestCheck }
   // Bulk patch — for syncing squad membership across multiple checks at once
@@ -85,12 +85,13 @@ function mergeChecks(prev: InterestCheck[], next: InterestCheck[]): InterestChec
 // Re-apply "You" response if a realtime sync fires before the DB confirms your response
 function patchYouResponses(
   checks: InterestCheck[],
-  myCheckResponses: Record<string, "down" | "waitlist">
+  myCheckResponses: Record<string, "down" | "waitlist">,
+  avatarLetter?: string
 ): InterestCheck[] {
   return checks.map((c) => {
     const myStatus = myCheckResponses[c.id];
     if (!myStatus || c.responses.some((r) => r.name === "You")) return c;
-    return { ...c, responses: [{ name: "You", avatar: "?", status: myStatus }, ...c.responses] };
+    return { ...c, responses: [{ name: "You", avatar: avatarLetter ?? "?", status: myStatus }, ...c.responses] };
   });
 }
 
@@ -104,7 +105,7 @@ export function checksReducer(state: ChecksState, action: ChecksAction): ChecksS
       const responses = action.responses
         ? action.responses
         : state.myCheckResponses;
-      const checks = patchYouResponses(mergeChecks(state.checks, action.checks), responses);
+      const checks = patchYouResponses(mergeChecks(state.checks, action.checks), responses, action.avatarLetter);
       return {
         ...state,
         checks,

@@ -291,7 +291,7 @@ export default function CheckCard({
                 >
                   <div className="flex shrink-0">
                     {check.responses.slice(0, 6).map((r, i) => (
-                      <div key={r.name} className={`size-6 rounded-full flex items-center justify-center font-mono text-tiny font-bold border-2 border-neutral-925 ${i > 0 ? "-ml-1.5" : ""} ${r.status === "down" ? "bg-dt text-black" : "bg-neutral-700 text-neutral-500"} ${r.status === "waitlist" ? "opacity-50" : ""}`}>{r.avatar}</div>
+                      <div key={r.name} className={`size-6 rounded-full flex items-center justify-center font-mono text-tiny font-bold border-2 ${i > 0 ? "-ml-1.5" : ""} ${r.status === "down" ? "bg-dt text-black border-neutral-925" : "bg-neutral-700 text-neutral-500 border-dashed border-neutral-600"}`}>{r.avatar}</div>
                     ))}
                     {check.responses.length > 6 && (
                       <div className="-ml-1.5 size-6 rounded-full bg-neutral-700 text-neutral-500 flex items-center justify-center font-mono text-tiny font-bold border-2 border-neutral-925">+{check.responses.length - 6}</div>

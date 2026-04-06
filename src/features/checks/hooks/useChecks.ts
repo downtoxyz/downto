@@ -158,6 +158,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
       checks: transformedChecks,
       hiddenIds,
       responses: restoredResponses,
+      avatarLetter: profile?.avatar_letter,
     });
   }, [userId]);
 
@@ -170,7 +171,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
       db.respondToCheck(check.id, 'down')
         .then(async (result) => {
           if (result.response === 'waitlist') {
-            dispatch({ type: CheckActionType.SET_RESPONSE, checkId, status: "waitlist" });
+            dispatch({ type: CheckActionType.SET_RESPONSE, checkId, status: "waitlist", avatarLetter: profile?.avatar_letter ?? "?" });
             showToast("Check is full — you're on the waitlist");
           }
           if (onDownResponse) await onDownResponse();
