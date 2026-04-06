@@ -344,7 +344,7 @@ export default function CheckCard({
                   >
                     {myCheckResponses[check.id] === "down" ? "✓ Down" : myCheckResponses[check.id] === "waitlist" ? "✓ Waitlisted" : "Down"}
                   </button>
-                  {myCheckResponses[check.id] === "down" && (() => {
+                  {(myCheckResponses[check.id] === "down" || myCheckResponses[check.id] === "waitlist") && (() => {
                     const memberCount = check.squadMemberCount ?? 0;
                     const maxSize = check.maxSquadSize;
                     const isUnlimited = maxSize == null;
