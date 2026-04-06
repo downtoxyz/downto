@@ -65,7 +65,7 @@ const BottomNav = ({
   const idx = TABS.indexOf(tab);
 
   return (
-    <div className="shrink-0 px-4 pb-4 bg-bg">
+    <div className="shrink-0 px-4 pb-2 bg-bg">
       <div
         className="flex bg-card rounded-[18px] p-1 border border-border relative items-stretch"
         style={{ height: 60 }}
@@ -102,7 +102,7 @@ const BottomNav = ({
             </span>
             {t === "squads" && hasSquadsUnread && (
               <div
-                data-testid="squads-unread-dot"
+                data-testid="plans-unread-dot"
                 className="absolute top-1 right-2 w-[7px] h-[7px] rounded-full bg-[#ff3b30]"
               />
             )}
