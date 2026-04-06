@@ -10,6 +10,7 @@ import { AVAILABILITY_OPTIONS, EXPIRY_OPTIONS } from "@/lib/ui-types";
 import { themes } from "@/lib/themes";
 import type { ThemeName } from "@/lib/themes";
 import { applyTheme } from "@/app/components/ThemeHydrator";
+import SyncCalendarModal from "@/app/components/SyncCalendarModal";
 
 const THEME_STORAGE_KEY = "downto-theme";
 const THEME_NAMES = Object.keys(themes) as ThemeName[];
@@ -46,6 +47,7 @@ const ProfileView = ({
   );
   const [expiry, setExpiry] = useState<string | null>(null);
   const [isLatestBuild, setIsLatestBuild] = useState<boolean | null>(null);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
 
   useEffect(() => {
     const buildId = process.env.NEXT_PUBLIC_BUILD_ID;
@@ -525,21 +527,16 @@ const ProfileView = ({
         </div>
       )}
       <div
-        onClick={async () => {
-          try {
-            const token = await db.getCalendarToken();
-            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const url = `webcal://${window.location.host}/api/calendar/${token}?tz=${encodeURIComponent(tz)}`;
-            window.location.href = url;
-          } catch {
-            showToast?.("Could not generate calendar link");
-          }
-        }}
+        onClick={() => setSyncModalOpen(true)}
         className="py-3.5 border-b border-border font-mono text-xs text-muted flex justify-between items-center cursor-pointer"
       >
         <span>Sync to Calendar</span>
-        <span className="text-faint text-xs">Subscribe →</span>
+        <span className="text-faint text-xs">→</span>
       </div>
+      <SyncCalendarModal
+        open={syncModalOpen}
+        onClose={() => setSyncModalOpen(false)}
+      />
       {profile?.is_test && onUpdateProfile && (
         <div
           onClick={async () => {
