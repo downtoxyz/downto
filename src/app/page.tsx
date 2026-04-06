@@ -23,7 +23,7 @@ import OnboardingFriendsPopup from "@/features/friends/components/OnboardingFrie
 import GroupsView from "@/features/squads/components/GroupsView";
 import SquadChat from "@/features/squads/components/SquadChat";
 import ProfileView from "@/features/profile/components/ProfileView";
-import Header, { HEADER_HEIGHT_PX } from "@/app/components/Header";
+import Header, { HEADER_HEIGHT_PX, HEADER_HEIGHT_WITH_TABS_PX, HEADER_OFFSET_PX } from "@/app/components/Header";
 import BottomNav from "@/app/components/BottomNav";
 import Toast from "@/app/components/Toast";
 import NotificationsPanel from "@/features/notifications/components/NotificationsPanel";
@@ -54,6 +54,7 @@ export default function Home() {
     scrolledDown, setScrolledDown,
   } = useAppNavigation();
   const [feedLoaded, setFeedLoaded] = useState(false);
+  const [sortBy, setSortBy] = useState<'recent' | 'upcoming'>('recent');
 
   // ─── loadRealData ref (declared early so hooks can receive it) ──────────
   const loadRealDataRef = useRef<() => Promise<void>>(async () => {});
@@ -702,6 +703,9 @@ export default function Home() {
         }}
         onOpenAdd={() => { setAddModalOpen(true); clearAddGlowRef.current(); }}
         glowAdd={onboarding.showAddGlow}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        showSort={tab === 'feed'}
       />
 
       {/* Scroll area with fade edges */}
@@ -727,7 +731,7 @@ export default function Home() {
         <div
           ref={scrollRef}
           className="h-full overflow-y-auto"
-          style={{ paddingTop: `calc(env(safe-area-inset-top, 16px) + ${HEADER_HEIGHT_PX + 4}px)` }}
+          style={{ paddingTop: `calc(env(safe-area-inset-top, 16px) + ${(tab === 'feed' ? HEADER_HEIGHT_WITH_TABS_PX : HEADER_HEIGHT_PX) + HEADER_OFFSET_PX}px)` }}
           onScroll={() => {
             const scrolled = (scrollRef.current?.scrollTop ?? 0) > 0;
             if (scrolled !== scrolledDown) setScrolledDown(scrolled);
@@ -802,6 +806,8 @@ export default function Home() {
             installBannerVariant={!onboarding.installDismissed ? "install" : "notifications"}
             onDismissInstallBanner={!onboarding.installDismissed ? onboarding.dismissInstall : onboarding.dismissNotifBanner}
             onEnableNotifications={handleTogglePush}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
           />
         )}
         {feedLoaded && tab === "squads" && (
