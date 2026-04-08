@@ -82,7 +82,7 @@ export default function MessageComposer({
       {/* Input row */}
       <div
         className="flex gap-2 items-end"
-        style={{ padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))" }}
+        style={{ padding: "12px 20px calc(4px + env(safe-area-inset-bottom, 0px))" }}
       >
         {(!activePoll || activePoll.status === 'closed') && onOpenPollCreator && (
           <button
