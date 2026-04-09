@@ -98,6 +98,8 @@ export default function CheckCard({
   } = useFeedContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [commentsEverOpened, setCommentsEverOpened] = useState(false);
+  const commentsRef = React.useRef<HTMLDivElement>(null);
 
   // Auto-open comments when navigated to this check via notification
   useEffect(() => {
@@ -116,11 +118,27 @@ export default function CheckCard({
     initialCommentCount,
   });
 
-  const handleToggleComments = () => {
+  const handleToggleComments = async () => {
     if (!isCommentsOpen) {
-      openComments();
+      await openComments();
+      setCommentsEverOpened(true);
+      setIsCommentsOpen(true);
+      setTimeout(() => {
+        const el = commentsRef.current;
+        if (!el) return;
+        const scrollParent = el.closest('[class*="overflow-y"]') || el.closest('[style*="overflow"]');
+        if (scrollParent) {
+          const elRect = el.getBoundingClientRect();
+          const parentRect = scrollParent.getBoundingClientRect();
+          const overflow = elRect.bottom - parentRect.bottom + 80;
+          if (overflow > 0) {
+            scrollParent.scrollBy({ top: overflow, behavior: "smooth" });
+          }
+        }
+      }, 250);
+    } else {
+      setIsCommentsOpen(false);
     }
-    setIsCommentsOpen(prev => !prev);
   };
 
   const shareCheck = async () => {
@@ -260,15 +278,7 @@ export default function CheckCard({
                   {when}
                   {when && check.location && " · "}
                   {check.location && (
-                    <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(check.location)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ color: "inherit", textDecoration: "none" }}
-                    >
-                      {check.location}
-                    </a>
+                    <span>{check.location}</span>
                   )}
                 </p>
               );
@@ -344,65 +354,6 @@ export default function CheckCard({
                   >
                     {myCheckResponses[check.id] === "down" ? "✓ Down" : myCheckResponses[check.id] === "waitlist" ? "✓ Waitlisted" : "Down"}
                   </button>
-                  {(myCheckResponses[check.id] === "down" || myCheckResponses[check.id] === "waitlist") && (() => {
-                    const memberCount = check.squadMemberCount ?? 0;
-                    const maxSize = check.maxSquadSize;
-                    const isUnlimited = maxSize == null;
-                    const isFull = !isUnlimited && memberCount >= maxSize;
-                    const capacityLabel = isUnlimited ? `${memberCount}/∞` : `${memberCount}/${maxSize}`;
-                    return (
-                      check.inSquad ? (
-                        <button onClick={(e) => { e.stopPropagation(); onNavigateToGroups(check.squadId!); }}
-                          className="bg-purple-500/10 text-purple-500 border-none rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
-                        >💬 Squad →{check.squadId && <span className="text-purple-500/60 ml-1 font-normal">{capacityLabel}</span>}</button>
-                      ) : check.isWaitlisted ? (
-                        <button onClick={(e) => { e.stopPropagation(); onNavigateToGroups(check.squadId!); }}
-                          className="bg-transparent text-neutral-700 border border-neutral-900 rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
-                        >Waitlisted<span className="font-normal ml-1">{capacityLabel}</span></button>
-                      ) : check.squadId && !isFull ? (
-                        <button onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const result = await db.joinSquadIfRoom(check.squadId!);
-                            if (result === "waitlisted") { showToast("Squad is full — you're on the waitlist"); await loadRealData(); return; }
-                            showToast("Joined the squad! 🚀");
-                          } catch (err: unknown) {
-                            const code = err && typeof err === "object" && "code" in err ? err.code : "";
-                            if (code !== "23505") { logError("joinSquad", err, { squadId: check.squadId }); showToast("Failed to join squad"); return; }
-                          }
-                          await loadRealData();
-                          onNavigateToGroups(check.squadId!);
-                        }}
-                          className="bg-transparent text-purple-500 border border-purple-500 rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
-                        >Join Squad →<span className="text-neutral-500 ml-1 font-normal">{capacityLabel}</span></button>
-                      ) : check.squadId && isFull ? (
-                        <button onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const result = await db.joinSquadIfRoom(check.squadId!);
-                            showToast(result === "joined" ? "Joined the squad! 🚀" : "Squad is full — you're on the waitlist");
-                            await loadRealData();
-                            if (result === "joined") onNavigateToGroups(check.squadId!);
-                          } catch (err: unknown) { logError("waitlistSquad", err, { squadId: check.squadId }); showToast("Failed to join waitlist"); }
-                        }}
-                          className="bg-transparent text-neutral-700 border border-neutral-900 rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
-                        >Waitlist →<span className="font-normal ml-1">{capacityLabel}</span></button>
-                      ) : pendingDownCheckIds.has(check.id) ? (
-                        <span className="font-mono text-tiny text-neutral-500 py-1.5 px-2">...</span>
-                      ) : (
-                        <button onClick={(e) => { e.stopPropagation(); startSquadFromCheck(check); }}
-                          className="bg-transparent text-dt border border-dt rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
-                        >Squad →</button>
-                      )
-                    );
-                  })()}
-                </div>
-              )}
-              {(check.isYours || check.isCoAuthor) && check.squadId && myCheckResponses[check.id] !== "down" && (
-                <div className="flex justify-end mt-1">
-                  <button onClick={(e) => { e.stopPropagation(); onNavigateToGroups(check.squadId!); }}
-                    className="bg-purple-500/10 text-purple-500 border-none rounded-lg py-1.5 px-2 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap"
-                  >💬 Squad →<span className="text-purple-500/60 ml-1 font-normal">{check.squadMemberCount ?? 0}{check.maxSquadSize != null ? `/${check.maxSquadSize}` : `/∞`}</span></button>
                 </div>
               )}
             </div>
@@ -434,14 +385,21 @@ export default function CheckCard({
             )}
 
             {/* Comments section */}
-            {isCommentsOpen && (
-              <CheckCommentsSection
-                comments={comments}
-                userId={userId}
-                friends={friendsList}
-                onPost={postComment}
-              />
-            )}
+            <div
+              className="grid transition-[grid-template-rows] duration-200 ease-out"
+              style={{ gridTemplateRows: isCommentsOpen ? "1fr" : "0fr" }}
+            >
+              <div className="overflow-hidden" ref={commentsRef}>
+                {commentsEverOpened && (
+                  <CheckCommentsSection
+                    comments={comments}
+                    userId={userId}
+                    friends={friendsList}
+                    onPost={postComment}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
