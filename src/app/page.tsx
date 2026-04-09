@@ -130,8 +130,10 @@ export default function Home() {
     showToast,
     openSquadIdRef: selectedSquadIdRef,
     onSquadCreated: (squadId: string) => {
-      setSquadChatOrigin(tab);
-      squadsHook.setAutoSelectSquadId(squadId);
+      showToastWithAction("squad formed!", () => {
+        setSquadChatOrigin(tab);
+        squadsHook.setAutoSelectSquadId(squadId);
+      }, true);
     },
     onAutoDown: async (eventId: string) => {
       await db.saveEvent(eventId).catch(() => {});
@@ -955,6 +957,7 @@ export default function Home() {
           message={toastMsg}
           action={toastAction}
           onDismiss={() => { setToastMsg(null); setToastAction(null); }}
+          dismissible={!!toastAction}
         />
       )}
 
