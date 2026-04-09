@@ -208,15 +208,9 @@ const EventCard = ({
                 {event.time && event.time !== "TBD" && ` ${event.time}`}
               </span>
               {event.venue && event.venue !== "TBD" && (
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="font-mono text-xs text-dim mt-0.5 block no-underline"
-                >
+                <span className="font-mono text-xs text-dim mt-0.5 block">
                   {event.venue}
-                </a>
+                </span>
               )}
             </div>
 
