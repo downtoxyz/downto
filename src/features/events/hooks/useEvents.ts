@@ -30,6 +30,8 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
 
     setEvents((prev) => {
       const prevPeopleDown = new Map(prev.map((e) => [e.id, e.peopleDown]));
+      // Build a set of event IDs already covered by saved + friends to dedupe public
+      const friendsEventIdSet = new Set(friendsEvents.map((e) => e.id));
       const combined = [
         ...savedEvents.map((se) => ({
           id: se.event!.id,
@@ -82,6 +84,37 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
             note: e.note ?? undefined,
             saved: false,
             isDown: false,
+            visibility: e.visibility ?? 'public',
+            posterName: e.creator?.display_name ?? undefined,
+            posterAvatar: e.creator?.avatar_letter ?? undefined,
+            peopleDown: prevPeopleDown.get(e.id) ?? [],
+            neighborhood: e.neighborhood ?? undefined,
+            rawDate: e.date ?? undefined,
+            createdAt: e.created_at ?? undefined,
+          })),
+        ...publicEvents
+          .filter((e) => !savedEventIdSet.has(e.id) && !friendsEventIdSet.has(e.id))
+          .map((e) => ({
+            id: e.id,
+            createdBy: e.created_by ?? undefined,
+            title: e.title,
+            venue: e.venue ?? "",
+            date: e.date_display ?? "",
+            time: e.time_display ?? "",
+            vibe: e.vibes,
+            image: e.image_url ?? "",
+            igHandle: e.ig_handle ?? "",
+            igUrl: e.ig_url ?? undefined,
+            diceUrl: e.dice_url ?? undefined,
+            letterboxdUrl: e.letterboxd_url ?? undefined,
+            movieTitle: e.movie_metadata?.title,
+            movieYear: e.movie_metadata?.year,
+            movieDirector: e.movie_metadata?.director,
+            movieThumbnail: e.movie_metadata?.thumbnail,
+            note: e.note ?? undefined,
+            saved: false,
+            isDown: false,
+            isPublic: true,
             visibility: e.visibility ?? 'public',
             posterName: e.creator?.display_name ?? undefined,
             posterAvatar: e.creator?.avatar_letter ?? undefined,
