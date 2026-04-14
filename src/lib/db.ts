@@ -134,32 +134,11 @@ export async function getPublicEvents(date?: Date): Promise<Event[]> {
 }
 
 export async function getFriendsEvents(): Promise<Event[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  // Get accepted friend IDs
-  const { data: friendships } = await supabase
-    .from('friendships')
-    .select('requester_id, addressee_id')
-    .eq('status', 'accepted')
-    .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
-
-  if (!friendships || friendships.length === 0) return [];
-
-  const friendIds = friendships.map(f =>
-    f.requester_id === user.id ? f.addressee_id : f.requester_id
-  );
-
-  const today = toLocalISODate(new Date());
-  const { data, error } = await supabase
-    .from('events')
-    .select('*, creator:profiles!created_by(display_name, avatar_letter)')
-    .in('created_by', friendIds)
-    .gte('date', today)
-    .order('date', { ascending: true });
-
+  // Single RPC: combines friendships lookup + events join + creator profile in one round-trip.
+  // Returns a JSON array of events with `creator: { display_name, avatar_letter }` embedded.
+  const { data, error } = await supabase.rpc('get_friends_events');
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Event[];
 }
 
 export async function createEvent(event: Omit<Event, 'id' | 'created_at' | 'creator'>): Promise<Event> {
