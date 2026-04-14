@@ -5,6 +5,8 @@ import { themes, themeToCSSSVars } from "@/lib/themes";
 import type { ThemeName } from "@/lib/themes";
 
 const THEME_STORAGE_KEY = "downto-theme";
+const THEME_VERSION_KEY = "downto-theme-version";
+const CURRENT_THEME_VERSION = "2";
 
 /** Apply a theme by injecting CSS vars, updating meta theme-color, and bg image */
 export function applyTheme(name: ThemeName) {
@@ -41,6 +43,12 @@ export default function ThemeHydrator() {
     if (qTheme && qTheme in themes) {
       applyTheme(qTheme);
       return;
+    }
+
+    // One-time reset: clear stored theme when version bumps so new default takes effect
+    if (localStorage.getItem(THEME_VERSION_KEY) !== CURRENT_THEME_VERSION) {
+      localStorage.removeItem(THEME_STORAGE_KEY);
+      localStorage.setItem(THEME_VERSION_KEY, CURRENT_THEME_VERSION);
     }
 
     const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeName | null;
