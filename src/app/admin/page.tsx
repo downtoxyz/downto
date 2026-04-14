@@ -160,7 +160,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="flex-1 bg-bg px-4 py-6 flex flex-col max-w-[640px] w-full mx-auto overflow-x-hidden overflow-y-auto">
+    <div className="fixed inset-0 bg-bg px-4 py-6 flex flex-col max-w-[640px] w-full mx-auto overflow-x-hidden overflow-y-auto">
       <h1 className="font-serif text-primary mb-5" style={{ fontSize: 28 }}>
         Admin
       </h1>
