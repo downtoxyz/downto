@@ -10,27 +10,8 @@ export default function DevProdBanner() {
     return !url.includes("127.0.0.1") && !url.includes("localhost");
   })();
 
+  // TODO: re-enable banner — temporarily hidden while iterating on linen theme
   if (!isStaging && !isProd) return null;
 
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 99999,
-        background: isStaging ? "#E8FF5A" : "#d32f2f",
-        color: isStaging ? "#000" : "#fff",
-        textAlign: "center",
-        fontSize: 9,
-        fontFamily: "Space Mono, monospace",
-        padding: "env(safe-area-inset-top, 0px) 0 2px",
-        letterSpacing: 1,
-        pointerEvents: "none",
-      }}
-    >
-      {isStaging ? "STAGING DATABASE" : "PRODUCTION DATABASE"}
-    </div>
-  );
+  return null;
 }

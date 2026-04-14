@@ -185,7 +185,7 @@ function ToggleRow({
             className={cn(
               "font-mono text-tiny font-bold rounded-md border cursor-pointer uppercase",
               value === opt.value
-                ? "border-dt bg-dt text-black"
+                ? "border-dt bg-dt text-on-accent"
                 : "border-border-mid bg-transparent text-muted"
             )}
             style={{ padding: "4px 10px", letterSpacing: "0.08em" }}
@@ -465,7 +465,7 @@ function CollapsedResponses({ down, maybe }: { down: Response[]; maybe: Response
             key={r.name}
             className={cn(
               "w-6 h-6 rounded-full flex items-center justify-center font-mono font-bold relative",
-              r.type === "down" ? "bg-dt text-black" : "bg-border-light text-dim"
+              r.type === "down" ? "bg-dt text-on-accent" : "bg-border-light text-dim"
             )}
             style={{
               fontSize: 9,
@@ -516,7 +516,7 @@ function ExpandedResponses({ down, maybe }: { down: Response[]; maybe: Response[
             <div
               className={cn(
                 "w-5 h-5 rounded-full flex items-center justify-center font-mono font-bold",
-                label === "Down" ? "bg-dt text-black" : "bg-border-light text-dim"
+                label === "Down" ? "bg-dt text-on-accent" : "bg-border-light text-dim"
               )}
               style={{ fontSize: 8 }}
             >
@@ -658,7 +658,7 @@ function ActionButton({
         isDown ? "border-dt" : "border-border-mid",
         active
           ? isDown
-            ? "bg-dt text-black"
+            ? "bg-dt text-on-accent"
             : "bg-dim text-black"
           : "bg-transparent",
         !active && (isDown ? "text-dt" : "text-dim")

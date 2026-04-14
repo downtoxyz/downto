@@ -259,7 +259,7 @@ const SyncCalendarModal = ({
                 disabled={syncSelected.size === 0}
                 className={cn(
                   "flex-1 py-3 border-none rounded-xl font-mono text-xs font-bold uppercase",
-                  syncSelected.size > 0 ? "bg-dt text-black cursor-pointer" : "bg-border text-faint cursor-default",
+                  syncSelected.size > 0 ? "bg-dt text-on-accent cursor-pointer" : "bg-border text-faint cursor-default",
                 )}
                 style={{ fontSize: 12, letterSpacing: "0.08em" }}
               >

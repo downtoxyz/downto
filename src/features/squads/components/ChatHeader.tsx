@@ -64,7 +64,7 @@ export default function ChatHeader({
 
   return (
     <div
-      className={`px-5 pb-3 pt-3 border-b border-neutral-900 relative bg-transparent shrink-0 ${hasOpenModal ? "z-10000" : "z-auto"}`}
+      className={`px-5 pb-3 pt-3 border-b border-border relative bg-transparent shrink-0 ${hasOpenModal ? "z-10000" : "z-auto"}`}
     >
       <div className="flex items-center justify-between cursor-pointer">
         <button
@@ -78,11 +78,11 @@ export default function ChatHeader({
           className="flex items-center justify-between flex-1 min-w-0"
         >
           <div className="min-w-0 flex-1">
-            <h2 className="font-serif text-lg text-white font-normal m-0 line-clamp-2">
+            <h2 className="font-serif text-lg text-primary font-normal m-0 line-clamp-2 leading-snug tracking-[-0.01em]">
               {squad.name}
             </h2>
             {hasDetails && (
-              <p className="font-mono text-tiny text-neutral-500 m-0 mt-0.5 truncate">
+              <p className="font-mono text-tiny text-muted m-0 mt-0.5 truncate">
                 {detailParts.length > 0 ? detailParts.join(" · ") : squad.event}
               </p>
             )}
@@ -111,7 +111,7 @@ export default function ChatHeader({
                 return (
                   <div
                     key={m.name}
-                    className={`size-6 rounded-full flex items-center justify-center font-mono text-tiny font-bold border-2 border-neutral-925 ${idx === 0 ? "" : "-ml-1.5"}`}
+                    className={`size-6 rounded-full flex items-center justify-center font-mono text-tiny font-bold border-2 border-card ${idx === 0 ? "" : "-ml-1.5"}`}
                     style={{ background: avatarBg, color: avatarColor, zIndex: 4 - idx, position: "relative" }}
                   >
                     {m.avatar}
@@ -119,13 +119,13 @@ export default function ChatHeader({
                 );
               })}
               {squad.members.length > 4 && (
-                <span className="font-mono text-tiny font-bold text-neutral-500 ml-1">
+                <span className="font-mono text-tiny font-bold text-muted ml-1">
                   +{squad.members.length - 4}
                 </span>
               )}
             </div>
             {expiryLabel && (
-              <span className={`font-mono text-tiny mt-0.5 ${expiryUrgent ? "text-dt" : "text-neutral-700"}`}>
+              <span className={`font-mono text-tiny mt-0.5 ${expiryUrgent ? "text-dt" : "text-dim"}`}>
                 {expiryLabel}
               </span>
             )}

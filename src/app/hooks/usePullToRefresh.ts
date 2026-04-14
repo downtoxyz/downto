@@ -5,12 +5,16 @@ export function usePullToRefresh({
   enabledTabs,
   chatOpen,
   tab,
+  disabled,
 }: {
   onRefresh: () => Promise<void>;
   enabledTabs: string[];
   chatOpen: boolean;
   tab: string;
+  disabled?: boolean;
 }) {
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
   const tabRef = useRef(tab);
   tabRef.current = tab;
   const chatOpenRef = useRef(chatOpen);
@@ -61,6 +65,7 @@ export function usePullToRefresh({
   }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (disabledRef.current) return;
     if (isAnimatingRef.current) return;
     if (!enabledTabs.includes(tabRef.current)) return;
     if (chatOpenRef.current) return;

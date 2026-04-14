@@ -170,7 +170,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
   const respondToCheck = (checkId: string) => {
     const check = checks.find((c) => c.id === checkId);
     dispatch({ type: CheckActionType.SET_RESPONSE, checkId, status: "down", avatarLetter: profile?.avatar_letter ?? "?" });
-    showToast("You're down! \u{1F919}");
+    showToast("You're down! ✦");
     if (check?.id) {
       dispatch({ type: CheckActionType.SET_PENDING, checkId, pending: true });
       db.respondToCheck(check.id, 'down')

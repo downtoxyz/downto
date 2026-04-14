@@ -190,7 +190,7 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
     setEvents((prev) =>
       prev.map((e) => e.id === id ? { ...e, isDown: newDown, saved: newDown ? true : e.saved } : e)
     );
-    showToast(newDown ? "You're down! \u{1F919}" : "Maybe next time");
+    showToast(newDown ? "You're down! ✦" : "Maybe next time");
     if (event.id) {
       try {
         if (newDown && !prevSaved) {

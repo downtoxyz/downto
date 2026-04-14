@@ -40,7 +40,7 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
 
   if (state === "loading") return null;
 
-  const baseClasses = "block w-full text-center bg-dt text-black rounded-xl font-mono text-xs font-bold uppercase no-underline border-none cursor-pointer";
+  const baseClasses = "block w-full text-center bg-dt text-on-accent rounded-xl font-mono text-xs font-bold uppercase no-underline border-none cursor-pointer";
   const baseStyle = { padding: 14, letterSpacing: "0.08em" };
 
   // Not logged in — send through auth flow with pending check
@@ -60,7 +60,7 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
           className={`${baseClasses} !bg-transparent !text-dt !cursor-default`}
           style={{ ...baseStyle, border: `1px solid ${color.borderMid}` }}
         >
-          {"You're down \u{1F919}"}
+          {"You're down ✦"}
         </div>
         <a href={`/?tab=feed&checkId=${checkId}`} className={`${baseClasses} !bg-card !text-primary`} style={baseStyle}>
           Open downto

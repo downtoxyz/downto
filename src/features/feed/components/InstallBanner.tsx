@@ -36,7 +36,7 @@ export default function InstallBanner({ variant, onDismiss, onEnableNotification
             {onEnableNotifications && (
               <button
                 onClick={onEnableNotifications}
-                className="mt-2 bg-dt text-black font-mono text-[11px] font-bold uppercase tracking-[0.08em] border-none rounded-lg py-1.5 px-3 cursor-pointer"
+                className="mt-2 bg-dt text-on-accent font-mono text-[11px] font-bold uppercase tracking-[0.08em] border-none rounded-lg py-1.5 px-3 cursor-pointer"
               >
                 Turn on
               </button>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Instrument_Serif, Space_Mono } from 'next/font/google';
+import { Sora, Exo, Instrument_Serif, Space_Mono } from 'next/font/google';
 import DevProdBanner from '@/app/components/DevProdBanner';
 import UpdateBanner from '@/app/components/UpdateBanner';
 import Grain from '@/app/components/Grain';
@@ -9,6 +9,16 @@ import NativeStatusBar from '@/app/components/NativeStatusBar';
 import './global.css';
 import './animations.css';
 
+const sora = Sora({
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sora',
+  subsets: ['latin'],
+});
+const exo = Exo({
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-exo',
+  subsets: ['latin'],
+});
 const instrumentSerif = Instrument_Serif({
   weight: '400',
   variable: '--font-instrument-serif',
@@ -29,16 +39,16 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'down to',
+  title: 'downto',
   description: "Save events. See who's going.",
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'down to',
+    title: 'downto',
   },
   openGraph: {
-    title: 'down to',
+    title: 'downto',
     description: "Save events. See who's going.",
     siteName: 'downto.xyz',
   },
@@ -52,7 +62,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${instrumentSerif.variable} ${spaceMono.variable}`}
+      className={`${sora.variable} ${exo.variable} ${instrumentSerif.variable} ${spaceMono.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -62,16 +72,16 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Exo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
           rel="stylesheet"
         />
-        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="theme-color" content="#FCFFE2" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <style>{`
           input, textarea, select { font-size: 16px !important; }
         `}</style>
       </head>
-      <body className="flex min-h-screen justify-center bg-bg font-mono font-normal text-neutral-500 antialiased">
+      <body className="flex min-h-screen justify-center bg-bg font-mono font-medium text-[#6B6B5A] antialiased">
         <ThemeHydrator />
         <NativeStatusBar />
         <Grain />

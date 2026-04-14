@@ -131,7 +131,7 @@ const UserProfileOverlay = ({
             <div
               className={cn(
                 "w-[72px] h-[72px] rounded-full flex items-center justify-center font-mono text-[28px] font-bold mb-4",
-                (isSelf || friendStatus === "accepted") ? "bg-dt text-black" : "bg-border-light text-dim"
+                (isSelf || friendStatus === "accepted") ? "bg-dt text-on-accent" : "bg-border-light text-dim"
               )}
             >
               {profileData.avatar_letter}

@@ -66,13 +66,16 @@ const EventCard = ({
         className="absolute inset-0 bg-cover bg-center rounded-[inherit]"
         style={{
           backgroundImage: `url(${event.image})`,
-          opacity: 0.18,
+          opacity: 0.3,
+          filter: "blur(2px)",
         }}
       />
       <div
         className="absolute inset-0 rounded-[inherit]"
         style={{
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.5) 100%)",
+          background: event.isDown
+            ? "linear-gradient(to bottom, rgba(200,230,60,0.3) 0%, rgba(200,230,60,0.2) 50%, rgba(200,230,60,0.3) 100%)"
+            : "linear-gradient(to bottom, rgba(252,255,226,0.3) 0%, rgba(252,255,226,0.2) 50%, rgba(252,255,226,0.3) 100%)",
         }}
       />
     </>
@@ -85,7 +88,7 @@ const EventCard = ({
         className={cn(
           "flex-1 rounded-lg py-1.5 font-mono text-tiny font-bold cursor-pointer uppercase tracking-[0.08em]",
           event.saved
-            ? "bg-dt text-black border-none"
+            ? "bg-dt text-on-accent border-none"
             : "bg-transparent text-dt border border-dt"
         )}
       >
@@ -96,11 +99,11 @@ const EventCard = ({
         className={cn(
           "flex-1 rounded-lg py-1.5 font-mono text-tiny font-bold cursor-pointer uppercase tracking-[0.08em] border",
           event.isDown
-            ? "bg-dt/15 text-dt border-dt"
-            : "bg-transparent text-primary border-border-mid"
+            ? "bg-down-active-bg text-down-active-text border-none"
+            : "bg-down-idle-bg text-dt border-down-idle-border"
         )}
       >
-        {event.isDown ? "You're Down ✋" : "I'm Down ✋"}
+        {event.isDown ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : "DOWN ?"}
       </button>
     </div>
   );
@@ -159,16 +162,16 @@ const EventCard = ({
         onPointerLeave={clearLongPress}
         onTouchMove={clearLongPress}
         className={cn(
-          "rounded-xl overflow-hidden mb-2 transition-all relative border",
-          isNew ? "border-dt/40" : hovered ? "border-neutral-700" : "border-neutral-900"
+          "rounded-2xl overflow-hidden mb-2 transition-all relative border",
+          isNew ? "border-dt/40" : hovered ? "border-[#CDC999]" : "border-[#CDC999]"
         )}
         style={{
-          background: "rgba(232, 255, 90, 0.03)",
+          background: "var(--color-card)",
           ...(isNew ? { animation: "accentGlow 2s ease-out forwards" } : {}),
         }}
       >
         {bgImage}
-        <div className="p-3.5 relative">
+        <div className="p-4 relative">
           {/* Tappable area opens detail sheet — ignores taps that dragged (e.g. pull-to-refresh) */}
           <div
             onTouchStart={(e) => {
@@ -186,19 +189,23 @@ const EventCard = ({
             {/* Title + edit */}
             <div className="flex justify-between items-start mb-2.5">
               <h3
-                className="font-serif text-xl text-primary m-0 leading-tight font-normal"
-                style={{ fontFamily: font.serif }}
+                className="font-serif text-lg text-primary m-0 leading-snug font-normal tracking-[-0.01em]"
               >
                 {event.title}
               </h3>
+              <div className="flex items-center gap-1 shrink-0 ml-2">
+                {isNew && (
+                  <span className="bg-dt text-on-accent font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full leading-none">new</span>
+                )}
               {onLongPress && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setActionsOpen(true); }}
-                  className="bg-transparent border-none text-dim font-mono text-tiny cursor-pointer p-1 shrink-0 ml-2"
+                  className="bg-transparent border-none text-dim font-mono text-tiny cursor-pointer p-1 shrink-0"
                 >
-                  ⚙
+                  <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M237.94,107.21a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128.27,42.91,98.48,25a8,8,0,0,0-6.46-.59A112.1,112.1,0,0,0,55.31,45.13a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.62a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59l29.82-17.07,29.79,17a8,8,0,0,0,6.46.59A112.1,112.1,0,0,0,200.69,211a8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg>
                 </button>
               )}
+              </div>
             </div>
 
             {/* Date, time, venue */}
@@ -208,79 +215,43 @@ const EventCard = ({
                 {event.time && event.time !== "TBD" && ` ${event.time}`}
               </span>
               {event.venue && event.venue !== "TBD" && (
-                <span className="font-mono text-xs text-dim mt-0.5 block">
-                  {event.venue}
-                </span>
+                <>
+                  <span className="font-mono text-xs text-dim">{" · "}</span>
+                  <span className="font-mono text-xs text-dim">{event.venue}</span>
+                </>
               )}
             </div>
 
-            {/* Inline social hint — placeholder while loading, avatar stack when loaded */}
-            {event.isDown && (
-              <div className="mb-3" style={{ height: 22 }}>
-                {!event.socialLoaded ? (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="rounded-full bg-border-light animate-pulse shrink-0"
-                      style={{ width: 22, height: 22 }}
-                    />
-                    <div
-                      className="rounded bg-border-light animate-pulse"
-                      style={{ width: 60, height: 10 }}
-                    />
-                  </div>
-                ) : event.peopleDown.length > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex shrink-0">
-                      {event.peopleDown.slice(0, 3).map((p, i) => (
-                        <div
-                          key={p.name}
-                          className={cn(
-                            "rounded-full flex items-center justify-center font-mono font-bold border-2 border-deep relative",
-                            p.mutual ? "bg-dt text-black" : "bg-border-light text-dim"
-                          )}
-                          style={{
-                            width: 22,
-                            height: 22,
-                            fontSize: 9,
-                            marginLeft: i > 0 ? -6 : 0,
-                            zIndex: 3 - i,
-                          }}
-                        >
-                          {p.avatar}
-                        </div>
-                      ))}
-                    </div>
-                    <span className="font-mono text-xs text-dim">
-                      {event.peopleDown.length} down →
-                    </span>
-                  </div>
-                ) : null}
+            {/* Social hint — text format */}
+            {event.isDown && event.socialLoaded && event.peopleDown.length > 0 && (
+              <div className="mb-3">
+                <span className="font-mono text-tiny text-muted">
+                  {(() => {
+                    const first = event.peopleDown[0];
+                    const othersCount = event.peopleDown.length - 1;
+                    return (
+                      <>
+                        <span className="text-dt font-semibold">{first.name}</span>
+                        {othersCount > 0 && <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"}</span>}
+                      </>
+                    );
+                  })()}
+                </span>
               </div>
             )}
             {!event.isDown && event.socialLoaded && event.peopleDown.length > 0 && (
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex shrink-0">
-                  {event.peopleDown.slice(0, 3).map((p, i) => (
-                    <div
-                      key={p.name}
-                      className={cn(
-                        "rounded-full flex items-center justify-center font-mono font-bold border-2 border-deep relative",
-                        p.mutual ? "bg-dt text-black" : "bg-border-light text-dim"
-                      )}
-                      style={{
-                        width: 22,
-                        height: 22,
-                        fontSize: 9,
-                        marginLeft: i > 0 ? -6 : 0,
-                        zIndex: 3 - i,
-                      }}
-                    >
-                      {p.avatar}
-                    </div>
-                  ))}
-                </div>
-                <span className="font-mono text-xs text-dim">
-                  {event.peopleDown.length} down →
+              <div className="mb-3">
+                <span className="font-mono text-tiny text-muted">
+                  {(() => {
+                    const first = event.peopleDown[0];
+                    const othersCount = event.peopleDown.length - 1;
+                    return (
+                      <>
+                        <span className="text-dt font-semibold">{first.name}</span>
+                        {othersCount > 0 && <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"}</span>}
+                      </>
+                    );
+                  })()}
                 </span>
               </div>
             )}
@@ -441,7 +412,7 @@ function PosterInline({ event, userId, note, onViewProfile }: { event: Event; us
         onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(event.createdBy!); } : undefined}
         className={cn(
           "rounded-full flex items-center justify-center font-mono font-bold shrink-0",
-          event.createdBy === userId ? "bg-dt text-black" : "bg-border-light text-dim",
+          event.createdBy === userId ? "bg-dt text-on-accent" : "bg-border-light text-dim",
           canTap ? "cursor-pointer" : "cursor-default"
         )}
         style={{ width: 20, height: 20, fontSize: 8 }}
@@ -532,7 +503,7 @@ function SocialBlock(props: SheetProps) {
                   <div key={p.name}
                     className={cn(
                       "rounded-full flex items-center justify-center font-mono text-tiny font-bold relative",
-                      p.mutual ? "bg-dt text-black" : "bg-border-light text-dim"
+                      p.mutual ? "bg-dt text-on-accent" : "bg-border-light text-dim"
                     )}
                     style={{
                       width: 26, height: 26,
@@ -635,8 +606,7 @@ function SheetHero(props: SheetProps) {
             />
             {/* Title over image */}
             <div className="absolute bottom-3 left-3.5 right-3.5 flex items-end justify-between">
-              <h3 className="font-serif text-2xl text-primary m-0 leading-tight font-normal flex-1"
-                style={{ fontFamily: font.serif }}>
+              <h3 className="font-serif text-lg text-primary m-0 leading-snug font-normal flex-1 tracking-[-0.01em]">
                 {event.title}
               </h3>
               {heroUrl && (
@@ -647,8 +617,7 @@ function SheetHero(props: SheetProps) {
         );
       })()}
       {!hasImage && (
-        <h3 className="font-serif text-2xl text-primary mb-2 mt-0 leading-tight font-normal"
-          style={{ fontFamily: font.serif }}>
+        <h3 className="font-serif text-lg text-primary mb-2 mt-0 leading-snug font-normal tracking-[-0.01em]">
           {event.title}
         </h3>
       )}

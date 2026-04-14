@@ -194,7 +194,7 @@ const FriendsModal = ({
             className={cn(
               "flex-1 rounded-lg p-2.5 font-mono text-xs cursor-pointer uppercase",
               tab === "friends"
-                ? "bg-dt text-black font-bold border-none"
+                ? "bg-dt text-on-accent font-bold border-none"
                 : "bg-transparent text-dim border border-border-mid font-normal"
             )}
             style={{ letterSpacing: "0.08em" }}
@@ -206,7 +206,7 @@ const FriendsModal = ({
             className={cn(
               "flex-1 rounded-lg p-2.5 font-mono text-xs cursor-pointer uppercase relative",
               tab === "add"
-                ? "bg-dt text-black font-bold border-none"
+                ? "bg-dt text-on-accent font-bold border-none"
                 : "bg-transparent text-dim border border-border-mid font-normal"
             )}
             style={{ letterSpacing: "0.08em" }}
@@ -247,7 +247,7 @@ const FriendsModal = ({
                   onClick={() => onViewProfile ? onViewProfile(f.id) : setSelectedFriend(f)}
                   className="flex items-center py-3 border-b border-border cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-full bg-dt text-black flex items-center justify-center font-mono text-base font-bold mr-3">
+                  <div className="w-10 h-10 rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-base font-bold mr-3">
                     {f.avatar}
                   </div>
                   <div className="flex-1">
@@ -328,7 +328,7 @@ const FriendsModal = ({
                       )}
                       <button
                         onClick={() => onAcceptRequest(f.id)}
-                        className="bg-dt text-black border-none rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer"
+                        className="bg-dt text-on-accent border-none rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer"
                       >
                         Accept
                       </button>
@@ -435,7 +435,7 @@ const FriendsModal = ({
                         className={cn(
                           "w-10 h-10 rounded-full flex items-center justify-center font-mono text-base font-bold mr-3",
                           f.status === "friend"
-                            ? "bg-dt text-black"
+                            ? "bg-dt text-on-accent"
                             : "bg-border-light text-dim"
                         )}
                       >
@@ -473,7 +473,7 @@ const FriendsModal = ({
                             "rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer",
                             f.status === "pending"
                               ? "bg-transparent text-dim border border-border-mid"
-                              : "bg-dt text-black border-none"
+                              : "bg-dt text-on-accent border-none"
                           )}
                         >
                           {f.status === "pending" ? "Requested" : "Add"}
@@ -522,7 +522,7 @@ const FriendsModal = ({
                           "rounded-lg py-2 px-3.5 font-mono text-xs font-bold",
                           f.status === "pending"
                             ? "bg-transparent text-dim border border-border-mid cursor-default"
-                            : "bg-dt text-black border-none cursor-pointer"
+                            : "bg-dt text-on-accent border-none cursor-pointer"
                         )}
                       >
                         {f.status === "pending" ? "Requested" : "Add"}
@@ -540,7 +540,7 @@ const FriendsModal = ({
           <div className="py-3 pb-6 shrink-0">
             <button
               onClick={onClose}
-              className="w-full bg-dt text-black border-none rounded-xl py-3.5 font-mono text-sm font-bold cursor-pointer"
+              className="w-full bg-dt text-on-accent border-none rounded-xl py-3.5 font-mono text-sm font-bold cursor-pointer"
               style={{ letterSpacing: "0.02em" }}
             >
               Continue &rarr;
@@ -565,7 +565,7 @@ const FriendsModal = ({
             &lsaquo; Back
           </button>
 
-          <div className="w-[72px] h-[72px] rounded-full bg-dt text-black flex items-center justify-center font-mono text-[28px] font-bold mb-4">
+          <div className="w-[72px] h-[72px] rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-[28px] font-bold mb-4">
             {selectedFriend.avatar}
           </div>
 

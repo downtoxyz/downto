@@ -82,7 +82,7 @@ export default function MessageComposer({
       {/* Input row */}
       <div
         className="flex gap-2 items-end"
-        style={{ padding: "12px 20px calc(4px + env(safe-area-inset-bottom, 0px))" }}
+        style={{ padding: "12px 20px" }}
       >
         {(!activePoll || activePoll.status === 'closed') && onOpenPollCreator && (
           <button
@@ -139,7 +139,7 @@ export default function MessageComposer({
           className="border-none rounded-full w-10 h-10 font-bold text-base"
           style={{
             background: newMsg.trim() ? color.accent : color.borderMid,
-            color: newMsg.trim() ? "#000" : color.dim,
+            color: newMsg.trim() ? "var(--color-on-accent)" : color.dim,
             cursor: newMsg.trim() ? "pointer" : "default",
           }}
         >

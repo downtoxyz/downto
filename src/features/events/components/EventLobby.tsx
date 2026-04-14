@@ -124,7 +124,7 @@ const EventLobby = ({
                 key={p.userId ?? p.name}
                 className={cn(
                   "w-9 h-9 rounded-full flex items-center justify-center font-mono text-sm font-bold shrink-0 relative",
-                  isFriend ? "bg-dt text-black" : "bg-border-light text-dim"
+                  isFriend ? "bg-dt text-on-accent" : "bg-border-light text-dim"
                 )}
                 style={{
                   marginLeft: i === 0 ? 0 : -8,
@@ -175,7 +175,7 @@ const EventLobby = ({
           <div
             className={cn(
               "w-9 h-9 rounded-full flex items-center justify-center font-mono text-sm font-bold shrink-0",
-              isFriend ? "bg-dt text-black" : "bg-border-light text-dim"
+              isFriend ? "bg-dt text-on-accent" : "bg-border-light text-dim"
             )}
             style={p.inPool ? { boxShadow: `0 0 0 2px ${color.pool}` } : undefined}
           >
@@ -338,7 +338,7 @@ const EventLobby = ({
             existingSquadId ? (
               <button
                 onClick={() => { onGoToSquad?.(existingSquadId); close(); }}
-                className="w-full bg-dt text-black border-none rounded-xl p-3.5 font-mono text-xs font-bold cursor-pointer uppercase"
+                className="w-full bg-dt text-on-accent border-none rounded-xl p-3.5 font-mono text-xs font-bold cursor-pointer uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
                 Go to Squad →
@@ -346,7 +346,7 @@ const EventLobby = ({
             ) : (
               <button
                 onClick={() => { setSelectingMembers(true); setSelectedIds(new Set()); }}
-                className="w-full bg-dt text-black border-none rounded-xl p-3.5 font-mono text-xs font-bold cursor-pointer uppercase"
+                className="w-full bg-dt text-on-accent border-none rounded-xl p-3.5 font-mono text-xs font-bold cursor-pointer uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
                 Start a Squad →
@@ -376,7 +376,7 @@ const EventLobby = ({
                 className={cn(
                   "flex-[2] border-none rounded-xl p-3.5 font-mono text-xs font-bold uppercase whitespace-nowrap",
                   selectedIds.size > 0
-                    ? "bg-dt text-black cursor-pointer"
+                    ? "bg-dt text-on-accent cursor-pointer"
                     : "bg-border-mid text-dim cursor-default"
                 )}
                 style={{ letterSpacing: "0.1em" }}

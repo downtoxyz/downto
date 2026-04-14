@@ -73,9 +73,9 @@ export default function ChatMessage({
     if (msg.messageType === 'date_confirm' && isLastConfirm) {
       return (
         <div className="text-center py-2">
-          <span className="font-mono text-tiny text-neutral-500">{msg.text}</span>
+          <span className="font-mono text-tiny text-muted">{msg.text}</span>
           {confirmLoading && (
-            <div className="font-mono text-tiny text-neutral-700 mt-1.5">...</div>
+            <div className="font-mono text-tiny text-dim mt-1.5">...</div>
           )}
           {dateConfirmStatus === 'yes' && !confirmLoading && (
             <div className="font-mono text-tiny text-dt mt-1.5">
@@ -88,7 +88,7 @@ export default function ChatMessage({
             </div>
           )}
           {dateConfirmStatus === 'none' && !confirmLoading && (
-            <div className="font-mono text-tiny text-neutral-700 mt-1.5">
+            <div className="font-mono text-tiny text-dim mt-1.5">
               waiting for responses
             </div>
           )}
@@ -113,7 +113,7 @@ export default function ChatMessage({
 
     return (
       <div className="text-center py-1">
-        <span className="font-mono text-tiny text-neutral-500">{msg.text}</span>
+        <span className="font-mono text-tiny text-muted">{msg.text}</span>
       </div>
     );
   }
@@ -121,20 +121,20 @@ export default function ChatMessage({
   return (
     <div className={cn("flex flex-col", { "items-end": msg.isYou, "items-start": !msg.isYou, "mt-2": isFirstInGroup, "mt-0": !isFirstInGroup })}>
       {isFirstInGroup && !msg.isYou && (
-        <span className="font-mono text-tiny text-neutral-500 mb-1">
+        <span className="font-mono text-tiny text-muted mb-1">
           {msg.sender}
         </span>
       )}
       <div
         className={cn("select-text font-mono max-w-[80%]",
           msg.isYou
-            ? cn("bg-dt text-black rounded-tr-2xl rounded-bl-2xl", {
+            ? cn("bg-dt text-on-accent rounded-tr-2xl rounded-bl-2xl", {
                 "rounded-tl-2xl": isFirstInGroup,
                 "rounded-tl-lg": !isFirstInGroup,
                 "rounded-br": isLastInGroup,
                 "rounded-br-lg": !isLastInGroup,
               })
-            : cn("bg-neutral-925 text-white rounded-tl-2xl rounded-br-lg", {
+            : cn("bg-surface text-primary rounded-tl-2xl rounded-br-lg", {
                 "rounded-tr-2xl": isFirstInGroup,
                 "rounded-tr-lg": !isFirstInGroup,
                 "rounded-bl": isLastInGroup,
@@ -151,7 +151,7 @@ export default function ChatMessage({
         {linkify(msg.text, !!msg.isYou)}
       </div>
       {isLastInGroup && (
-        <span className="font-mono text-tiny text-neutral-700 mt-0.5">
+        <span className="font-mono text-tiny text-dim mt-0.5">
           {msg.time}
         </span>
       )}

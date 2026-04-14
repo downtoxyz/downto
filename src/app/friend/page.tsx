@@ -98,7 +98,7 @@ export default function FriendLinkPage() {
       {status === "redeemed" && (
         <>
           {creatorAvatar && (
-            <div className="w-16 h-16 rounded-full bg-dt text-black flex items-center justify-center font-mono text-2xl font-bold mb-5">
+            <div className="w-16 h-16 rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-2xl font-bold mb-5">
               {creatorAvatar}
             </div>
           )}
@@ -110,7 +110,7 @@ export default function FriendLinkPage() {
           </p>
           <a
             href="/"
-            className="block w-full p-4 bg-dt text-black border-none rounded-xl font-mono text-sm font-bold text-center no-underline uppercase"
+            className="block w-full p-4 bg-dt text-on-accent border-none rounded-xl font-mono text-sm font-bold text-center no-underline uppercase"
             style={{ letterSpacing: "0.1em" }}
           >
             Open App
@@ -128,7 +128,7 @@ export default function FriendLinkPage() {
           </p>
           <a
             href="/?pendingFriend=1"
-            className="block w-full p-4 bg-dt text-black border-none rounded-xl font-mono text-sm font-bold text-center no-underline uppercase"
+            className="block w-full p-4 bg-dt text-on-accent border-none rounded-xl font-mono text-sm font-bold text-center no-underline uppercase"
             style={{ letterSpacing: "0.1em" }}
           >
             Join to Connect

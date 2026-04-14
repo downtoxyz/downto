@@ -704,7 +704,7 @@ const SquadChat = ({
                     "w-full border-none rounded-xl p-3.5 font-mono text-xs font-bold uppercase",
                     savingEvent
                       ? "bg-border-mid text-dim cursor-default"
-                      : "bg-dt text-black cursor-pointer"
+                      : "bg-dt text-on-accent cursor-pointer"
                   )}
                   style={{ letterSpacing: "0.08em" }}
                 >
@@ -794,7 +794,7 @@ const SquadChat = ({
                     setConfirmLoading(false);
                   }
                 }}
-                className="bg-dt text-black border-none rounded-lg px-4 py-1.5 font-mono text-xs font-bold cursor-pointer"
+                className="bg-dt text-on-accent border-none rounded-lg px-4 py-1.5 font-mono text-xs font-bold cursor-pointer"
               >
                 STILL DOWN
               </button>
@@ -852,7 +852,7 @@ const SquadChat = ({
               </span>
               <button
                 onClick={() => onRespondToJoinRequest(r.squadId, r.userId, true)}
-                className="bg-dt text-black border-none rounded-lg px-3 py-1.5 font-mono text-tiny font-bold uppercase cursor-pointer"
+                className="bg-dt text-on-accent border-none rounded-lg px-3 py-1.5 font-mono text-tiny font-bold uppercase cursor-pointer"
                 style={{ letterSpacing: "0.08em" }}
               >
                 Accept
@@ -1004,7 +1004,7 @@ const SquadChat = ({
                   "flex-1 border-none rounded-xl p-3 font-mono text-xs font-bold uppercase",
                   (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2)
                     ? "bg-border-mid text-dim cursor-default"
-                    : "bg-dt text-black cursor-pointer"
+                    : "bg-dt text-on-accent cursor-pointer"
                 )}
                 style={{ letterSpacing: '0.08em' }}
               >

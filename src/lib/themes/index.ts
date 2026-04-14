@@ -1,11 +1,13 @@
-import { katsu } from "./katsu";
-import { orlando } from "./orlando";
-import { justin } from "./justin";
+
+import { guava } from "./guava";
+import { acid } from "./acid";
+import { firefly } from "./firefly";
+import { midnight } from "./midnight";
 import type { ThemeName, ThemeTokens } from "./types";
 
-export const themes: Record<ThemeName, ThemeTokens> = { katsu, orlando, justin };
+export const themes: Record<ThemeName, ThemeTokens> = { guava, acid, firefly, midnight };
 
-export const DEFAULT_THEME: ThemeName = "katsu";
+export const DEFAULT_THEME: ThemeName = "guava";
 
 export function getThemeName(): ThemeName {
   const envTheme = process.env.NEXT_PUBLIC_THEME as ThemeName | undefined;
@@ -30,6 +32,18 @@ export function themeToCSSSVars(theme: ThemeTokens): string {
     `--color-dt: ${theme.accent};`,
     `--color-danger: ${theme.danger};`,
     `--color-neutral-925: ${theme.card};`,
+    `--color-bg: ${theme.bg};`,
+    `--color-card: ${theme.card};`,
+    `--color-surface: ${theme.surface};`,
+    `--color-deep: ${theme.deep};`,
+    `--color-primary: ${theme.text};`,
+    `--color-muted: ${theme.muted};`,
+    `--color-dim: ${theme.dim};`,
+    `--color-faint: ${theme.faint};`,
+    `--color-border: ${theme.border};`,
+    `--color-border-light: ${theme.borderLight};`,
+    `--color-border-mid: ${theme.borderMid};`,
+    `--color-on-accent: ${theme.onAccent};`,
     `--font-mono: ${theme.fontMono};`,
     `--font-serif: ${theme.fontSerif};`,
   ].join(" ");

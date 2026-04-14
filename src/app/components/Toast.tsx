@@ -27,7 +27,7 @@ const Toast = ({
       color: "#000",
       padding: "10px 20px",
       borderRadius: 12,
-      fontFamily: font.mono,
+      fontFamily: "var(--font-mono)",
       fontSize: 12,
       fontWeight: 700,
       zIndex: 200,

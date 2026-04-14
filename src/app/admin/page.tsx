@@ -174,7 +174,7 @@ export default function AdminPage() {
             className={cn(
               "rounded-lg px-4 py-2 font-mono text-xs uppercase cursor-pointer",
               tab === t.key
-                ? "bg-dt text-black border-none font-bold"
+                ? "bg-dt text-on-accent border-none font-bold"
                 : "bg-transparent text-dim border border-border-mid font-normal"
             )}
             style={{ letterSpacing: "0.08em" }}

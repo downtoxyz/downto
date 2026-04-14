@@ -114,7 +114,7 @@ export default function UpdateBanner() {
           await new Promise((r) => setTimeout(r, 400));
           await clearCachesAndReload();
         }}
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] bg-dt text-black rounded-xl font-mono text-xs font-bold cursor-pointer whitespace-nowrap"
+        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] bg-dt text-on-accent rounded-xl font-mono text-xs font-bold cursor-pointer whitespace-nowrap"
         style={{
           padding: "10px 20px",
           animation: "slideUp 0.3s ease-out",

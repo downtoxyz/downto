@@ -207,7 +207,7 @@ const EditEventModal = ({
               className={cn(
                 "w-full border-none rounded-xl py-3.5 font-mono text-xs font-bold uppercase",
                 title.trim()
-                  ? "bg-dt text-black cursor-pointer opacity-100"
+                  ? "bg-dt text-on-accent cursor-pointer opacity-100"
                   : "bg-border-mid text-dim cursor-not-allowed opacity-50"
               )}
               style={{ letterSpacing: "0.08em" }}

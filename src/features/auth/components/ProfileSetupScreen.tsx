@@ -134,7 +134,7 @@ const ProfileSetupScreen = ({
       </div>
       <div className="bg-card border border-border rounded-xl p-3.5 mb-8">
         <div className="flex items-center gap-2 mb-2.5">
-          <div className="w-7 h-7 rounded-full bg-dt text-black flex items-center justify-center font-mono text-xs font-bold">
+          <div className="w-7 h-7 rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-xs font-bold">
             {previewAvatar}
           </div>
           <span className="font-mono text-sm text-primary">

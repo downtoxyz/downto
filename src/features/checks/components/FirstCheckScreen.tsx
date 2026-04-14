@@ -107,7 +107,7 @@ const FirstCheckScreen = ({
               className={cn(
                 "flex-1 py-2.5 rounded-lg font-mono text-xs cursor-pointer transition-all duration-150 border",
                 checkTimer === opt.hours
-                  ? "bg-dt text-black border-dt font-bold"
+                  ? "bg-dt text-on-accent border-dt font-bold"
                   : "bg-transparent text-muted border-border-mid font-normal"
               )}
             >
@@ -139,7 +139,7 @@ const FirstCheckScreen = ({
                 className={cn(
                   "flex-1 py-2.5 rounded-lg font-mono text-xs cursor-pointer transition-all duration-150 border",
                   selected
-                    ? "bg-dt text-black border-dt font-bold"
+                    ? "bg-dt text-on-accent border-dt font-bold"
                     : "bg-transparent text-muted border-border-mid font-normal"
                 )}
               >

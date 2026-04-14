@@ -277,7 +277,7 @@ const EditCheckModal = ({
             className={cn(
               "w-full border-none rounded-xl py-3.5 font-mono text-xs font-bold cursor-pointer uppercase",
               text.trim()
-                ? "bg-dt text-black"
+                ? "bg-dt text-on-accent"
                 : "bg-border-mid text-dim cursor-default"
             )}
             style={{ letterSpacing: "0.08em" }}

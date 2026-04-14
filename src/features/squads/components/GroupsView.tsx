@@ -45,7 +45,7 @@ const GroupsView = ({
           >
             <div className="flex justify-between items-start mb-2 min-w-0">
               <div className="flex items-start gap-2 min-w-0 flex-1">
-                <span className="font-serif text-[17px] text-primary font-normal line-clamp-2 break-words">
+                <span className="font-serif text-[17px] text-primary font-normal line-clamp-2 break-words leading-snug tracking-[-0.01em]">
                   {g.name}
                   {g.hasUnread && (
                     <span data-testid={`squad-unread-dot-${g.id}`} className="inline-block w-2 h-2 rounded-full bg-[#ff3b30] ml-1.5 align-middle" />

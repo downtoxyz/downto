@@ -100,7 +100,7 @@ export default function OnboardingFriendsPopup({
                   className={cn(
                     "rounded-lg px-3.5 py-2 font-mono text-xs font-bold shrink-0",
                     f.status === "none"
-                      ? "bg-dt text-black border-none"
+                      ? "bg-dt text-on-accent border-none"
                       : "bg-transparent text-dim border border-border-mid",
                     f.status === "friend" ? "cursor-default" : "cursor-pointer"
                   )}
@@ -124,7 +124,7 @@ export default function OnboardingFriendsPopup({
                 border: "1px solid rgba(232,255,90,0.2)",
               }}
             >
-              <div className="w-11 h-11 rounded-full bg-dt text-black flex items-center justify-center font-mono text-lg font-bold shrink-0">
+              <div className="w-11 h-11 rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-lg font-bold shrink-0">
                 {checkAuthor.avatar}
               </div>
               <div className="flex-1 min-w-0">
@@ -137,7 +137,7 @@ export default function OnboardingFriendsPopup({
               </div>
               <button
                 onClick={() => onAddFriend(checkAuthor.id)}
-                className="bg-dt text-black border-none rounded-lg px-3.5 py-2 font-mono text-xs font-bold cursor-pointer shrink-0"
+                className="bg-dt text-on-accent border-none rounded-lg px-3.5 py-2 font-mono text-xs font-bold cursor-pointer shrink-0"
               >
                 Add
               </button>
@@ -199,7 +199,7 @@ export default function OnboardingFriendsPopup({
                     "rounded-lg px-3.5 py-2 font-mono text-xs font-bold cursor-pointer shrink-0",
                     f.status === "pending"
                       ? "bg-transparent text-dim border border-border-mid"
-                      : "bg-dt text-black border-none"
+                      : "bg-dt text-on-accent border-none"
                   )}
                 >
                   {f.status === "pending" ? "Requested" : "Add"}
@@ -218,7 +218,7 @@ export default function OnboardingFriendsPopup({
           className={cn(
             "w-full mt-5 border-none rounded-xl p-3.5 font-mono text-xs font-bold uppercase tracking-[0.08em]",
             hasAdded
-              ? "bg-dt text-black cursor-pointer"
+              ? "bg-dt text-on-accent cursor-pointer"
               : "bg-border-mid text-dim cursor-default"
           )}
         >

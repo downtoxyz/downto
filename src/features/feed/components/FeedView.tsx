@@ -141,6 +141,24 @@ export default function FeedView({
 
   const [showHidden, setShowHidden] = useState(false);
 
+  // Track which items are "new" since last feed visit (exclude own items)
+  const [newItemIds] = useState<Set<string>>(() => {
+    const lastSeen = localStorage.getItem('lastSeenFeedAt');
+    if (!lastSeen) return new Set();
+    const ids = new Set<string>();
+    checks.forEach((c) => {
+      if (c.createdAt && c.createdAt > lastSeen && !c.isYours) ids.add(c.id);
+    });
+    events.forEach((e) => {
+      if (e.createdAt && e.createdAt > lastSeen && e.createdBy !== userId) ids.add(e.id);
+    });
+    return ids;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lastSeenFeedAt', new Date().toISOString());
+  }, []);
+
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
     {}
   );
@@ -217,7 +235,6 @@ export default function FeedView({
                 key={check.id}
                 check={check}
                 userId={userId}
-
                 profile={profile}
                 friends={friends}
                 sharedCheckId={sharedCheckId}
@@ -228,6 +245,7 @@ export default function FeedView({
                 showToast={showToast}
                 showToastWithAction={showToastWithAction}
                 loadRealData={loadRealData}
+                isNew={newItemIds.has(check.id)}
               />
             ))}
 
@@ -238,7 +256,6 @@ export default function FeedView({
                   key={item.data.id}
                   check={item.data}
                   userId={userId}
-  
                   profile={profile}
                   friends={friends}
                   sharedCheckId={sharedCheckId}
@@ -248,6 +265,7 @@ export default function FeedView({
                   onViewProfile={onViewProfile}
                   showToast={showToast}
                   loadRealData={loadRealData}
+                  isNew={newItemIds.has(item.data.id)}
                 />
               ) : (
                 <EventCard
@@ -264,7 +282,7 @@ export default function FeedView({
                       : undefined
                   }
                   onViewProfile={onViewProfile}
-                  isNew={item.data.id === newlyAddedEventId}
+                  isNew={item.data.id === newlyAddedEventId || newItemIds.has(item.data.id)}
                 />
               )
             )}
@@ -274,7 +292,7 @@ export default function FeedView({
               <div>
                 <button
                   onClick={() => setShowHidden((prev) => !prev)}
-                  className="text-tiny flex cursor-pointer items-center gap-1 border-none bg-transparent px-1 py-1.5 font-mono text-neutral-700"
+                  className="text-tiny flex cursor-pointer items-center gap-1 border-none bg-transparent px-1 py-1.5 font-mono text-dim"
                 >
                   <span className="text-tiny">{showHidden ? '▼' : '▶'}</span>
                   Hidden ({hiddenChecks.length})
@@ -283,7 +301,7 @@ export default function FeedView({
                   hiddenChecks.map((check) => (
                     <div
                       key={check.id}
-                      className="bg-neutral-925 mb-2 overflow-hidden rounded-xl border border-neutral-900 opacity-60"
+                      className="bg-card mb-2 overflow-hidden rounded-xl border border-border opacity-60"
                     >
                       <div className="flex items-center justify-between p-3.5">
                         <div className="min-w-0 flex-1">
@@ -296,20 +314,20 @@ export default function FeedView({
                               }
                             }}
                           >
-                            <div className="text-tiny flex size-6 items-center justify-center rounded-full bg-neutral-800 font-mono font-bold text-neutral-500">
+                            <div className="text-tiny flex size-6 items-center justify-center rounded-full bg-border-light font-mono font-bold text-muted">
                               {check.author[0]}
                             </div>
-                            <span className="font-mono text-xs text-neutral-500">
+                            <span className="font-mono text-xs text-muted">
                               {check.author}
                               {check.viaFriendName && (
-                                <span className="font-normal text-neutral-500">
+                                <span className="font-normal text-muted">
                                   {' '}
                                   via {check.viaFriendName}
                                 </span>
                               )}
                             </span>
                           </div>
-                          <p className="m-0 font-serif text-base leading-snug text-neutral-500">
+                          <p className="m-0 font-serif text-base leading-snug text-muted">
                             <Linkify dimmed coAuthors={check.coAuthors}>
                               {check.text}
                             </Linkify>
@@ -317,7 +335,7 @@ export default function FeedView({
                         </div>
                         <button
                           onClick={() => unhideCheck(check.id)}
-                          className="ml-3 shrink-0 rounded-lg border border-neutral-800 px-3 py-1.5 font-mono text-xs text-neutral-500"
+                          className="ml-3 shrink-0 rounded-lg border border-border-mid px-3 py-1.5 font-mono text-xs text-muted"
                         >
                           Unhide
                         </button>

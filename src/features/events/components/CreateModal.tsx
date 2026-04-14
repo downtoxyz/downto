@@ -337,7 +337,7 @@ const AddModal = ({
             className={cn(
               'flex-1 rounded-lg p-2.5 font-mono text-xs uppercase cursor-pointer',
               mode === 'idea'
-                ? 'bg-dt text-black border-none font-bold'
+                ? 'bg-dt text-on-accent border-none font-bold'
                 : 'bg-transparent text-dim border border-border-mid'
             )}
             style={{ letterSpacing: '0.08em' }}
@@ -349,7 +349,7 @@ const AddModal = ({
             className={cn(
               'flex-1 rounded-lg p-2.5 font-mono text-xs uppercase cursor-pointer',
               mode === 'paste' || mode === 'manual'
-                ? 'bg-dt text-black border-none font-bold'
+                ? 'bg-dt text-on-accent border-none font-bold'
                 : 'bg-transparent text-dim border border-border-mid'
             )}
             style={{ letterSpacing: '0.08em' }}
@@ -383,7 +383,7 @@ const AddModal = ({
               />
               <button
                 onClick={handlePull}
-                className="bg-dt text-black border-none rounded-xl px-5 py-3.5 font-mono text-sm font-bold cursor-pointer"
+                className="bg-dt text-on-accent border-none rounded-xl px-5 py-3.5 font-mono text-sm font-bold cursor-pointer"
               >
                 {loading ? '...' : 'Pull'}
               </button>
@@ -565,7 +565,7 @@ const AddModal = ({
                     await onSubmit(submitted, eventVisibility);
                     close();
                   }}
-                  className="w-full bg-dt text-black border-none rounded-xl py-3.5 font-mono text-sm font-bold cursor-pointer uppercase"
+                  className="w-full bg-dt text-on-accent border-none rounded-xl py-3.5 font-mono text-sm font-bold cursor-pointer uppercase"
                   style={{ letterSpacing: '0.1em' }}
                 >
                   {eventVisibility === 'public'
@@ -855,7 +855,7 @@ const AddModal = ({
                     className={cn(
                       'flex-1 py-2.5 rounded-lg font-mono text-xs cursor-pointer transition-all duration-150 ease-in-out',
                       checkTimer === opt.hours
-                        ? 'bg-dt text-black border border-dt font-bold'
+                        ? 'bg-dt text-on-accent border border-dt font-bold'
                         : 'bg-transparent text-muted border border-border-mid'
                     )}
                   >
@@ -887,7 +887,7 @@ const AddModal = ({
                       className={cn(
                         'flex-1 py-2.5 rounded-lg font-mono text-xs transition-all duration-150 ease-in-out',
                         selected
-                          ? 'bg-dt text-black border border-dt font-bold'
+                          ? 'bg-dt text-on-accent border border-dt font-bold'
                           : disabled
                             ? 'bg-transparent text-faint border border-border cursor-default opacity-40'
                             : 'bg-transparent text-muted border border-border-mid cursor-pointer'
@@ -955,7 +955,7 @@ const AddModal = ({
               className={cn(
                 'w-full border-none rounded-xl py-3.5 font-mono text-sm font-bold uppercase',
                 idea.trim() && parsedDate
-                  ? 'bg-dt text-black cursor-pointer'
+                  ? 'bg-dt text-on-accent cursor-pointer'
                   : 'bg-border-mid text-dim cursor-not-allowed'
               )}
               style={{ letterSpacing: '0.1em' }}
@@ -990,7 +990,7 @@ const AddModal = ({
                       className={cn(
                         'flex-1 py-2 rounded-lg font-mono text-xs uppercase cursor-pointer transition-all duration-150 ease-in-out',
                         active
-                          ? 'bg-dt text-black border border-dt font-bold'
+                          ? 'bg-dt text-on-accent border border-dt font-bold'
                           : 'bg-transparent text-muted border border-border-mid'
                       )}
                       style={{ letterSpacing: '0.08em' }}
@@ -1226,7 +1226,7 @@ const AddModal = ({
               className={cn(
                 'w-full border-none rounded-xl py-3.5 font-mono text-sm font-bold uppercase',
                 manual.title.trim()
-                  ? 'bg-dt text-black cursor-pointer'
+                  ? 'bg-dt text-on-accent cursor-pointer'
                   : 'bg-border-mid text-dim cursor-not-allowed'
               )}
               style={{ letterSpacing: '0.1em' }}

@@ -45,26 +45,26 @@ export default function CheckCommentsSection({
   };
 
   return (
-    <div className="mt-2.5 border-t border-neutral-900 pt-2.5">
+    <div className="mt-2.5 border-t border-border pt-2.5">
       {comments.length === 0 ? (
-        <span className="font-mono text-tiny text-neutral-700">no comments yet</span>
+        <span className="font-mono text-tiny text-dim">no comments yet</span>
       ) : (
         <div className="flex flex-col gap-2 mb-2">
           {comments.map((c) => (
             <div key={c.id} className="flex gap-2 items-start">
-              <div className={`size-5 rounded-full shrink-0 flex items-center justify-center font-mono text-tiny font-bold ${c.isYours ? "bg-dt text-black" : "bg-neutral-800 text-neutral-500"}`}>
+              <div className={`size-5 rounded-full shrink-0 flex items-center justify-center font-mono text-tiny font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
                 {c.userAvatar}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 mb-0.5">
-                  <span className={`font-mono text-tiny font-semibold ${c.isYours ? "text-dt" : "text-neutral-500"}`}>
+                  <span className={`font-mono text-tiny font-semibold ${c.isYours ? "text-dt" : "text-muted"}`}>
                     {c.userName}
                   </span>
-                  <span className="font-mono text-tiny text-neutral-700">
+                  <span className="font-mono text-tiny text-faint">
                     {formatTimeAgo(new Date(c.createdAt))}
                   </span>
                 </div>
-                <p className="font-mono text-xs text-white m-0 leading-[1.4]">
+                <p className="font-mono text-xs text-primary m-0 leading-[1.4]">
                   {c.text.split(/(@\S+)/g).map((part, pi) =>
                     part.startsWith("@") ? (
                       <span key={pi} className="text-dt font-bold">{part}</span>
@@ -103,11 +103,11 @@ export default function CheckCommentsSection({
             if (e.key === "Enter") handleSubmit();
           }}
           placeholder="Add a comment…"
-          className="flex-1 min-w-0 bg-neutral-950 border border-neutral-900 rounded-lg py-1.5 px-2.5 font-mono text-xs text-white outline-none"
+          className="flex-1 min-w-0 bg-surface border border-border rounded-lg py-1.5 px-2.5 font-mono text-xs text-primary outline-none"
         />
         <button
           onClick={handleSubmit}
-          className="shrink-0 bg-dt text-black rounded-lg py-1.5 px-3 font-mono text-xs font-bold cursor-pointer"
+          className="shrink-0 bg-dt text-on-accent rounded-lg py-1.5 px-3 font-mono text-xs font-bold cursor-pointer"
         >
           Post
         </button>
@@ -116,7 +116,7 @@ export default function CheckCommentsSection({
         const filtered = mentionCandidates.filter(c => c.name.toLowerCase().includes(mentionQuery));
         if (filtered.length === 0) return null;
         return (
-          <div className="bg-neutral-950 border border-neutral-800 rounded-lg mt-1 max-h-25 overflow-y-auto">
+          <div className="bg-surface border border-border-mid rounded-lg mt-1 max-h-25 overflow-y-auto">
             {filtered.slice(0, 5).map(c => (
               <button
                 key={c.id}
@@ -130,12 +130,12 @@ export default function CheckCommentsSection({
                   setMentionIdx(-1);
                   inputRef.current?.focus();
                 }}
-                className="flex items-center gap-1.5 w-full py-1.5 px-2.5 bg-transparent cursor-pointer border-b border-neutral-900"
+                className="flex items-center gap-1.5 w-full py-1.5 px-2.5 bg-transparent cursor-pointer border-b border-border"
               >
-                <div className="size-5 rounded-full bg-neutral-800 text-neutral-500 flex items-center justify-center font-mono text-tiny font-bold">
+                <div className="size-5 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-tiny font-bold">
                   {c.avatar}
                 </div>
-                <span className="font-mono text-xs text-white">{c.name}</span>
+                <span className="font-mono text-xs text-primary">{c.name}</span>
               </button>
             ))}
           </div>

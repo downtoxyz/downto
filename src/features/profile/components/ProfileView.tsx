@@ -201,7 +201,7 @@ const ProfileView = ({
   <div className="px-5 pb-[100px] animate-fade-in">
     <div className="text-center pt-5">
       <div
-        className="w-[72px] h-[72px] rounded-full bg-dt text-black flex items-center justify-center font-mono text-[28px] font-bold mx-auto mb-3"
+        className="w-[72px] h-[72px] rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-[28px] font-bold mx-auto mb-3"
       >
         {avatarLetter}
       </div>
@@ -235,7 +235,7 @@ const ProfileView = ({
             <div
               key={f.id}
               className={cn(
-                "w-8 h-8 rounded-full bg-dt text-black flex items-center justify-center font-mono text-xs font-bold border-2 border-card",
+                "w-8 h-8 rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-xs font-bold border-2 border-card",
                 i > 0 && "-ml-2.5"
               )}
             >
@@ -272,7 +272,7 @@ const ProfileView = ({
               className={cn(
                 "rounded-xl py-2 px-3.5 font-mono text-xs cursor-pointer transition-all duration-200",
                 isActive
-                  ? "bg-dt text-black font-bold border border-transparent"
+                  ? "bg-dt text-on-accent font-bold border border-transparent"
                   : "bg-transparent text-muted border border-border-mid"
               )}
             >
@@ -382,7 +382,7 @@ const ProfileView = ({
                 className={cn(
                   "border-none rounded-lg py-2.5 px-4 font-mono text-xs font-bold",
                   customExpiry.trim()
-                    ? "bg-dt text-black cursor-pointer"
+                    ? "bg-dt text-on-accent cursor-pointer"
                     : "bg-border-mid text-dim cursor-not-allowed"
                 )}
               >
@@ -471,7 +471,7 @@ const ProfileView = ({
             />
             <button
               onClick={handleIgSave}
-              className="bg-dt text-black border-none rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer"
+              className="bg-dt text-on-accent border-none rounded-lg py-2 px-3.5 font-mono text-xs font-bold cursor-pointer"
             >
               Save
             </button>
@@ -676,7 +676,7 @@ const ProfileView = ({
                     "flex-[2] border-none rounded-xl p-3 font-mono text-xs font-bold",
                     saving
                       ? "bg-border-mid text-dim cursor-not-allowed"
-                      : "bg-dt text-black cursor-pointer"
+                      : "bg-dt text-on-accent cursor-pointer"
                   )}
                   style={{ letterSpacing: "0.04em" }}
                 >
@@ -699,7 +699,7 @@ const ProfileView = ({
                 className={cn(
                   "flex-1 border-none rounded-xl p-3 font-mono text-xs font-bold uppercase",
                   nameInput.trim() && !saving
-                    ? "bg-dt text-black cursor-pointer"
+                    ? "bg-dt text-on-accent cursor-pointer"
                     : "bg-border-mid text-dim cursor-not-allowed"
                 )}
                 style={{ letterSpacing: "0.08em" }}

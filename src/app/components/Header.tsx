@@ -17,6 +17,7 @@ const Header = ({
   sortBy,
   onSortChange,
   showSort,
+  scrolled,
 }: {
   unreadCount: number;
   onOpenNotifications: () => void;
@@ -25,22 +26,50 @@ const Header = ({
   sortBy?: 'recent' | 'upcoming';
   onSortChange?: (sort: 'recent' | 'upcoming') => void;
   showSort?: boolean;
+  scrolled?: boolean;
 }) => (
   <div
     className="fixed top-0 left-0 right-0 z-40 max-w-[420px] mx-auto"
     style={{
-      paddingTop: "calc(env(safe-area-inset-top, 16px) + 4px)",
-      background: "transparent",
-      backdropFilter: "saturate(180%) blur(20px)",
-      WebkitBackdropFilter: "saturate(180%) blur(20px)",
+      paddingTop: "env(safe-area-inset-top, 16px)",
     }}
   >
-    <div className="px-5 pb-2 flex justify-between items-center">
+    {/* Blur layer — smooth 8-stop eased fade */}
+    <div className="absolute pointer-events-none transition-opacity duration-300" style={{
+      inset: "0 0 -24px 0",
+      opacity: scrolled ? 1 : 0.2,
+      backdropFilter: "blur(40px)",
+      WebkitBackdropFilter: "blur(40px)",
+      mask: "linear-gradient(to bottom, black 30%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,0.5) 65%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.15) 85%, rgba(0,0,0,0.05) 93%, transparent 100%)",
+      WebkitMaskImage: "linear-gradient(to bottom, black 30%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,0.5) 65%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.15) 85%, rgba(0,0,0,0.05) 93%, transparent 100%)",
+    }} />
+    {/* Color tint — smooth fade with noise dithering */}
+    <div className="absolute pointer-events-none transition-opacity duration-300" style={{
+      inset: "0 0 -24px 0",
+      opacity: scrolled ? 0.4 : 0.05,
+      background: "var(--color-bg)",
+      mask: "linear-gradient(to bottom, black 25%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.15) 82%, rgba(0,0,0,0.05) 92%, transparent 100%)",
+      WebkitMaskImage: "linear-gradient(to bottom, black 25%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.15) 82%, rgba(0,0,0,0.05) 92%, transparent 100%)",
+    }} />
+    {/* Noise dither overlay to break up gradient banding */}
+    <div className="absolute pointer-events-none" style={{
+      inset: "0 0 -24px 0",
+      opacity: 0.12,
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+      mask: "linear-gradient(to bottom, transparent 30%, black 60%, transparent 100%)",
+      WebkitMaskImage: "linear-gradient(to bottom, transparent 30%, black 60%, transparent 100%)",
+    }} />
+    {/* Solid cover behind status bar only */}
+    <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
+      height: "env(safe-area-inset-top, 16px)",
+      background: "var(--color-bg)",
+    }} />
+    <div className="px-5 pb-1 flex justify-between items-center relative">
       <h1
-        className="font-serif text-primary font-normal"
-        style={{ fontSize: 28, letterSpacing: "-0.02em" }}
+        className="font-serif text-dt font-normal"
+        style={{ fontSize: 24, letterSpacing: "-0.06em" }}
       >
-        down to
+        downto
       </h1>
       <div className="flex items-center gap-2.5">
         {/* Bell icon */}
@@ -73,7 +102,7 @@ const Header = ({
           )}
           <button
             onClick={onOpenAdd}
-            className="bg-dt text-black border-none w-10 h-10 rounded-full cursor-pointer flex items-center justify-center font-bold"
+            className="bg-dt text-on-accent border-none w-10 h-10 rounded-full cursor-pointer flex items-center justify-center font-bold"
             style={{
               fontSize: 22,
               animation: glowAdd ? "addButtonGlow 2s ease-in-out infinite" : undefined,
@@ -85,23 +114,28 @@ const Header = ({
       </div>
     </div>
     {showSort && sortBy && onSortChange && (
-      <div className="relative flex border-b border-border">
-        {(['recent', 'upcoming'] as const).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => onSortChange(mode)}
-            className={`relative flex-1 cursor-pointer bg-transparent border-none py-2 font-mono text-tiny font-bold tracking-[0.08em] uppercase transition-colors ${
-              sortBy === mode ? 'text-dt' : 'text-faint'
-            }`}
-          >
-            {mode === 'recent' ? 'Recent' : 'Upcoming'}
-          </button>
-        ))}
-        {/* Sliding underline */}
-        <div
-          className="absolute bottom-0 h-[2px] w-10 rounded-full bg-dt transition-all duration-200 ease-out"
-          style={{ left: sortBy === 'recent' ? '25%' : '75%', transform: 'translateX(-50%)' }}
-        />
+      <div className="flex justify-center pb-1.5 relative">
+        <div className="inline-flex rounded-full p-0.5 relative" style={{ border: "1px solid #CDC999" }}>
+          {/* Sliding pill highlight */}
+          <div
+            className="absolute top-0.5 bottom-0.5 rounded-full bg-dt transition-all duration-200 ease-out"
+            style={{
+              left: sortBy === 'recent' ? 2 : '50%',
+              right: sortBy === 'recent' ? '50%' : 2,
+            }}
+          />
+          {(['recent', 'upcoming'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => onSortChange(mode)}
+              className={`relative z-[1] rounded-full w-[5.5rem] py-1 font-mono text-tiny font-bold tracking-[0.08em] uppercase cursor-pointer border-none bg-transparent transition-colors duration-200 text-center ${
+                sortBy === mode ? 'text-on-accent' : 'text-dim'
+              }`}
+            >
+              {mode === 'recent' ? 'Recent' : 'Upcoming'}
+            </button>
+          ))}
+        </div>
       </div>
     )}
   </div>

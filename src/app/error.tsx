@@ -29,7 +29,7 @@ export default function Error({
       </p>
       <button
         onClick={reset}
-        className="bg-dt text-black border-none rounded-xl font-mono text-xs font-bold cursor-pointer uppercase"
+        className="bg-dt text-on-accent border-none rounded-xl font-mono text-xs font-bold cursor-pointer uppercase"
         style={{ padding: "14px 32px", letterSpacing: "0.1em" }}
       >
         Try Again
