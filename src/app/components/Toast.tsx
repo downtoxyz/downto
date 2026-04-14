@@ -6,10 +6,12 @@ const Toast = ({
   message,
   action,
   onDismiss,
+  dismissible,
 }: {
   message: string;
   action?: (() => void) | null;
   onDismiss: () => void;
+  dismissible?: boolean;
 }) => (
   <div
     onClick={action ? () => {
@@ -32,9 +34,28 @@ const Toast = ({
       animation: "toastIn 0.3s ease",
       whiteSpace: "nowrap",
       cursor: action ? "pointer" : "default",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
     }}
   >
-    {message}{action ? " tap >" : ""}
+    <span>{message}{action ? " tap >" : ""}</span>
+    {dismissible && (
+      <button
+        onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+        style={{
+          background: "transparent",
+          border: "none",
+          color: "#000",
+          cursor: "pointer",
+          padding: 0,
+          fontSize: 14,
+          fontWeight: 700,
+          lineHeight: 1,
+          opacity: 0.6,
+        }}
+      >×</button>
+    )}
   </div>
 );
 
