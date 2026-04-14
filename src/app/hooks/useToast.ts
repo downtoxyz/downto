@@ -12,10 +12,12 @@ export function useToast() {
     setTimeout(() => setToastMsg(null), 2000);
   };
 
-  const showToastWithAction = (msg: string, action: () => void) => {
+  const showToastWithAction = (msg: string, action: () => void, persistent = false) => {
     setToastAction(() => action);
     setToastMsg(msg);
-    setTimeout(() => { setToastMsg(null); setToastAction(null); }, 4000);
+    if (!persistent) {
+      setTimeout(() => { setToastMsg(null); setToastAction(null); }, 4000);
+    }
   };
 
   const showToastRef = useRef(showToast);
