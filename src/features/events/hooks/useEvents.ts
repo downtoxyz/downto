@@ -162,26 +162,6 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
     setEvents((prev) => prev.map(enrichEvent));
   }, []);
 
-  const toggleSave = (id: string) => {
-    const event = events.find((e) => e.id === id);
-    if (!event) return;
-    const newSaved = !event.saved;
-    setEvents((prev) =>
-      prev.map((e) => e.id === id ? { ...e, saved: newSaved } : e)
-    );
-    showToast(newSaved ? "Added to your calendar \u2713" : "Removed from calendar");
-    if (event.id) {
-      (newSaved ? db.saveEvent(event.id) : db.unsaveEvent(event.id))
-        .catch((err) => {
-          logError("toggleSave", err, { eventId: id });
-          setEvents((prev) =>
-            prev.map((e) => e.id === id ? { ...e, saved: !newSaved } : e)
-          );
-          showToast("Failed to save \u2014 try again");
-        });
-    }
-  };
-
   const toggleDown = async (id: string) => {
     const event = events.find((e) => e.id === id);
     if (!event) return;
@@ -260,7 +240,6 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
     setArchivedChecks,
     hydrateEvents,
     hydrateSocialData,
-    toggleSave,
     toggleDown,
     handleEditEvent,
   };

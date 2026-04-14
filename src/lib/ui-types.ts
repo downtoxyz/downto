@@ -145,7 +145,7 @@ export const TABS = ["feed", "squads", "profile"] as const;
 export type Tab = (typeof TABS)[number];
 
 export const AVAILABILITY_OPTIONS: { value: AvailabilityStatus; label: string; emoji: string; color: string }[] = [
-  { value: "open", label: "open to friends!", emoji: "✨", color: "#E8FF5A" },
+  { value: "open", label: "open to friends!", emoji: "✨", color: "var(--color-dt)" },
   { value: "awkward", label: "available, but awkward", emoji: "👀", color: "#ffaa5a" },
   { value: "not-available", label: "not available rn", emoji: "🌙", color: "#666" },
 ];

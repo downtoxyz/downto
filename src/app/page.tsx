@@ -67,7 +67,7 @@ export default function Home() {
     newlyAddedId, setNewlyAddedId,
     archivedChecks, setArchivedChecks,
     hydrateEvents, hydrateSocialData,
-    toggleSave, toggleDown, handleEditEvent,
+    toggleDown, handleEditEvent,
   } = eventsHook;
 
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -698,7 +698,6 @@ export default function Home() {
       redownFromLeft: checksHook.redownFromLeft,
       events: eventsHook.events,
       newlyAddedEventId: eventsHook.newlyAddedId,
-      toggleSave: eventsHook.toggleSave,
       toggleDown: eventsHook.toggleDown,
     }}>
     <div className="flex flex-col h-dvh overflow-x-hidden">

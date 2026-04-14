@@ -26,7 +26,6 @@ export interface FeedContextValue {
   redownFromLeft: (checkId: string) => void;
 
   // — Event actions —
-  toggleSave: (eventId: string) => void;
   toggleDown: (eventId: string) => Promise<void>;
 }
 
