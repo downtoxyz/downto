@@ -8,7 +8,6 @@ import { logError } from "@/lib/logger";
 import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
 import CheckCommentsSection from "./CheckCommentsSection";
 import EditCheckModal from "./EditCheckModal";
-import CheckActionsSheet from "./CheckActionsSheet";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
 
 function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: string; dimmed?: boolean; coAuthors?: { name: string; userId?: string }[]; onViewProfile?: (userId: string) => void }) {
@@ -112,7 +111,6 @@ export default function CheckCard({
     }
   }, [newlyAddedCheckId, check.id]);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
 
   const { comments, commentCount, openComments, postComment } = useCheckComments({
     checkId: check.id,
@@ -165,10 +163,11 @@ export default function CheckCard({
         ref={check.id === newlyAddedCheckId ? (el) => {
           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         } : undefined}
-        className={`overflow-hidden mb-2 border ${
+        className={`overflow-hidden mb-2 ${
           myCheckResponses[check.id] === "down" ? "check-down rounded-2xl" :
-          check.id === newlyAddedCheckId ? "bg-[#FFF5CC] border-[#E8E0B0] rounded-sm" :
-          "bg-card border-[#CDC999] rounded-2xl"
+          (check.isYours || check.isCoAuthor) ? "check-mine rounded-2xl" :
+          check.id === newlyAddedCheckId ? "bg-[#FFF5CC] border border-[#E8E0B0] rounded-sm" :
+          "bg-card border border-[#CDC999] rounded-2xl"
         }`}
         style={check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : undefined}
       >
@@ -180,7 +179,15 @@ export default function CheckCard({
             />
           </div>
         )}
-        <div className="p-4">
+        <div
+          className="p-4 cursor-pointer"
+          onClick={(e) => {
+            // Only open modal if click wasn't on an interactive element
+            const target = e.target as HTMLElement;
+            if (target.closest("button") || target.closest("a") || target.closest("input") || target.closest("textarea")) return;
+            setEditModalOpen(true);
+          }}
+        >
           {check.movieTitle && (
             <div
               onClick={(e) => { if (check.letterboxdUrl) { e.stopPropagation(); window.open(check.letterboxdUrl, "_blank", "noopener"); } }}
@@ -244,12 +251,6 @@ export default function CheckCard({
                     className="bg-transparent border-none text-dim py-0.5 px-1 font-mono text-xs cursor-pointer leading-none"
                     title="Hide this check"
                   >✕</button>
-                )}
-                {(check.isYours || check.isCoAuthor) && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setActionsSheetOpen(true); }}
-                    className="bg-transparent border border-border rounded-lg text-muted py-1.5 px-2.5 font-mono text-sm cursor-pointer leading-none"
-                  ><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M237.94,107.21a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128.27,42.91,98.48,25a8,8,0,0,0-6.46-.59A112.1,112.1,0,0,0,55.31,45.13a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.62a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59l29.82-17.07,29.79,17a8,8,0,0,0,6.46.59A112.1,112.1,0,0,0,200.69,211a8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg></button>
                 )}
               </div>
             </div>
@@ -345,10 +346,10 @@ export default function CheckCard({
                       check.expiresIn === "expired" && !myCheckResponses[check.id]
                         ? "bg-transparent text-dim border border-border cursor-default opacity-50"
                         : myCheckResponses[check.id] === "down"
-                        ? "bg-down-active-bg text-down-active-text border-none cursor-pointer"
+                        ? "bg-dt text-bg border-none cursor-pointer"
                         : myCheckResponses[check.id] === "waitlist"
                         ? "bg-transparent text-muted border border-dashed border-neutral-800 cursor-pointer"
-                        : "bg-down-idle-bg text-dt border border-down-idle-border cursor-pointer"
+                        : "bg-[#F5F7EA] text-dt border border-[#CDC999] cursor-pointer"
                     }`}
                   >
                     {myCheckResponses[check.id] === "down" ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : myCheckResponses[check.id] === "waitlist" ? "✓ Waitlisted" : "DOWN ?"}
@@ -404,14 +405,15 @@ export default function CheckCard({
         </div>
       </div>
 
-      <CheckActionsSheet
-        open={actionsSheetOpen}
-        onClose={() => setActionsSheetOpen(false)}
+      <EditCheckModal
+        check={editModalOpen ? check : null}
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        friends={friendsList}
         hasSquad={!!check.squadId}
-        onShare={shareCheck}
-        onEdit={() => { setActionsSheetOpen(false); setEditModalOpen(true); }}
-        onArchive={async () => {
-          setActionsSheetOpen(false);
+        onShare={(check.isYours || check.isCoAuthor) ? () => { setEditModalOpen(false); shareCheck(); } : undefined}
+        onArchive={(check.isYours || check.isCoAuthor) ? async () => {
+          setEditModalOpen(false);
           try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
           await loadRealData();
           if (showToastWithAction) {
@@ -422,10 +424,9 @@ export default function CheckCard({
           } else {
             showToast("Check archived");
           }
-        }}
-        onDelete={async () => {
-          setActionsSheetOpen(false);
-          // Soft-delete: archive first so undo is possible, then hard-delete after timeout
+        } : undefined}
+        onDelete={(check.isYours || check.isCoAuthor) ? async () => {
+          setEditModalOpen(false);
           try { await db.archiveInterestCheck(check.id); } catch (err) { logError("archiveCheck", err, { checkId: check.id }); }
           await loadRealData();
           if (showToastWithAction) {
@@ -441,14 +442,7 @@ export default function CheckCard({
             try { await db.deleteInterestCheck(check.id); } catch (err) { logError("deleteCheck", err, { checkId: check.id }); }
             showToast("Check removed");
           }
-        }}
-      />
-
-      <EditCheckModal
-        check={editModalOpen ? check : null}
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        friends={friendsList}
+        } : undefined}
         onSave={async (updates) => {
           setEditModalOpen(false);
           try {

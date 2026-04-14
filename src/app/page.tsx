@@ -67,7 +67,7 @@ export default function Home() {
     newlyAddedId, setNewlyAddedId,
     archivedChecks, setArchivedChecks,
     hydrateEvents, hydrateSocialData,
-    toggleDown, handleEditEvent,
+    toggleSave, toggleDown, handleEditEvent,
   } = eventsHook;
 
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -698,6 +698,7 @@ export default function Home() {
       redownFromLeft: checksHook.redownFromLeft,
       events: eventsHook.events,
       newlyAddedEventId: eventsHook.newlyAddedId,
+      toggleSave: eventsHook.toggleSave,
       toggleDown: eventsHook.toggleDown,
     }}>
     <div className="flex flex-col h-dvh overflow-x-hidden">
@@ -1024,6 +1025,15 @@ export default function Home() {
         open={!!editingEvent}
         onClose={() => setEditingEvent(null)}
         onSave={handleEditEvent}
+        onShare={editingEvent ? async () => {
+          const url = editingEvent.igUrl || editingEvent.diceUrl || editingEvent.letterboxdUrl || `${window.location.origin}`;
+          const text = `${editingEvent.title}${editingEvent.venue && editingEvent.venue !== "TBD" ? ` @ ${editingEvent.venue}` : ""}`;
+          if (navigator.share) {
+            try { await navigator.share({ title: editingEvent.title, text, url }); } catch { /* cancelled */ }
+          } else {
+            try { await navigator.clipboard.writeText(`${text}\n${url}`); showToast("Link copied!"); } catch { /* fallback */ }
+          }
+        } : undefined}
       />
       {onboarding.friendGate.show && (
         <OnboardingFriendsPopup

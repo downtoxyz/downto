@@ -15,6 +15,10 @@ const EditCheckModal = ({
   friends,
   onTagFriend,
   onRemoveTag,
+  onShare,
+  onArchive,
+  onDelete,
+  hasSquad,
 }: {
   check: InterestCheck | null;
   open: boolean;
@@ -32,6 +36,10 @@ const EditCheckModal = ({
   friends?: { id: string; name: string; avatar: string }[];
   onTagFriend?: (checkId: string, friendId: string) => Promise<void>;
   onRemoveTag?: (checkId: string, userId: string) => Promise<void>;
+  onShare?: () => void;
+  onArchive?: () => void;
+  onDelete?: () => void;
+  hasSquad?: boolean;
 }) => {
   const [text, setText] = useState("");
   const [whenInput, setWhenInput] = useState("");
@@ -179,9 +187,31 @@ const EditCheckModal = ({
           className="overflow-y-auto overflow-x-hidden flex-1 pb-6"
         >
           {/* Title */}
-          <h2 className="font-serif text-lg text-primary font-normal mb-5 mt-0">
-            Edit check
+          <h2 className="font-serif text-lg text-primary font-normal mb-3 mt-0">
+            {check.text}
           </h2>
+
+          {/* Responders */}
+          {check.responses && check.responses.filter(r => r.status === "down").length > 0 && (
+            <div className="mb-5">
+              <div className="font-mono text-tiny uppercase text-dim mb-2" style={{ letterSpacing: "0.15em" }}>
+                Down · {check.responses.filter(r => r.status === "down").length}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {check.responses.filter(r => r.status === "down").map((r) => (
+                  <div
+                    key={r.name}
+                    className="flex items-center gap-1.5 bg-deep border border-border rounded-full pl-1 pr-2.5 py-0.5"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-[10px] font-bold">
+                      {r.avatar}
+                    </div>
+                    <span className="font-mono text-tiny text-primary">{r.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Text */}
           <div className="mb-4">
@@ -267,6 +297,48 @@ const EditCheckModal = ({
             </div>
           )}
           {!whenPreview && <div className="mb-2" />}
+
+          {/* Action row: Share / Archive / Delete */}
+          {(onShare || onArchive || onDelete) && (
+            <div className="flex flex-col gap-0 border-t border-border mt-3">
+              {onShare && (
+                <button
+                  onClick={onShare}
+                  className="flex items-center gap-3 w-full bg-transparent border-none border-b border-border py-3.5 font-mono text-sm cursor-pointer text-left text-primary"
+                  style={{ borderBottom: `1px solid ${color.border}` }}
+                >
+                  <span className="w-6 flex items-center justify-center shrink-0">
+                    <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M137.54,186.36a8,8,0,0,1,0,11.31l-9.94,10A56,56,0,0,1,48.38,128.4L72.5,104.28A56,56,0,0,1,149.31,102a8,8,0,1,1-10.64,12,40,40,0,0,0-54.85,1.63L59.7,139.72a40,40,0,0,0,56.58,56.58l9.94-9.94A8,8,0,0,1,137.54,186.36Zm70.08-138a56.08,56.08,0,0,0-79.22,0l-9.94,9.95a8,8,0,0,0,11.32,11.31l9.94-9.94a40,40,0,0,1,56.58,56.58L172.18,140.4A40,40,0,0,1,117.33,142,8,8,0,1,0,106.69,154a56,56,0,0,0,76.81-2.26l24.12-24.12A56.08,56.08,0,0,0,207.62,48.38Z"/></svg>
+                  </span>
+                  Share link
+                </button>
+              )}
+              {onArchive && (
+                <button
+                  onClick={onArchive}
+                  className="flex items-center gap-3 w-full bg-transparent border-none border-b border-border py-3.5 font-mono text-sm cursor-pointer text-left text-primary"
+                  style={{ borderBottom: `1px solid ${color.border}` }}
+                >
+                  <span className="w-6 flex items-center justify-center shrink-0">
+                    <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M216,40H40A16,16,0,0,0,24,56V88a16,16,0,0,0,16,16v88a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V104a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM200,192H56V104H200v88Zm16-104H40V56H216v32ZM104,136a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,136Z"/></svg>
+                  </span>
+                  Archive
+                </button>
+              )}
+              {onDelete && !hasSquad && (
+                <button
+                  onClick={onDelete}
+                  className="flex items-center gap-3 w-full bg-transparent border-none py-3.5 font-mono text-sm cursor-pointer text-left"
+                  style={{ color: "#ff4444" }}
+                >
+                  <span className="w-6 flex items-center justify-center shrink-0">
+                    <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/></svg>
+                  </span>
+                  Delete
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Save button */}

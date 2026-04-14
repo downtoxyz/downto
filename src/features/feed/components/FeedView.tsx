@@ -135,6 +135,7 @@ export default function FeedView({
     events,
     newlyAddedEventId,
     unhideCheck,
+    toggleSave,
     toggleDown,
   } = useFeedContext();
 
@@ -225,7 +226,7 @@ export default function FeedView({
           onEnableNotifications={onEnableNotifications}
         />
       )}
-      <div className="px-4">
+      <div className="px-3">
         {hasContent ? (
           <>
             {/* Pinned: expiring checks */}
@@ -271,9 +272,10 @@ export default function FeedView({
                   key={item.data.id}
                   event={item.data}
                   userId={userId}
+                  onToggleSave={() => toggleSave(item.data.id)}
                   onToggleDown={() => toggleDown(item.data.id)}
                   onOpenSocial={() => onOpenSocial(item.data)}
-                  onLongPress={
+                  onEdit={
                     item.data.createdBy === userId ||
                     !item.data.createdBy
                       ? () => onEditEvent(item.data)

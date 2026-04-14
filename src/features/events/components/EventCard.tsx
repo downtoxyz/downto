@@ -5,30 +5,28 @@ import { font } from "@/lib/styles";
 import type { Event } from "@/lib/ui-types";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
 import cn from "@/lib/tailwindMerge";
-import EventActionsSheet from "./EventActionsSheet";
 
 const EventCard = ({
   event,
   userId,
+  onToggleSave,
   onToggleDown,
   onOpenSocial,
-  onLongPress,
+  onEdit,
   onViewProfile,
   isNew,
 }: {
   event: Event;
   userId?: string | null;
+  onToggleSave: () => void;
   onToggleDown: () => void;
   onOpenSocial: () => void;
-  onLongPress?: () => void;
+  onEdit?: () => void;
   onViewProfile?: (userId: string) => void;
   isNew?: boolean;
 }) => {
   const [hovered, setHovered] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressFired = useRef(false);
   const touchMoved = useRef(false);
   const touchStartPos = useRef({ x: 0, y: 0 });
   const poolPeople = event.peopleDown.filter((p) => p.inPool);
@@ -38,13 +36,6 @@ const EventCard = ({
   const mutuals = event.peopleDown.filter((p) => p.mutual);
   const others = event.peopleDown.filter((p) => !p.mutual);
   const hasPool = (event.poolCount ?? 0) > 0;
-
-  const clearLongPress = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
 
   const sourceLink = event.igUrl
     ? { href: event.igUrl, label: event.igHandle || "instagram" }
@@ -80,17 +71,19 @@ const EventCard = ({
   );
 
   const actionButtons = (
+    <div className="flex justify-end">
       <button
         onClick={onToggleDown}
         className={cn(
-          "rounded-full py-1.5 px-3 font-mono text-tiny font-bold cursor-pointer whitespace-nowrap",
+          "rounded-full py-1.5 px-3 font-mono text-tiny font-bold whitespace-nowrap cursor-pointer",
           event.isDown
-            ? "bg-dt text-on-accent border-none"
-            : "bg-transparent text-primary border border-border-mid"
+            ? "bg-dt text-bg border-none"
+            : "bg-[#F5F7EA] text-dt border border-[#CDC999]"
         )}
       >
         {event.isDown ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : "DOWN ?"}
       </button>
+    </div>
   );
 
   const hasDetails = !!(event.posterName || event.note || event.movieTitle || event.vibe.length > 0 || sourceLink);
@@ -107,12 +100,6 @@ const EventCard = ({
 
   return (
     <>
-      <EventActionsSheet
-        open={actionsOpen}
-        onClose={() => setActionsOpen(false)}
-        onShare={shareEvent}
-        onEdit={onLongPress}
-      />
       {showDetail && (
         <EventDetailSheet
           event={event}
@@ -134,18 +121,7 @@ const EventCard = ({
       )}
       <div
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => { setHovered(false); clearLongPress(); }}
-        onPointerDown={() => {
-          if (!onLongPress) return;
-          longPressFired.current = false;
-          longPressTimer.current = setTimeout(() => {
-            longPressFired.current = true;
-            onLongPress();
-          }, 500);
-        }}
-        onPointerUp={clearLongPress}
-        onPointerLeave={clearLongPress}
-        onTouchMove={clearLongPress}
+        onMouseLeave={() => setHovered(false)}
         className={cn(
           "rounded-2xl overflow-hidden mb-2 transition-all relative border",
           isNew ? "border-dt/40" : hovered ? "border-[#CDC999]" : "border-[#CDC999]"
@@ -157,7 +133,7 @@ const EventCard = ({
       >
         {bgImage}
         <div className="p-4 relative">
-          {/* Tappable area opens detail sheet — ignores taps that dragged (e.g. pull-to-refresh) */}
+          {/* Tappable area: opens edit modal for creator, detail sheet for everyone else */}
           <div
             onTouchStart={(e) => {
               touchMoved.current = false;
@@ -168,81 +144,66 @@ const EventCard = ({
               const dy = e.touches[0].clientY - touchStartPos.current.y;
               if (Math.abs(dx) > 8 || Math.abs(dy) > 8) touchMoved.current = true;
             }}
-            onClick={() => { if (!touchMoved.current) setShowDetail(true); }}
+            onClick={(e) => {
+              if (touchMoved.current) return;
+              const target = e.target as HTMLElement;
+              if (target.closest("button") || target.closest("a") || target.closest("input") || target.closest("textarea")) return;
+              // Creator → open edit modal directly. Everyone else → detail sheet.
+              if (onEdit) onEdit();
+              else setShowDetail(true);
+            }}
             className="cursor-pointer"
           >
-            {/* Title + edit */}
-            <div className="flex justify-between items-start mb-2.5">
-              <h3
-                className="font-serif text-lg text-primary m-0 leading-snug font-normal tracking-[-0.01em]"
-              >
-                {event.title}
-              </h3>
-              <div className="flex items-center gap-1 shrink-0 ml-2">
-                {isNew && (
-                  <span className="bg-dt text-on-accent font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full leading-none">new</span>
-                )}
-              {onLongPress && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setActionsOpen(true); }}
-                  className="bg-transparent border-none text-dim font-mono text-tiny cursor-pointer p-1 shrink-0"
+            {/* Title + date + social block */}
+            <div className="mb-3">
+              <div className="flex justify-between items-start">
+                <h3
+                  className="font-serif text-lg text-primary m-0 leading-snug font-normal tracking-[-0.01em] flex-1"
                 >
-                  <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M237.94,107.21a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128.27,42.91,98.48,25a8,8,0,0,0-6.46-.59A112.1,112.1,0,0,0,55.31,45.13a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.62a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59l29.82-17.07,29.79,17a8,8,0,0,0,6.46.59A112.1,112.1,0,0,0,200.69,211a8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg>
-                </button>
-              )}
+                  {event.title}
+                </h3>
+                {isNew && (
+                  <span className="bg-dt text-on-accent font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full leading-none ml-2">new</span>
+                )}
               </div>
-            </div>
-
-            {/* Date, time, venue */}
-            <div className="mb-2">
-              <span className="font-mono text-xs text-dt">
-                {event.date}
-                {event.time && event.time !== "TBD" && ` ${event.time}`}
-              </span>
-              {event.venue && event.venue !== "TBD" && (
-                <>
-                  <span className="font-mono text-xs text-dim">{" · "}</span>
-                  <span className="font-mono text-xs text-dim">{event.venue}</span>
-                </>
-              )}
-            </div>
-
-            {/* Social hint — text format */}
-            {event.isDown && event.socialLoaded && event.peopleDown.length > 0 && (
-              <div className="mb-3">
-                <span className="font-mono text-tiny text-muted">
-                  {(() => {
-                    const first = event.peopleDown[0];
-                    const othersCount = event.peopleDown.length - 1;
-                    return (
-                      <>
-                        <span className="text-dt font-semibold">{first.name}</span>
-                        {othersCount > 0 && <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"}</span>}
-                      </>
-                    );
-                  })()}
+              <p className="font-mono text-xs text-muted m-0 mt-2">
+                <span className="text-dt">
+                  {event.date}
+                  {event.time && event.time !== "TBD" && ` ${event.time}`}
                 </span>
-              </div>
-            )}
-            {!event.isDown && event.socialLoaded && event.peopleDown.length > 0 && (
-              <div className="mb-3">
-                <span className="font-mono text-tiny text-muted">
-                  {(() => {
-                    const first = event.peopleDown[0];
-                    const othersCount = event.peopleDown.length - 1;
-                    return (
-                      <>
-                        <span className="text-dt font-semibold">{first.name}</span>
-                        {othersCount > 0 && <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"}</span>}
-                      </>
-                    );
-                  })()}
-                </span>
-              </div>
-            )}
+                {event.venue && event.venue !== "TBD" && (
+                  <span>{" · "}{event.venue}</span>
+                )}
+              </p>
+            </div>
           </div>
 
-          {actionButtons}
+          {/* Responders + down button on same line */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-tiny text-muted min-w-0 truncate">
+              {event.socialLoaded && event.peopleDown.length > 0 ? (() => {
+                const first = event.peopleDown[0];
+                const othersCount = event.peopleDown.length - 1;
+                return (
+                  <>
+                    <span className="text-dt font-semibold">{first.name}</span>
+                    {othersCount > 0 && <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"}</span>}
+                  </>
+                );
+              })() : null}
+            </span>
+            <button
+              onClick={onToggleDown}
+              className={cn(
+                "rounded-full py-1.5 px-3 font-mono text-tiny font-bold whitespace-nowrap cursor-pointer shrink-0",
+                event.isDown
+                  ? "bg-dt text-bg border-none"
+                  : "bg-[#F5F7EA] text-dt border border-[#CDC999]"
+              )}
+            >
+              {event.isDown ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : "DOWN ?"}
+            </button>
+          </div>
         </div>
       </div>
     </>
