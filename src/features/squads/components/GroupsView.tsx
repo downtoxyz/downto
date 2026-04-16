@@ -18,13 +18,16 @@ const getEventSortKey = (s: Squad): number => {
 
 const isFading = (s: Squad): boolean => {
   const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  // Event is "fading" only once it's been 24h since the event time
   if (s.eventIsoDate) {
     const t = new Date(s.eventIsoDate).getTime();
-    if (!Number.isNaN(t) && t < now) return true;
+    if (!Number.isNaN(t) && now - t > DAY_MS) return true;
   }
+  // Or when the squad is within 24h of its own expiry
   if (s.expiresAt) {
     const ms = new Date(s.expiresAt).getTime() - now;
-    if (!Number.isNaN(ms) && ms < 24 * 60 * 60 * 1000) return true;
+    if (!Number.isNaN(ms) && ms < DAY_MS) return true;
   }
   return false;
 };
