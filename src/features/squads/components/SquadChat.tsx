@@ -599,13 +599,16 @@ const SquadChat = ({
 
       {/* Edit event modal — matches CreateModal interest check form */}
       {showEditEvent && (() => {
+        // For check-backed squads, only the check author can change the title.
+        // Event-backed and standalone squads: any member can rename.
+        const canEditTitle = !localSquad.checkId || localSquad.checkAuthorId === userId;
         const handleSaveEvent = async () => {
           if (!localSquad?.id) return;
           setSavingEvent(true);
           try {
-            // Save title if changed
+            // Save title if changed (only allowed for check authors when linked to a check)
             const trimmedTitle = editEventTitle.trim();
-            if (trimmedTitle && trimmedTitle !== localSquad.name) {
+            if (canEditTitle && trimmedTitle && trimmedTitle !== localSquad.name) {
               await db.updateSquadName(localSquad.id, trimmedTitle);
               setLocalSquad((prev) => ({ ...prev, name: trimmedTitle }));
               onSquadUpdate((prev) => prev.map((s) => s.id === localSquad.id ? { ...s, name: trimmedTitle } : s));
@@ -662,17 +665,26 @@ const SquadChat = ({
                   Edit event
                 </h2>
 
-                {/* Event title textarea */}
+                {/* Event title textarea — locked when a non-author edits a check-backed squad */}
                 <div className="mb-4">
                   <textarea
                     value={editEventTitle}
-                    onChange={(e) => setEditEventTitle(e.target.value.slice(0, 280))}
+                    onChange={(e) => canEditTitle && setEditEventTitle(e.target.value.slice(0, 280))}
                     placeholder="What's the plan?"
-                    autoFocus
+                    autoFocus={canEditTitle}
+                    readOnly={!canEditTitle}
                     rows={3}
-                    className="w-full bg-deep border border-border-mid rounded-xl p-3.5 px-4 text-primary font-mono text-sm outline-none resize-none leading-relaxed box-border"
+                    className={cn(
+                      "w-full bg-deep border border-border-mid rounded-xl p-3.5 px-4 text-primary font-mono text-sm outline-none resize-none leading-relaxed box-border",
+                      !canEditTitle && "opacity-60 cursor-not-allowed"
+                    )}
                     style={{ fontSize: 13 }}
                   />
+                  {!canEditTitle && (
+                    <p className="font-mono text-tiny text-dim mt-1.5 pl-0.5">
+                      Only the check author can edit the title
+                    </p>
+                  )}
                 </div>
 
                 {/* When / Where inputs */}
