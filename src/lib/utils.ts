@@ -170,6 +170,29 @@ export const parseNaturalDate = (text: string): { label: string; iso: string } |
       return { label: lbl(d), iso: fmt(d) };
     }
   }
+  // Explicit numeric dates — checked BEFORE bare day name so "thurs 4/16" uses 4/16 not "thurs"
+  // "feb 20" / "february 20th" / "mar 5"
+  const monthDayMatch = lower.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
+  if (monthDayMatch) {
+    const month = MONTH_NAMES[monthDayMatch[1].slice(0, 3)];
+    const day = parseInt(monthDayMatch[2]);
+    if (month !== undefined && day >= 1 && day <= 31) {
+      const d = new Date(today.getFullYear(), month, day);
+      if (d.getTime() < today.getTime() - 14 * 86400000) d.setFullYear(d.getFullYear() + 1);
+      return { label: lbl(d), iso: fmt(d) };
+    }
+  }
+  // "1/20" / "2/14" / "12/25" — NOT "1/20/2026" time-like patterns etc.
+  const slashMatch = lower.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+  if (slashMatch) {
+    const month = parseInt(slashMatch[1]) - 1;
+    const day = parseInt(slashMatch[2]);
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      const d = new Date(today.getFullYear(), month, day);
+      if (d.getTime() < today.getTime() - 14 * 86400000) d.setFullYear(d.getFullYear() + 1);
+      return { label: lbl(d), iso: fmt(d) };
+    }
+  }
   // Bare day name — "friday", "sat", "sun", etc. (today if matches, else next occurrence)
   const bareDayMatch = lower.match(/\b(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
   if (bareDayMatch && bareDayMatch.index !== undefined) {
@@ -184,28 +207,6 @@ export const parseNaturalDate = (text: string): { label: string; iso: string } |
         d.setDate(d.getDate() + diff);
         return { label: lbl(d), iso: fmt(d) };
       }
-    }
-  }
-  // "feb 20" / "february 20th" / "mar 5"
-  const monthDayMatch = lower.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
-  if (monthDayMatch) {
-    const month = MONTH_NAMES[monthDayMatch[1].slice(0, 3)];
-    const day = parseInt(monthDayMatch[2]);
-    if (month !== undefined && day >= 1 && day <= 31) {
-      const d = new Date(today.getFullYear(), month, day);
-      if (d.getTime() < today.getTime() - 14 * 86400000) d.setFullYear(d.getFullYear() + 1);
-      return { label: lbl(d), iso: fmt(d) };
-    }
-  }
-  // "1/20" / "2/14" / "12/25"
-  const slashMatch = lower.match(/\b(\d{1,2})\/(\d{1,2})\b/);
-  if (slashMatch) {
-    const month = parseInt(slashMatch[1]) - 1;
-    const day = parseInt(slashMatch[2]);
-    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
-      const d = new Date(today.getFullYear(), month, day);
-      if (d.getTime() < today.getTime() - 14 * 86400000) d.setFullYear(d.getFullYear() + 1);
-      return { label: lbl(d), iso: fmt(d) };
     }
   }
   return null;

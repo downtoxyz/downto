@@ -35,10 +35,10 @@ export async function POST(req: NextRequest) {
 
   const displayName = profile?.display_name ?? 'Someone';
 
-  // Get squad's linked check_id and current check event_date
+  // Get squad's linked check_id / event_id and current check event_date
   const { data: squad } = await supabase
     .from('squads')
-    .select('check_id')
+    .select('check_id, event_id')
     .eq('id', squadId)
     .single();
 
@@ -60,6 +60,12 @@ export async function POST(req: NextRequest) {
         .from('interest_checks')
         .update({ event_date: null, event_time: null })
         .eq('id', squad.check_id);
+    }
+    if (squad?.event_id) {
+      await adminClient
+        .from('events')
+        .update({ time_display: null })
+        .eq('id', squad.event_id);
     }
 
     // Reset date and confirm state
@@ -122,6 +128,17 @@ export async function POST(req: NextRequest) {
         ...(time !== undefined ? { event_time: time, time_flexible: !locked } : {}),
       })
       .eq('id', squad.check_id);
+  }
+
+  // Sync date back to the linked event (events store date in YYYY-MM-DD)
+  if (squad?.event_id) {
+    await adminClient
+      .from('events')
+      .update({
+        date,
+        ...(time ? { time_display: time } : {}),
+      })
+      .eq('id', squad.event_id);
   }
 
   const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
