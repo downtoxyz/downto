@@ -158,20 +158,19 @@ export const parseNaturalDate = (text: string): { label: string; iso: string } |
       return { label: lbl(d), iso: fmt(d) };
     }
   }
-  // "this [day]"
+  // "this [day]" — if today matches, interpret as today
   const thisDayMatch = lower.match(/\bthis (mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
   if (thisDayMatch) {
     const key = thisDayMatch[1].slice(0, 3);
     const targetDay = DAY_NAMES.findIndex(d => d.startsWith(key));
     if (targetDay >= 0) {
       const d = new Date(today);
-      let diff = (targetDay - todayDay + 7) % 7;
-      if (diff === 0) diff = 7;
+      const diff = (targetDay - todayDay + 7) % 7;
       d.setDate(d.getDate() + diff);
       return { label: lbl(d), iso: fmt(d) };
     }
   }
-  // Bare day name — "friday", "sat", "sun", etc. (next occurrence)
+  // Bare day name — "friday", "sat", "sun", etc. (today if matches, else next occurrence)
   const bareDayMatch = lower.match(/\b(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
   if (bareDayMatch && bareDayMatch.index !== undefined) {
     // Skip "the sun" / "a sun" — article + "sun" isn't referring to Sunday
@@ -181,8 +180,7 @@ export const parseNaturalDate = (text: string): { label: string; iso: string } |
       const targetDay = DAY_NAMES.findIndex(d => d.startsWith(key));
       if (targetDay >= 0) {
         const d = new Date(today);
-        let diff = (targetDay - todayDay + 7) % 7;
-        if (diff === 0) diff = 7;
+        const diff = (targetDay - todayDay + 7) % 7;
         d.setDate(d.getDate() + diff);
         return { label: lbl(d), iso: fmt(d) };
       }
