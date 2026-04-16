@@ -76,11 +76,11 @@ self.addEventListener("notificationclick", (event) => {
   if (type === "friend_request" || type === "friend_accepted") {
     tab = "/?tab=profile&openFriends=1";
   } else if (type === "squad_message" || type === "squad_invite" || type === "squad_join_request" || type === "squad_mention") {
-    tab = relatedId ? `/?tab=groups&squadId=${relatedId}` : "/?tab=groups";
+    tab = relatedId ? `/?tab=squads&squadId=${relatedId}` : "/?tab=squads";
   } else if (type === "check_response" || type === "friend_check" || type === "check_comment" || type === "comment_mention") {
     tab = relatedId ? `/?tab=feed&checkId=${relatedId}` : "/?tab=feed";
   } else if (type === "date_confirm" || type === "poll_created") {
-    tab = relatedId ? `/?tab=groups&squadId=${relatedId}` : "/?tab=groups";
+    tab = relatedId ? `/?tab=squads&squadId=${relatedId}` : "/?tab=squads";
   } else if (type === "event_reminder") {
     tab = "/?tab=calendar";
   } else if (type === "event_down" || type === "friend_event") {

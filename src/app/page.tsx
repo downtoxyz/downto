@@ -1005,10 +1005,11 @@ export default function Home() {
             friendsHook.setFriendsOpen(true);
           } else if (action.type === "groups") {
             setSquadChatOrigin(tab);
+            // Always switch to squads tab so the user lands somewhere useful
+            // even if the target squad isn't loadable (e.g. membership dropped).
+            setTab("squads");
             if (action.squadId) {
               squadsHook.setAutoSelectSquadId(action.squadId);
-            } else {
-              setTab("squads");
             }
           } else if (action.type === "feed") {
             setTab("feed");
