@@ -159,11 +159,12 @@ export default function CheckCard({
 
   return (
     <>
+      <div className="mb-2">
       <div
         ref={check.id === newlyAddedCheckId ? (el) => {
           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         } : undefined}
-        className={`overflow-hidden mb-2 ${
+        className={`overflow-hidden relative z-[1] ${
           myCheckResponses[check.id] === "down" ? "check-down rounded-2xl" :
           (check.isYours || check.isCoAuthor) ? "check-mine rounded-2xl" :
           check.id === newlyAddedCheckId ? "bg-[#FFF5CC] border border-[#E8E0B0] rounded-sm" :
@@ -385,24 +386,28 @@ export default function CheckCard({
               </div>
             )}
 
-            {/* Comments section */}
-            <div
-              className="grid transition-[grid-template-rows] duration-200 ease-out"
-              style={{ gridTemplateRows: isCommentsOpen ? "1fr" : "0fr" }}
-            >
-              <div className="overflow-hidden" ref={commentsRef}>
-                {commentsEverOpened && (
-                  <CheckCommentsSection
-                    comments={comments}
-                    userId={userId}
-                    friends={friendsList}
-                    onPost={postComment}
-                  />
-                )}
-              </div>
-            </div>
           </div>
         </div>
+      </div>
+
+      {/* Comments — overlaps the bottom of the check card */}
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out -mt-4 px-2"
+        style={{ gridTemplateRows: isCommentsOpen ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden" ref={commentsRef}>
+          {commentsEverOpened && (
+            <div className="pt-6">
+              <CheckCommentsSection
+                comments={comments}
+                userId={userId}
+                friends={friendsList}
+                onPost={postComment}
+              />
+            </div>
+          )}
+        </div>
+      </div>
       </div>
 
       <EditCheckModal
