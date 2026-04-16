@@ -180,13 +180,13 @@ export default function CheckCard({
           </div>
         )}
         <div
-          className="p-4 cursor-pointer"
-          onClick={(e) => {
+          className={`p-4 ${(check.isYours || check.isCoAuthor) ? "cursor-pointer" : ""}`}
+          onClick={(check.isYours || check.isCoAuthor) ? (e) => {
             // Only open modal if click wasn't on an interactive element
             const target = e.target as HTMLElement;
             if (target.closest("button") || target.closest("a") || target.closest("input") || target.closest("textarea")) return;
             setEditModalOpen(true);
-          }}
+          } : undefined}
         >
           {check.movieTitle && (
             <div
