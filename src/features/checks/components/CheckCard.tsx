@@ -390,21 +390,19 @@ export default function CheckCard({
         </div>
       </div>
 
-      {/* Comments — overlaps the bottom of the check card */}
+      {/* Comments — overlaps the bottom of the check card when open */}
       <div
-        className="grid transition-[grid-template-rows] duration-200 ease-out -mt-4 px-2"
+        className={`grid transition-[grid-template-rows] duration-200 ease-out px-3 ${isCommentsOpen ? "-mt-3" : ""}`}
         style={{ gridTemplateRows: isCommentsOpen ? "1fr" : "0fr" }}
       >
         <div className="overflow-hidden" ref={commentsRef}>
           {commentsEverOpened && (
-            <div className="pt-6">
-              <CheckCommentsSection
-                comments={comments}
-                userId={userId}
-                friends={friendsList}
-                onPost={postComment}
-              />
-            </div>
+            <CheckCommentsSection
+              comments={comments}
+              userId={userId}
+              friends={friendsList}
+              onPost={postComment}
+            />
           )}
         </div>
       </div>
