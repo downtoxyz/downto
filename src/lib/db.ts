@@ -1458,6 +1458,30 @@ export async function updateSquadLogistics(
     .eq('id', squadId);
 
   if (error) throw error;
+
+  // Sync meeting_spot → linked interest_check.location / event.venue
+  // so the location stays consistent wherever the user edits it.
+  if (updates.meeting_spot !== undefined) {
+    const { data: squad } = await supabase
+      .from('squads')
+      .select('check_id, event_id')
+      .eq('id', squadId)
+      .single();
+
+    const spot = updates.meeting_spot || null;
+    if (squad?.check_id) {
+      await supabase
+        .from('interest_checks')
+        .update({ location: spot })
+        .eq('id', squad.check_id);
+    }
+    if (squad?.event_id) {
+      await supabase
+        .from('events')
+        .update({ venue: spot })
+        .eq('id', squad.event_id);
+    }
+  }
 }
 
 export async function extendSquad(squadId: string, days: number = 7): Promise<string> {
