@@ -1025,6 +1025,19 @@ export default function Home() {
         open={!!editingEvent}
         onClose={() => setEditingEvent(null)}
         onSave={handleEditEvent}
+        linkedSquads={editingEvent ? squadsHook.squads.filter((s) => s.eventId === editingEvent.id) : []}
+        pendingJoinRequestsBySquad={(() => {
+          const map: Record<string, number> = {};
+          for (const r of squadsHook.pendingJoinRequests) {
+            map[r.squadId] = (map[r.squadId] ?? 0) + 1;
+          }
+          return map;
+        })()}
+        onOpenSquad={(squadId) => {
+          setEditingEvent(null);
+          setSquadChatOrigin(tab);
+          squadsHook.setAutoSelectSquadId(squadId);
+        }}
         onShare={editingEvent ? async () => {
           const url = editingEvent.igUrl || editingEvent.diceUrl || editingEvent.letterboxdUrl || `${window.location.origin}`;
           const text = `${editingEvent.title}${editingEvent.venue && editingEvent.venue !== "TBD" ? ` @ ${editingEvent.venue}` : ""}`;

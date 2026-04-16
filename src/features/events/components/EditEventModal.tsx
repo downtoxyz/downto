@@ -5,7 +5,7 @@ import { color } from "@/lib/styles";
 import { parseNaturalDate, parseNaturalTime, parseDateToISO } from "@/lib/utils";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
 import cn from "@/lib/tailwindMerge";
-import type { Event } from "@/lib/ui-types";
+import type { Event, Squad } from "@/lib/ui-types";
 
 const EditEventModal = ({
   event,
@@ -13,12 +13,18 @@ const EditEventModal = ({
   onClose,
   onSave,
   onShare,
+  linkedSquads,
+  pendingJoinRequestsBySquad,
+  onOpenSquad,
 }: {
   event: Event | null;
   open: boolean;
   onClose: () => void;
   onSave: (updated: { title: string; venue: string; date: string; time: string; vibe: string[]; note: string }) => void;
   onShare?: () => void;
+  linkedSquads?: Squad[];
+  pendingJoinRequestsBySquad?: Record<string, number>;
+  onOpenSquad?: (squadId: string) => void;
 }) => {
   const [title, setTitle] = useState("");
   const [venue, setVenue] = useState("");
@@ -197,6 +203,35 @@ const EditEventModal = ({
               </div>
             )}
           </div>
+
+          {/* Linked squads — shows pending join request counts so creators can jump to the chat to accept */}
+          {linkedSquads && linkedSquads.length > 0 && onOpenSquad && (
+            <div className="mt-5">
+              <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>
+                Squads
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {linkedSquads.map((s) => {
+                  const pending = pendingJoinRequestsBySquad?.[s.id] ?? 0;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => { close(); onOpenSquad(s.id); }}
+                      className="flex items-center justify-between gap-2 w-full bg-deep border border-border-mid rounded-lg py-2.5 px-3 cursor-pointer text-left"
+                    >
+                      <span className="font-mono text-xs text-primary truncate flex-1 min-w-0">{s.name}</span>
+                      {pending > 0 && (
+                        <span className="font-mono text-[9px] text-on-accent bg-dt rounded-full px-1.5 py-0.5 shrink-0" style={{ letterSpacing: "0.05em" }}>
+                          {pending} pending
+                        </span>
+                      )}
+                      <span className="font-mono text-xs text-dim shrink-0">→</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Action row: Share */}
           {onShare && (
