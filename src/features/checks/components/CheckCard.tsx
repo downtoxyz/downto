@@ -164,7 +164,7 @@ export default function CheckCard({
         ref={check.id === newlyAddedCheckId ? (el) => {
           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         } : undefined}
-        className={`overflow-hidden relative z-[1] ${
+        className={`overflow-hidden relative ${
           myCheckResponses[check.id] === "down" ? "check-down rounded-2xl" :
           (check.isYours || check.isCoAuthor) ? "check-mine rounded-2xl" :
           check.id === newlyAddedCheckId ? "bg-[#FFF5CC] border border-[#E8E0B0] rounded-sm" :
@@ -392,7 +392,7 @@ export default function CheckCard({
 
       {/* Comments — overlaps the bottom of the check card when open */}
       <div
-        className={`grid transition-[grid-template-rows] duration-200 ease-out px-3 ${isCommentsOpen ? "-mt-3" : ""}`}
+        className={`grid transition-[grid-template-rows] duration-200 ease-out relative z-[2] ${isCommentsOpen ? "-mt-7" : ""}`}
         style={{ gridTemplateRows: isCommentsOpen ? "1fr" : "0fr" }}
       >
         <div className="overflow-hidden" ref={commentsRef}>
