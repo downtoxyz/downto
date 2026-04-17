@@ -29,7 +29,7 @@ export const midnight: ThemeTokens = {
   onAccent: "#16192A",
 
   fontMono: "var(--font-exo), sans-serif",
-  fontSerif: "var(--font-sora), sans-serif",
+  fontSerif: "var(--font-ibm-plex-mono), monospace",
 
   themeColor: "#ECECEE",
 };
