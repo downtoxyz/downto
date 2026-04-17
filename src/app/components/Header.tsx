@@ -72,6 +72,18 @@ const Header = ({
         downto
       </h1>
       <div className="flex items-center gap-2.5">
+        {/* Sort toggle */}
+        {showSort && sortBy && onSortChange && (
+          <button
+            onClick={() => onSortChange(sortBy === 'recent' ? 'upcoming' : 'recent')}
+            className="bg-transparent border-none cursor-pointer p-2 flex items-center justify-center"
+            title={sortBy === 'recent' ? 'Sort by upcoming' : 'Sort by recent'}
+          >
+            <svg width="18" height="18" viewBox="0 0 256 256" fill={sortBy === 'recent' ? color.text : color.accent}>
+              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h56A8,8,0,0,1,192,128Z"/>
+            </svg>
+          </button>
+        )}
         {/* Bell icon */}
         <button
           onClick={onOpenNotifications}
@@ -90,18 +102,6 @@ const Header = ({
             </div>
           )}
         </button>
-        {/* Sort toggle */}
-        {showSort && sortBy && onSortChange && (
-          <button
-            onClick={() => onSortChange(sortBy === 'recent' ? 'upcoming' : 'recent')}
-            className="bg-transparent border-none cursor-pointer p-2 flex items-center justify-center"
-            title={sortBy === 'recent' ? 'Sort by upcoming' : 'Sort by recent'}
-          >
-            <svg width="18" height="18" viewBox="0 0 256 256" fill={sortBy === 'recent' ? color.text : color.accent}>
-              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h56A8,8,0,0,1,192,128Z"/>
-            </svg>
-          </button>
-        )}
         {/* Add event button */}
         <div className="relative">
           {glowAdd && (
