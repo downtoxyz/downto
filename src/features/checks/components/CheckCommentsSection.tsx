@@ -51,8 +51,8 @@ export default function CheckCommentsSection({
       ) : (
         <>
           {comments.map((c) => (
-            <div key={c.id} className="flex items-start gap-2 min-w-0">
-              <div className={`w-5 h-5 rounded-full shrink-0 mt-[1px] flex items-center justify-center font-mono text-[9px] font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
+            <div key={c.id} className="flex items-center gap-2 min-w-0">
+              <div className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center font-mono text-[9px] font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
                 {c.userAvatar}
               </div>
               <span className="font-mono text-xs text-muted shrink-0 leading-snug">
