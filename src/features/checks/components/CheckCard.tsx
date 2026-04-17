@@ -398,6 +398,9 @@ export default function CheckCard({
                   openComments();
                   setCommentsEverOpened(true);
                   setIsCommentsOpen(true);
+                  setTimeout(() => {
+                    commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                  }, 250);
                 }}
                 className="cursor-pointer"
               >
