@@ -29,7 +29,7 @@ export const monochrome: ThemeTokens = {
   onAccent: "#fff",
 
   fontMono: "var(--font-ibm-plex-mono), monospace",
-  fontSerif: "var(--font-exo), sans-serif",
+  fontSerif: "var(--font-dm-serif-display), serif",
 
   themeColor: "#FFFFFF",
 };
