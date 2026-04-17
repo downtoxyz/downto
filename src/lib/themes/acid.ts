@@ -29,7 +29,7 @@ export const acid: ThemeTokens = {
   onAccent: "#000",
 
   fontMono: "var(--font-ibm-plex-mono), monospace",
-  fontSerif: "var(--font-dm-serif-display), serif",
+  fontSerif: "var(--font-cormorant), serif",
 
   themeColor: "#FFD4D4",
 };
