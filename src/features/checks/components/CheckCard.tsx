@@ -358,8 +358,8 @@ export default function CheckCard({
         </div>
       </div>
 
-      {/* Inline comments */}
-      <div className="px-4 pb-3">
+      {/* Inline comments — overlaps bottom of card */}
+      <div className="-mt-3 px-1.5 pb-2 relative z-[2]">
         <CheckCommentsSection
           comments={comments}
           userId={userId}
