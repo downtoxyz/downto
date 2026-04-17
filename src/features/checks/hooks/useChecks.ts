@@ -12,7 +12,7 @@ import { checksReducer, initialChecksState, CheckActionType } from "@/features/c
 
 type ActiveCheck = Awaited<ReturnType<typeof db.getActiveChecks>>[number];
 
-function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
+function transformCheck(c: ActiveCheck, userId: string | null, displayName?: string): InterestCheck {
   const now = new Date();
   const created = new Date(c.created_at);
   const msElapsed = now.getTime() - created.getTime();
@@ -57,7 +57,7 @@ function transformCheck(c: ActiveCheck, userId: string | null): InterestCheck {
     expiresIn,
     expiryPercent,
     responses: c.responses.map((r) => ({
-      name: r.user_id === userId ? "You" : (r.user?.display_name ?? "Unknown"),
+      name: r.user_id === userId ? (displayName ?? r.user?.display_name ?? "You") : (r.user?.display_name ?? "Unknown"),
       avatar: r.user?.avatar_letter ?? "?",
       status: r.response,
       odbc: r.user_id,
@@ -118,7 +118,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
         db.getActiveChecks(),
         db.getFofAnnotations().catch(() => [] as { check_id: string; via_friend_name: string }[]),
       ]);
-      const transformedChecks = activeChecks.map((c) => transformCheck(c, userId));
+      const transformedChecks = activeChecks.map((c) => transformCheck(c, userId, profile?.display_name));
       if (fofAnnotations.length > 0) {
         const viaMap = new Map(fofAnnotations.map((a) => [a.check_id, a.via_friend_name]));
         for (const c of transformedChecks) {
@@ -138,7 +138,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
     hiddenIds: string[],
     fofAnnotations?: { check_id: string; via_friend_name: string }[]
   ) => {
-    const transformedChecks = activeChecks.map((c) => transformCheck(c, userId));
+    const transformedChecks = activeChecks.map((c) => transformCheck(c, userId, profile?.display_name));
     if (fofAnnotations && fofAnnotations.length > 0) {
       const viaMap = new Map(fofAnnotations.map((a) => [a.check_id, a.via_friend_name]));
       for (const c of transformedChecks) {
@@ -152,7 +152,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
     // sets checks + hiddenIds + myCheckResponses in one render
     const restoredResponses: Record<string, "down" | "waitlist"> = {};
     for (const c of transformedChecks) {
-      const myResponse = c.responses.find((r) => r.name === "You");
+      const myResponse = c.responses.find((r) => r.odbc === userId);
       if (myResponse && (myResponse.status === "down" || myResponse.status === "waitlist")) {
         restoredResponses[c.id] = myResponse.status;
       }
