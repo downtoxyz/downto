@@ -10,7 +10,6 @@ import * as db from "@/lib/db";
 const EventCard = ({
   event,
   userId,
-  onToggleSave,
   onToggleDown,
   onOpenSocial,
   onEdit,
@@ -19,7 +18,6 @@ const EventCard = ({
 }: {
   event: Event;
   userId?: string | null;
-  onToggleSave: () => void;
   onToggleDown: () => void;
   onOpenSocial: () => void;
   onEdit?: () => void;
