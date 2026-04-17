@@ -69,7 +69,7 @@
 
 /* Mono font spacing */
 .font-mono {
-  letter-spacing: 0.04em;
+  letter-spacing: -0.01em;
 }
 
 .font-serif {
