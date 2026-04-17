@@ -31,6 +31,7 @@ const EventCard = ({
   // Event comments
   const [evComments, setEvComments] = useState<{ id: string; userId: string; userName: string; userAvatar: string; text: string; isYours: boolean }[]>([]);
   const [cmtText, setCmtText] = useState("");
+  const [showEvInput, setShowEvInput] = useState(false);
   useEffect(() => {
     if (!event.id) return;
     db.getEventComments(event.id).then((fetched) => {
@@ -230,7 +231,7 @@ const EventCard = ({
             </button>
           </div>
           {/* Inline comments */}
-          <div className="mt-3 flex flex-col gap-1.5">
+          <div className="mt-3 flex flex-col gap-1.5 cursor-pointer" onClick={(e) => { e.stopPropagation(); if (!showEvInput) setShowEvInput(true); }}>
             {evComments.slice(-3).map((cm) => (
               <div key={cm.id} className="flex items-center gap-2 min-w-0">
                 <div className={`w-4 h-4 rounded-full shrink-0 flex items-center justify-center font-mono text-[8px] font-bold ${cm.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
@@ -243,7 +244,7 @@ const EventCard = ({
             {evComments.length > 3 && (
               <span className="font-mono text-tiny text-faint">+ {evComments.length - 3} more</span>
             )}
-            <div className="flex gap-2 items-center mt-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+            {showEvInput && <div className="flex gap-2 items-center mt-1 min-w-0" onClick={(e) => e.stopPropagation()}>
               <input
                 value={cmtText}
                 onChange={(e) => setCmtText(e.target.value.slice(0, 280))}
