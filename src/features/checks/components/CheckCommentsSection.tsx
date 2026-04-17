@@ -46,10 +46,11 @@ export default function CheckCommentsSection({
 
   return (
     <div>
+      <div className="bg-card border border-[#CDC999] rounded-2xl px-3 py-2.5 mb-2 flex flex-col gap-1.5">
       {comments.length === 0 ? (
-        <span className="font-mono text-tiny text-dim">no comments yet</span>
+        <span className="font-mono text-tiny text-dim py-0.5">no comments yet</span>
       ) : (
-        <div className="bg-card border border-[#CDC999] rounded-2xl px-3 py-2.5 mb-2 flex flex-col gap-1.5">
+        <>
           {comments.map((c) => (
             <div key={c.id} className="flex gap-2 items-start">
               <div className={`size-5 rounded-full shrink-0 flex items-center justify-center font-mono text-tiny font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
@@ -74,8 +75,9 @@ export default function CheckCommentsSection({
               </div>
             </div>
           ))}
-        </div>
+        </>
       )}
+      </div>
       <div className="flex gap-2 items-center mt-2 min-w-0">
         <input
           ref={inputRef}
