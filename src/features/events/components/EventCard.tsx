@@ -347,6 +347,38 @@ interface SheetProps {
   onViewProfile?: (userId: string) => void;
 }
 
+// Linkify URLs in text
+function LinkifyText({ children }: { children: string }) {
+  const urlRe = /(https?:\/\/[^\s),]+)/g;
+  const parts = children.split(urlRe);
+  if (parts.length === 1) return <>{children}</>;
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-dt underline underline-offset-2 break-all"
+          >
+            {(() => {
+              try {
+                const u = new URL(part);
+                let d = u.host.replace(/^www\./, "") + u.pathname.replace(/\/$/, "");
+                if (d.length > 40) d = d.slice(0, 37) + "\u2026";
+                return d;
+              } catch { return part; }
+            })()}
+          </a>
+        ) : part
+      )}
+    </>
+  );
+}
+
 // Poster inline element (with optional note flowing on same line)
 function PosterInline({ event, userId, note, onViewProfile }: { event: Event; userId?: string | null; note?: boolean; onViewProfile?: (userId: string) => void }) {
   if (!event.posterName) return null;
@@ -373,7 +405,7 @@ function PosterInline({ event, userId, note, onViewProfile }: { event: Event; us
           {name}
         </span>
         {note && event.note && (
-          <span className="text-dim">{" "}{event.note}</span>
+          <span className="text-dim">{" "}<LinkifyText>{event.note}</LinkifyText></span>
         )}
       </div>
     </div>
@@ -601,7 +633,7 @@ function SheetHero(props: SheetProps) {
             <PosterInline event={event} userId={userId} note onViewProfile={props.onViewProfile} />
             {!event.posterName && event.note && (
               <div className="font-mono text-xs text-dim" style={{ lineHeight: 1.5 }}>
-                {event.note}
+                <LinkifyText>{event.note}</LinkifyText>
               </div>
             )}
           </div>
