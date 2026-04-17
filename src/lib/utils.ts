@@ -239,7 +239,8 @@ export const parseNaturalTime = (text: string): string | null => {
 const formatTimeMatch = (rawHour: number, minutes: string | null, meridiem: "am" | "pm" | undefined): string | null => {
   if (rawHour === 0 || rawHour > 12) return null;
   const suffix = meridiem ?? "pm";
-  return minutes ? `${rawHour}:${minutes}${suffix}` : `${rawHour}${suffix}`;
+  if (minutes && minutes !== "00") return `${rawHour}:${minutes}${suffix}`;
+  return `${rawHour}${suffix}`;
 };
 
 /** Parse a location from text, e.g. "dinner at Jollibee" → "Jollibee" */
