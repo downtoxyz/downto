@@ -100,8 +100,8 @@ export default function CheckCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const hasComments = initialCommentCount > 0;
 
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [commentsEverOpened, setCommentsEverOpened] = useState(false);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(hasComments);
+  const [commentsEverOpened, setCommentsEverOpened] = useState(hasComments);
   const commentsRef = React.useRef<HTMLDivElement>(null);
   const expandedRef = React.useRef<HTMLDivElement>(null);
 
@@ -191,7 +191,7 @@ export default function CheckCard({
           </div>
         )}
         <div
-          className={`p-4  ${(check.isYours || check.isCoAuthor) ? "cursor-pointer" : ""}`}
+          className={`p-4 ${isCommentsOpen ? "pb-6" : ""} ${(check.isYours || check.isCoAuthor) ? "cursor-pointer" : ""}`}
           onClick={(check.isYours || check.isCoAuthor) ? (e) => {
             // Only open modal if click wasn't on an interactive element
             const target = e.target as HTMLElement;
