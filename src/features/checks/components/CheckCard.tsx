@@ -403,7 +403,7 @@ export default function CheckCard({
                 setCommentsEverOpened(true);
                 setIsCommentsOpen(true);
               }}
-              className="mt-2 cursor-pointer"
+              className="mt-3.5 cursor-pointer"
             >
               {comments.length > 0 ? (
                 <div className="flex items-center gap-2 min-w-0">
