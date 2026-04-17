@@ -738,7 +738,7 @@ export default function Home() {
         <div
           ref={scrollRef}
           className="h-full overflow-y-auto"
-          style={{ paddingTop: `calc(env(safe-area-inset-top, 16px) + ${(tab === 'feed' ? HEADER_HEIGHT_WITH_TABS_PX : HEADER_HEIGHT_PX) + HEADER_OFFSET_PX}px)`, paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
+          style={{ paddingTop: `calc(env(safe-area-inset-top, 16px) + ${(HEADER_HEIGHT_PX) + HEADER_OFFSET_PX}px)`, paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
           onScroll={() => {
             const scrolled = (scrollRef.current?.scrollTop ?? 0) > 0;
             if (scrolled !== scrolledDown) setScrolledDown(scrolled);
