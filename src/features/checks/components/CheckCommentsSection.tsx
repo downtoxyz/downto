@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { formatTimeAgo } from "@/lib/utils";
 import type { CommentUI } from "@/features/checks/hooks/useCheckComments";
 
 export default function CheckCommentsSection({
@@ -52,27 +51,20 @@ export default function CheckCommentsSection({
       ) : (
         <>
           {comments.map((c) => (
-            <div key={c.id} className="flex gap-2 items-start">
-              <div className={`size-5 rounded-full shrink-0 flex items-center justify-center font-mono text-tiny font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
+            <div key={c.id} className="flex items-start gap-2 min-w-0">
+              <div className={`w-5 h-5 rounded-full shrink-0 mt-[1px] flex items-center justify-center font-mono text-[9px] font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
                 {c.userAvatar}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 mb-0.5">
-                  <span className={`font-mono text-tiny font-semibold ${c.isYours ? "text-dt" : "text-muted"}`}>
-                    {c.userName}
-                  </span>
-                  <span className="font-mono text-tiny text-faint">
-                    {formatTimeAgo(new Date(c.createdAt))}
-                  </span>
-                </div>
-                <p className="font-mono text-xs text-primary m-0 leading-[1.4]">
-                  {c.text.split(/(@\S+)/g).map((part, pi) =>
-                    part.startsWith("@") ? (
-                      <span key={pi} className="text-dt font-bold">{part}</span>
-                    ) : part
-                  )}
-                </p>
-              </div>
+              <span className="font-mono text-xs text-muted shrink-0 leading-snug">
+                {c.userName}
+              </span>
+              <span className="font-mono text-xs text-primary min-w-0 break-words leading-snug">
+                {c.text.split(/(@\S+)/g).map((part, pi) =>
+                  part.startsWith("@") ? (
+                    <span key={pi} className="text-dt font-bold">{part}</span>
+                  ) : part
+                )}
+              </span>
             </div>
           ))}
         </>
