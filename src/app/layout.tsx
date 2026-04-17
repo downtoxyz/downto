@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Sora, Exo, Instrument_Serif, Space_Mono, IBM_Plex_Mono, Spectral } from 'next/font/google';
+import { Sora, Exo, Instrument_Serif, Space_Mono, IBM_Plex_Mono, Outfit } from 'next/font/google';
 import DevProdBanner from '@/app/components/DevProdBanner';
 import UpdateBanner from '@/app/components/UpdateBanner';
 import Grain from '@/app/components/Grain';
@@ -34,9 +34,9 @@ const ibmPlexMono = IBM_Plex_Mono({
   variable: '--font-ibm-plex-mono',
   subsets: ['latin'],
 });
-const spectral = Spectral({
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-spectral',
+const outfit = Outfit({
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-outfit',
   subsets: ['latin'],
 });
 
@@ -72,7 +72,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${exo.variable} ${instrumentSerif.variable} ${spaceMono.variable} ${ibmPlexMono.variable} ${spectral.variable}`}
+      className={`${sora.variable} ${exo.variable} ${instrumentSerif.variable} ${spaceMono.variable} ${ibmPlexMono.variable} ${outfit.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />

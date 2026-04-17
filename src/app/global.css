@@ -38,7 +38,7 @@
   --color-neutral-925: #FCFFE2;
 
   /* Font family */
-  --font-serif: var(--font-spectral), serif;
+  --font-serif: var(--font-outfit), sans-serif;
   --font-mono: var(--font-ibm-plex-mono), monospace;
 
   --animate-fade-in: fadeIn 0.3s ease;
