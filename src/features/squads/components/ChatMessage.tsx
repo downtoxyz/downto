@@ -126,7 +126,7 @@ export default function ChatMessage({
         </span>
       )}
       <div
-        className={cn("select-text font-mono max-w-[80%]",
+        className={cn("select-text font-serif max-w-[80%]",
           msg.isYou
             ? cn("bg-dt text-on-accent rounded-tr-2xl rounded-bl-2xl", {
                 "rounded-tl-2xl": isFirstInGroup,
