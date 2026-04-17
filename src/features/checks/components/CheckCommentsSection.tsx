@@ -46,7 +46,7 @@ export default function CheckCommentsSection({
   };
 
   return (
-    <div className="bg-card border border-[#CDC999] rounded-2xl px-3 py-2.5 flex flex-col gap-1.5 cursor-pointer" onClick={() => !showInput && setShowInput(true)}>
+    <div className="bg-card border border-[#CDC999] rounded-2xl px-3 py-2.5 flex flex-col gap-1.5 cursor-pointer" onClick={() => setShowInput((v) => !v)}>
       {comments.length === 0 ? (
         <span className="font-mono text-tiny text-faint py-0.5">no comments yet</span>
       ) : (
@@ -70,7 +70,7 @@ export default function CheckCommentsSection({
           ))}
           {!showAll && comments.length > 3 && (
             <button
-              onClick={() => setShowAll(true)}
+              onClick={(e) => { e.stopPropagation(); setShowAll(true); }}
               className="font-mono text-tiny text-faint cursor-pointer bg-transparent border-none p-0"
             >
               + {comments.length - 3} more
