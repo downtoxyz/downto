@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { font } from "@/lib/styles";
 import type { Event } from "@/lib/ui-types";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
 import cn from "@/lib/tailwindMerge";
+import * as db from "@/lib/db";
 
 const EventCard = ({
   event,
@@ -29,6 +30,32 @@ const EventCard = ({
   const [showDetail, setShowDetail] = useState(false);
   const touchMoved = useRef(false);
   const touchStartPos = useRef({ x: 0, y: 0 });
+  // Event comments
+  const [evComments, setEvComments] = useState<{ id: string; userId: string; userName: string; userAvatar: string; text: string; isYours: boolean }[]>([]);
+  const [cmtText, setCmtText] = useState("");
+  useEffect(() => {
+    if (!event.id) return;
+    db.getEventComments(event.id).then((fetched) => {
+      setEvComments(fetched.map((c) => ({
+        id: c.id, userId: c.user_id,
+        userName: c.user?.display_name ?? "Unknown",
+        userAvatar: c.user?.avatar_letter ?? "?",
+        text: c.text, isYours: c.user_id === userId,
+      })));
+    }).catch(() => {});
+  }, [event.id, userId]);
+  const postCmt = useCallback(async () => {
+    const t = cmtText.trim();
+    if (!t || !event.id) return;
+    const opt = { id: `opt-${Date.now()}`, userId: userId ?? "", userName: "You", userAvatar: "?", text: t, isYours: true };
+    setEvComments((p) => [...p, opt]);
+    setCmtText("");
+    try {
+      const saved = await db.postEventComment(event.id, t);
+      setEvComments((p) => p.map((c) => c.id === opt.id ? { id: saved.id, userId: saved.user_id, userName: saved.user?.display_name ?? "You", userAvatar: saved.user?.avatar_letter ?? "?", text: saved.text, isYours: true } : c));
+    } catch { setEvComments((p) => p.filter((c) => c.id !== opt.id)); }
+  }, [cmtText, event.id, userId]);
+
   const poolPeople = event.peopleDown.filter((p) => p.inPool);
   const poolFriends = poolPeople.filter((p) => p.mutual);
   const poolStrangerCount = poolPeople.length - poolFriends.length;
@@ -203,6 +230,33 @@ const EventCard = ({
             >
               {event.isDown ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : "DOWN ?"}
             </button>
+          </div>
+          {/* Inline comments */}
+          <div className="mt-3 flex flex-col gap-1.5">
+            {evComments.slice(-3).map((cm) => (
+              <div key={cm.id} className="flex items-center gap-2 min-w-0">
+                <div className={`w-4 h-4 rounded-full shrink-0 flex items-center justify-center font-mono text-[8px] font-bold ${cm.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
+                  {cm.userAvatar}
+                </div>
+                <span className="font-mono text-tiny text-muted shrink-0">{cm.userName}</span>
+                <span className="font-mono text-tiny text-primary min-w-0 break-words">{cm.text}</span>
+              </div>
+            ))}
+            {evComments.length > 3 && (
+              <span className="font-mono text-tiny text-faint">+ {evComments.length - 3} more</span>
+            )}
+            <div className="flex gap-2 items-center mt-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+              <input
+                value={cmtText}
+                onChange={(e) => setCmtText(e.target.value.slice(0, 280))}
+                onKeyDown={(e) => { if (e.key === "Enter") postCmt(); }}
+                placeholder="Add a comment…"
+                className="flex-1 min-w-0 bg-surface border border-border rounded-lg py-1.5 px-2.5 font-mono text-xs text-primary outline-none"
+              />
+              <button onClick={postCmt} className="shrink-0 bg-dt text-on-accent rounded-lg py-1.5 px-3 font-mono text-xs font-bold cursor-pointer">
+                Post
+              </button>
+            </div>
           </div>
         </div>
       </div>
