@@ -392,7 +392,7 @@ export default function CheckCard({
 
       {/* Comments — overlaps the bottom of the check card when open */}
       <div
-        className={`grid transition-[grid-template-rows] duration-200 ease-out relative z-[2] px-1.5 ${isCommentsOpen ? "-mt-7" : ""}`}
+        className={`grid transition-[grid-template-rows] duration-200 ease-out relative z-[2] px-1.5 ${isCommentsOpen ? "-mt-4" : ""}`}
         style={{ gridTemplateRows: isCommentsOpen ? "1fr" : "0fr" }}
       >
         <div className="overflow-hidden" ref={commentsRef}>
