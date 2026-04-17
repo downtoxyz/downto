@@ -30,7 +30,7 @@ const spaceMono = Space_Mono({
   subsets: ['latin'],
 });
 const ibmPlexMono = IBM_Plex_Mono({
-  weight: ['400', '500', '600', '700'],
+  weight: ['200', '300', '400', '500', '600', '700'],
   variable: '--font-ibm-plex-mono',
   subsets: ['latin'],
 });
@@ -91,7 +91,7 @@ export default function RootLayout({
           input, textarea, select { font-size: 16px !important; }
         `}</style>
       </head>
-      <body className="flex min-h-screen justify-center bg-bg font-mono font-medium text-[#6B6B5A] antialiased">
+      <body className="flex min-h-screen justify-center bg-bg font-mono font-light text-[#6B6B5A] antialiased">
         <ThemeHydrator />
         <NativeStatusBar />
         <Grain />
