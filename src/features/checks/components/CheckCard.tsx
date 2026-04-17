@@ -99,19 +99,12 @@ export default function CheckCard({
   } = useFeedContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const hasComments = initialCommentCount > 0;
-  const [isCommentsOpen, setIsCommentsOpen] = useState(hasComments);
-  const [commentsEverOpened, setCommentsEverOpened] = useState(hasComments);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [commentsEverOpened, setCommentsEverOpened] = useState(false);
   const commentsRef = React.useRef<HTMLDivElement>(null);
   const expandedRef = React.useRef<HTMLDivElement>(null);
 
-  // Auto-fetch and expand comments when count becomes available
-  useEffect(() => {
-    if (hasComments && !isCommentsOpen) {
-      openComments();
-      setCommentsEverOpened(true);
-      setIsCommentsOpen(true);
-    }
-  }, [check.id, hasComments]);
+
   // Also open when navigated via notification
   useEffect(() => {
     if (newlyAddedCheckId === check.id && !isCommentsOpen) {
@@ -191,7 +184,7 @@ export default function CheckCard({
           </div>
         )}
         <div
-          className={`p-4 ${isCommentsOpen ? "pb-6" : ""} ${(check.isYours || check.isCoAuthor) ? "cursor-pointer" : ""}`}
+          className={`p-4  ${(check.isYours || check.isCoAuthor) ? "cursor-pointer" : ""}`}
           onClick={(check.isYours || check.isCoAuthor) ? (e) => {
             // Only open modal if click wasn't on an interactive element
             const target = e.target as HTMLElement;
@@ -394,6 +387,37 @@ export default function CheckCard({
                 )}
               </div>
             )}
+
+          {/* Last comment teaser — tap to expand full thread */}
+          {hasComments && !isCommentsOpen && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                openComments();
+                setCommentsEverOpened(true);
+                setIsCommentsOpen(true);
+              }}
+              className="mt-2 cursor-pointer"
+            >
+              {comments.length > 0 ? (
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-4 h-4 rounded-full shrink-0 flex items-center justify-center font-mono text-[8px] font-bold ${comments[comments.length - 1].isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}>
+                    {comments[comments.length - 1].userAvatar}
+                  </div>
+                  <span className="font-mono text-tiny text-muted truncate min-w-0">
+                    <span className="text-dim">{comments[comments.length - 1].userName}:</span>{" "}{comments[comments.length - 1].text}
+                  </span>
+                  {initialCommentCount > 1 && (
+                    <span className="font-mono text-tiny text-faint shrink-0">+{initialCommentCount - 1}</span>
+                  )}
+                </div>
+              ) : (
+                <span className="font-mono text-tiny text-faint">
+                  {initialCommentCount} comment{initialCommentCount !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+          )}
 
           </div>
         </div>
