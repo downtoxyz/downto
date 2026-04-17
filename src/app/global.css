@@ -70,11 +70,11 @@
 /* Mono font spacing */
 .font-mono {
   letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
 .font-serif {
   letter-spacing: -0.04em;
-  font-weight: 700;
 }
 
 /* "Down" state check card - lime wash */
