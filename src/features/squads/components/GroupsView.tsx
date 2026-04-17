@@ -117,20 +117,29 @@ const SquadRow = ({
             </span>
           )}
         </div>
-        <div className="font-mono text-[10px] text-dim mt-0.5 truncate">
-          {hasMessage ? (
-            sender ? (
-              <>
-                <span className="text-muted">{sender}:</span> {text}
-              </>
-            ) : (
-              text
-            )
+        <div className="flex flex-col gap-0.5 mt-0.5">
+          {squad.messages && squad.messages.length > 0 ? (
+            squad.messages.slice(-3).map((m, i) => {
+              const isSys = !m.isYou && m.sender === "system";
+              return (
+                <div key={m.id ?? i} className="font-mono text-[10px] text-dim truncate">
+                  {isSys ? (
+                    <span className="text-faint italic">{m.text}</span>
+                  ) : (
+                    <>
+                      <span className="text-muted">{m.isYou ? "You" : m.sender}:</span>{" "}{m.text}
+                    </>
+                  )}
+                </div>
+              );
+            })
+          ) : hasMessage ? (
+            <div className="font-mono text-[10px] text-dim truncate">
+              {sender ? <><span className="text-muted">{sender}:</span> {text}</> : text}
+            </div>
           ) : eventCompound ? (
-            eventCompound
-          ) : (
-            ""
-          )}
+            <div className="font-mono text-[10px] text-dim truncate">{eventCompound}</div>
+          ) : null}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 self-start pt-1">
