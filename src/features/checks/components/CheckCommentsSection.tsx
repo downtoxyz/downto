@@ -8,11 +8,13 @@ export default function CheckCommentsSection({
   userId,
   friends,
   onPost,
+  onCollapse,
 }: {
   comments: CommentUI[];
   userId: string | null;
   friends?: { id: string; name: string; avatar: string }[];
   onPost: (text: string, mentions?: string[]) => void;
+  onCollapse?: () => void;
 }) {
   const [text, setText] = useState("");
   const [showAll, setShowAll] = useState(true);
@@ -47,7 +49,7 @@ export default function CheckCommentsSection({
 
   return (
     <div>
-      <div className="bg-card border border-[#CDC999] rounded-2xl px-3 py-2.5 mb-2 flex flex-col gap-1.5 cursor-pointer" onClick={() => setShowInput(true)}>
+      <div className="bg-card border border-[#CDC999] rounded-2xl px-3 py-2.5 mb-2 flex flex-col gap-1.5 cursor-pointer" onClick={(e) => { const t = e.target as HTMLElement; if (t.closest("button") || t.closest("a") || t.closest("input")) return; if (onCollapse) onCollapse(); else setShowInput(true); }}>
       {comments.length === 0 ? (
         <span className="font-mono text-tiny text-dim py-0.5">no comments yet</span>
       ) : (

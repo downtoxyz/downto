@@ -439,6 +439,7 @@ export default function CheckCard({
               userId={userId}
               friends={friendsList}
               onPost={postComment}
+              onCollapse={() => setIsCommentsOpen(false)}
             />
           )}
         </div>
