@@ -139,6 +139,8 @@ const EventCard = ({
           actionButtons={actionButtons}
           onOpenSocial={onOpenSocial}
           onViewProfile={onViewProfile}
+          comments={evComments}
+          onPostComment={postCmt}
           onEdit={onEdit}
           onClose={() => setShowDetail(false)}
         />
@@ -222,14 +224,16 @@ const EventCard = ({
             </button>
           </div>
 
-          {/* Inline comments — tap to toggle input */}
-          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-            <InlineCommentsBox
-              comments={evComments}
-              userId={userId ?? null}
-              onPost={postCmt}
-            />
-          </div>
+          {/* Inline comments — only render when at least one comment exists; empty state lives in the sheet */}
+          {evComments.length > 0 && (
+            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+              <InlineCommentsBox
+                comments={evComments}
+                userId={userId ?? null}
+                onPost={postCmt}
+              />
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -243,7 +247,7 @@ interface Person { name: string; avatar: string; mutual?: boolean; inPool?: bool
 function EventDetailSheet({
   event, userId, sourceLink, hasDetails,
   poolPeople, poolFriends, poolStrangerCount, nonPoolFriends, mutuals, others, hasPool,
-  actionButtons, onOpenSocial, onViewProfile, onEdit, onClose,
+  actionButtons, onOpenSocial, onViewProfile, comments, onPostComment, onEdit, onClose,
 }: {
   event: Event;
   userId?: string | null;
@@ -254,6 +258,8 @@ function EventDetailSheet({
   actionButtons: React.ReactNode;
   onOpenSocial: () => void;
   onViewProfile?: (userId: string) => void;
+  comments: { id: string; userId: string; userName: string; userAvatar: string; text: string; isYours: boolean }[];
+  onPostComment: (text: string, mentions?: string[]) => void;
   onEdit?: () => void;
   onClose: () => void;
 }) {
@@ -265,6 +271,13 @@ function EventDetailSheet({
         nonPoolFriends={nonPoolFriends} mutuals={mutuals} others={others} hasPool={hasPool}
         actionButtons={actionButtons} onOpenSocial={onOpenSocial} onViewProfile={onViewProfile}
       />
+      <div className="mt-4">
+        <InlineCommentsBox
+          comments={comments}
+          userId={userId ?? null}
+          onPost={onPostComment}
+        />
+      </div>
     </DetailSheet>
   );
 }

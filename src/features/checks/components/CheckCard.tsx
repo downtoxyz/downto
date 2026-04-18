@@ -7,6 +7,7 @@ import type { InterestCheck, Friend } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
 import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
 import InlineCommentsBox from "@/shared/components/InlineCommentsBox";
+import CheckDetailSheet from "./CheckDetailSheet";
 import EditCheckModal from "./EditCheckModal";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
 
@@ -107,6 +108,7 @@ export default function CheckCard({
 
   useEffect(() => { openComments(); }, [check.id]);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const { comments, commentCount, openComments, postComment } = useCheckComments({
     checkId: check.id,
@@ -156,13 +158,13 @@ export default function CheckCard({
           </div>
         )}
         <div
-          className={`p-4 ${(check.isYours || check.isCoAuthor) ? "cursor-pointer" : ""}`}
-          onClick={(check.isYours || check.isCoAuthor) ? (e) => {
-            // Only open modal if click wasn't on an interactive element
+          className="p-4 cursor-pointer"
+          onClick={(e) => {
+            // Only open sheet if click wasn't on an interactive element
             const target = e.target as HTMLElement;
             if (target.closest("button") || target.closest("a") || target.closest("input") || target.closest("textarea")) return;
-            setEditModalOpen(true);
-          } : undefined}
+            setShowDetail(true);
+          }}
         >
           {check.movieTitle && (
             <div
@@ -358,16 +360,31 @@ export default function CheckCard({
         </div>
       </div>
 
-      {/* Inline comments — overlaps bottom of card */}
-      <div className="-mt-3 px-1.5 pb-2 relative z-[2]">
-        <InlineCommentsBox
-          comments={comments}
+      {/* Inline comments — only render when at least one comment exists; empty state lives in the sheet */}
+      {comments.length > 0 && (
+        <div className="-mt-3 px-1.5 pb-2 relative z-[2]">
+          <InlineCommentsBox
+            comments={comments}
+            userId={userId}
+            friends={friendsList}
+            onPost={postComment}
+          />
+        </div>
+      )}
+      </div>
+
+      {showDetail && (
+        <CheckDetailSheet
+          check={check}
           userId={userId}
+          comments={comments}
           friends={friendsList}
-          onPost={postComment}
+          onPostComment={postComment}
+          onEdit={(check.isYours || check.isCoAuthor) ? () => { setShowDetail(false); setEditModalOpen(true); } : undefined}
+          onViewProfile={onViewProfile}
+          onClose={() => setShowDetail(false)}
         />
-      </div>
-      </div>
+      )}
 
       <EditCheckModal
         check={editModalOpen ? check : null}
