@@ -263,13 +263,18 @@ function EventDetailSheet({
   onEdit?: () => void;
   onClose: () => void;
 }) {
+  // Creators: hide the attendance block the moment they tap "Edit event" so the
+  // list doesn't linger under the edit modal during the sheet's close animation.
+  const [editInitiated, setEditInitiated] = useState(false);
+  const handleEdit = onEdit ? () => { setEditInitiated(true); onEdit(); } : undefined;
   return (
-    <DetailSheet onClose={onClose} editLabel={onEdit ? "Edit event" : undefined} onEdit={onEdit}>
+    <DetailSheet onClose={onClose} editLabel={onEdit ? "Edit event" : undefined} onEdit={handleEdit}>
       <SheetHero
         event={event} userId={userId} sourceLink={sourceLink}
         poolPeople={poolPeople} poolFriends={poolFriends} poolStrangerCount={poolStrangerCount}
         nonPoolFriends={nonPoolFriends} mutuals={mutuals} others={others} hasPool={hasPool}
         actionButtons={actionButtons} onOpenSocial={onOpenSocial} onViewProfile={onViewProfile}
+        hideSocial={editInitiated}
       />
       <div className="mt-4">
         <InlineCommentsBox
@@ -294,6 +299,7 @@ interface SheetProps {
   actionButtons: React.ReactNode;
   onOpenSocial: () => void;
   onViewProfile?: (userId: string) => void;
+  hideSocial?: boolean;
 }
 
 // Linkify URLs in text
@@ -603,8 +609,8 @@ function SheetHero(props: SheetProps) {
         </div>
       )}
 
-      {/* Social */}
-      <SocialBlock {...props} />
+      {/* Social — hidden once the creator taps "Edit event" */}
+      {!props.hideSocial && <SocialBlock {...props} />}
 
       <div className="mt-3">{actionButtons}</div>
     </>
