@@ -6,7 +6,7 @@ import type { Profile } from "@/lib/types";
 import type { InterestCheck, Friend } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
 import { useCheckComments } from "@/features/checks/hooks/useCheckComments";
-import CheckCommentsSection from "./CheckCommentsSection";
+import InlineCommentsBox from "@/shared/components/InlineCommentsBox";
 import EditCheckModal from "./EditCheckModal";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
 
@@ -360,7 +360,7 @@ export default function CheckCard({
 
       {/* Inline comments — overlaps bottom of card */}
       <div className="-mt-3 px-1.5 pb-2 relative z-[2]">
-        <CheckCommentsSection
+        <InlineCommentsBox
           comments={comments}
           userId={userId}
           friends={friendsList}
