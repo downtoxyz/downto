@@ -408,10 +408,18 @@ export default function CheckCard({
             if (check.squadId) await db.updateSquadName(check.squadId, updates.text);
           } catch (err) {
             logError("updateCheck", err, { checkId: check.id });
-            const e = err as { message?: unknown; code?: unknown; details?: unknown };
-            const parts = [e?.message, e?.code, e?.details].filter(Boolean).map(String);
-            const msg = parts.length > 0 ? parts.join(" · ") : String(err);
-            showToast(`Failed to save: ${msg.slice(0, 120)}`);
+            // Dump the raw error so we can see its actual shape in the toast
+            let msg: string;
+            try {
+              if (err instanceof Error) {
+                msg = err.message || err.name || JSON.stringify(err, Object.getOwnPropertyNames(err));
+              } else {
+                msg = JSON.stringify(err);
+              }
+            } catch { msg = String(err); }
+            // eslint-disable-next-line no-console
+            console.error("updateCheck raw error:", err);
+            showToast(`Failed: ${msg.slice(0, 160)}`);
             return;
           }
           showToast("Check updated");
