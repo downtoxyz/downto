@@ -10,7 +10,7 @@ export const dark: ThemeTokens = {
   muted: "#8A8A80",
   dim: "#70706A",
   faint: "#55554F",
-  border: "#252521",
+  border: "#1F1F1C",
   borderLight: "#333330",
   borderMid: "#3D3D38",
   pool: "#00D4FF",
