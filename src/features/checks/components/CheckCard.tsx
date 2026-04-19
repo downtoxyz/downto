@@ -406,7 +406,12 @@ export default function CheckCard({
             await db.updateInterestCheck(check.id, { text: updates.text, event_date: updates.eventDate, event_time: updates.eventTime, date_flexible: updates.dateFlexible, time_flexible: updates.timeFlexible, location: updates.location });
             if (updates.taggedFriendIds && updates.taggedFriendIds.length > 0) await db.tagCoAuthors(check.id, updates.taggedFriendIds);
             if (check.squadId) await db.updateSquadName(check.squadId, updates.text);
-          } catch (err) { logError("updateCheck", err, { checkId: check.id }); showToast("Failed to save changes"); return; }
+          } catch (err) {
+            logError("updateCheck", err, { checkId: check.id });
+            const msg = err instanceof Error ? err.message : String(err);
+            showToast(`Failed to save: ${msg.slice(0, 80)}`);
+            return;
+          }
           showToast("Check updated");
           await loadRealData();
         }}
