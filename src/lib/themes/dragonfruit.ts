@@ -41,6 +41,7 @@ export const dragonfruit: ThemeTokens = {
 
   fontMono: "var(--font-space-mono), monospace",
   fontSerif: "var(--font-instrument-serif), serif",
+  serifTitleTracking: "0.02em",
 
   themeColor: "#141412",
 };

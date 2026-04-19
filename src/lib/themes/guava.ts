@@ -41,6 +41,7 @@ export const guava: ThemeTokens = {
 
   fontMono: "var(--font-ibm-plex-mono), monospace",
   fontSerif: "var(--font-inter), sans-serif",
+  serifTitleTracking: "-0.01em",
 
   themeColor: "#FCFFE2",
 };

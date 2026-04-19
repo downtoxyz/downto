@@ -200,7 +200,7 @@ const EventCard = ({
           <div className="mb-3">
             <div className="flex justify-between items-start">
               <h3
-                className="font-serif text-lg text-primary m-0 leading-snug font-normal tracking-[0.02em] flex-1"
+                className="font-serif text-lg text-primary m-0 leading-snug font-normal tracking-[var(--serif-title-tracking)] flex-1"
               >
                 {event.title}
               </h3>
@@ -565,7 +565,7 @@ function SheetHero(props: SheetProps) {
             />
             {/* Title over image */}
             <div className="absolute bottom-3 left-3.5 right-3.5 flex items-end justify-between">
-              <h3 className="font-serif text-lg text-primary m-0 leading-snug font-normal flex-1 tracking-[0.02em]">
+              <h3 className="font-serif text-lg text-primary m-0 leading-snug font-normal flex-1 tracking-[var(--serif-title-tracking)]">
                 {event.title}
               </h3>
               {heroUrl && (
@@ -576,7 +576,7 @@ function SheetHero(props: SheetProps) {
         );
       })()}
       {!hasImage && (
-        <h3 className="font-serif text-lg text-primary mb-2 mt-0 leading-snug font-normal tracking-[0.02em]">
+        <h3 className="font-serif text-lg text-primary mb-2 mt-0 leading-snug font-normal tracking-[var(--serif-title-tracking)]">
           {event.title}
         </h3>
       )}

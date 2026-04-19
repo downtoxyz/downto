@@ -110,7 +110,7 @@ export default function CheckDetailSheet({
       )}
 
       {/* Title */}
-      <h3 className="font-serif text-lg text-primary mt-0 mb-2 leading-snug font-normal tracking-[0.02em]">
+      <h3 className="font-serif text-lg text-primary mt-0 mb-2 leading-snug font-normal tracking-[var(--serif-title-tracking)]">
         <Linkify coAuthors={check.coAuthors} onViewProfile={onViewProfile}>{check.text}</Linkify>
       </h3>
 

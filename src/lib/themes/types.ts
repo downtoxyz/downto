@@ -49,6 +49,8 @@ export interface ThemeTokens {
   // Fonts
   fontMono: string;
   fontSerif: string;
+  /** letter-spacing applied to check/event titles (varies per serif face) */
+  serifTitleTracking: string;
 
   // Meta
   themeColor: string;

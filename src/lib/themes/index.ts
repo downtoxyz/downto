@@ -52,6 +52,7 @@ export function themeToCSSSVars(theme: ThemeTokens): string {
     `--color-event-image-wash-down: ${theme.eventImageWashDown};`,
     `--font-mono: ${theme.fontMono};`,
     `--font-serif: ${theme.fontSerif};`,
+    `--serif-title-tracking: ${theme.serifTitleTracking};`,
   ].join(" ");
 
   return `${vars} ${tailwindOverrides}`;

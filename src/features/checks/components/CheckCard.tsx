@@ -235,7 +235,7 @@ export default function CheckCard({
           {/* Check text + expiry + actions */}
           <div className="mb-3">
             <div className="flex items-start gap-1.5">
-              <p className="font-serif text-lg text-primary m-0 font-normal leading-snug flex-1 tracking-[0.02em]">
+              <p className="font-serif text-lg text-primary m-0 font-normal leading-snug flex-1 tracking-[var(--serif-title-tracking)]">
                 <Linkify coAuthors={check.coAuthors} onViewProfile={onViewProfile}>{check.text}</Linkify>
               </p>
               <div className="flex items-center gap-1 shrink-0 mt-1">
