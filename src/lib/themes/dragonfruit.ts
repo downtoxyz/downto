@@ -39,8 +39,6 @@ export const dragonfruit: ThemeTokens = {
   eventImageWash: "rgba(252,255,226,0.3)",
   eventImageWashDown: "rgba(200,230,60,0.3)",
 
-  publicEventBg: "#2A2824",
-
   fontMono: "var(--font-space-mono), monospace",
   fontSerif: "var(--font-instrument-serif), serif",
 

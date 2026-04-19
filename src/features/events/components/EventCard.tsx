@@ -168,7 +168,7 @@ const EventCard = ({
           isNew ? "border-dt/40" : "border-border"
         )}
         style={{
-          background: event.isPublic ? "var(--color-public-event-bg)" : "var(--color-card)",
+          background: "var(--color-card)",
           ...(bgImage ? {
             // Image wash is cream in both themes, so force a dark text ramp here
             // regardless of active theme to keep the title/metadata legible.

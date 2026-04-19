@@ -46,10 +46,6 @@ export interface ThemeTokens {
   eventImageWash: string;       // default state
   eventImageWashDown: string;   // user is "down" on this event
 
-  // Slightly lifted bg for public event cards — a lighter card shade
-  // to distinguish them from friend-only events
-  publicEventBg: string;
-
   // Fonts
   fontMono: string;
   fontSerif: string;
