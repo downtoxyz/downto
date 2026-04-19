@@ -50,6 +50,7 @@ export function themeToCSSSVars(theme: ThemeTokens): string {
     `--color-check-new-border: ${theme.checkNewBorder};`,
     `--color-event-image-wash: ${theme.eventImageWash};`,
     `--color-event-image-wash-down: ${theme.eventImageWashDown};`,
+    `--color-public-event-bg: ${theme.publicEventBg};`,
     `--font-mono: ${theme.fontMono};`,
     `--font-serif: ${theme.fontSerif};`,
   ].join(" ");
