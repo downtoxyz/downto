@@ -227,6 +227,16 @@ export const parseNaturalTime = (text: string): string | null => {
     return formatTimeMatch(parseInt(atMatch[1]), atMatch[2] || null, atMatch[3] as "am" | "pm" | undefined);
   }
 
+  // "420pm", "730am", "1230pm" — compact H(H)MM format, no colon
+  const compactMatch = lower.match(/\b(\d{1,2})(\d{2})\s*(am|pm)\b/);
+  if (compactMatch) {
+    const hour = parseInt(compactMatch[1]);
+    const minutes = compactMatch[2];
+    if (hour >= 1 && hour <= 12 && parseInt(minutes) < 60) {
+      return formatTimeMatch(hour, minutes, compactMatch[3] as "am" | "pm");
+    }
+  }
+
   // "7pm", "7 pm", "7:30pm", "7:30 pm" — requires explicit am/pm (no false positives on dates)
   const meridiemMatch = lower.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
   if (meridiemMatch) {
@@ -323,6 +333,17 @@ export const findTimeSpan = (text: string): TextSpan | null => {
     const hour = parseInt(atM[1]);
     if (hour >= 1 && hour <= 12) {
       return { start: atM.index, end: atM.index + atM[0].length, type: "time" };
+    }
+  }
+
+  // "420pm", "730am", "1230pm" — compact H(H)MM format
+  const compactRe = /\b(\d{1,2})(\d{2})\s*(am|pm)\b/;
+  const compactM = lower.match(compactRe);
+  if (compactM && compactM.index !== undefined) {
+    const hour = parseInt(compactM[1]);
+    const mins = parseInt(compactM[2]);
+    if (hour >= 1 && hour <= 12 && mins < 60) {
+      return { start: compactM.index, end: compactM.index + compactM[0].length, type: "time" };
     }
   }
 
