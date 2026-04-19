@@ -176,8 +176,6 @@ const EventCard = ({
             "--color-muted": "#3A3A28",
             "--color-dim": "#55544A",
             "--color-faint": "#78775F",
-            // Lift the cream-washed body off the page bg so it reads as a distinct card
-            boxShadow: "0 6px 22px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06) inset",
           } as React.CSSProperties : {}),
           ...(isNew ? { animation: "accentGlow 2s ease-out forwards" } : {}),
         }}
