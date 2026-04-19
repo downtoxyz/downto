@@ -226,7 +226,7 @@ const NotificationsPanel = ({
                     }
                     onClose();
                     onNavigate({ type: "groups", squadId: squadId ?? undefined });
-                  } else if (n.type === "event_down" || n.type === "friend_event" || n.type === "event_date_updated") {
+                  } else if (n.type === "event_down" || n.type === "friend_event" || n.type === "event_date_updated" || n.type === "event_comment") {
                     if (!n.is_read) {
                       if (userId) db.markNotificationRead(n.id);
                       setNotifications((prev) =>
@@ -279,6 +279,7 @@ const NotificationsPanel = ({
                       : n.type === "friend_event" ? "#E8FF5A22"
                       : n.type === "check_date_updated" ? "#E8FF5A22"
                       : n.type === "event_date_updated" ? "#E8FF5A22"
+                      : n.type === "event_comment" ? "#5AC8FA22"
                       : "#5856D622",
                   }}
                 >
