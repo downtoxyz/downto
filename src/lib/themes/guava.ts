@@ -31,6 +31,11 @@ export const guava: ThemeTokens = {
   downIdleBg: "#F5F7EA",
   downIdleBorder: "#CDC999",
 
+  checkMineBg: "#F0FFD8",
+  checkDownBg: "#ECFFA5",
+  checkNewBg: "#FFF5CC",
+  checkNewBorder: "#E8E0B0",
+
   fontMono: "var(--font-ibm-plex-mono), monospace",
   fontSerif: "var(--font-inter), sans-serif",
 

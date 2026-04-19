@@ -34,6 +34,12 @@
   --color-down-active-bg: var(--color-dt);
   --color-down-active-text: var(--color-on-accent);
 
+  /* Interest check card states */
+  --color-check-mine-bg: #F0FFD8;
+  --color-check-down-bg: #ECFFA5;
+  --color-check-new-bg: #FFF5CC;
+  --color-check-new-border: #E8E0B0;
+
   /* Keep Tailwind neutral scale for one-offs */
   --color-neutral-925: #FCFFE2;
 
@@ -78,15 +84,15 @@
   letter-spacing: -0.04em;
 }
 
-/* "Down" state check card - lime wash */
+/* "Down" state check card */
 .check-down {
-  background-color: #ECFFA5 !important;
+  background-color: var(--color-check-down-bg) !important;
   border-color: transparent !important;
 }
 
-/* Author's own check card - pale green wash, no border */
+/* Author's own check card */
 .check-mine {
-  background-color: #F0FFD8 !important;
+  background-color: var(--color-check-mine-bg) !important;
   border-color: transparent !important;
 }
 

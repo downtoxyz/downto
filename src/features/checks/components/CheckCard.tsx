@@ -144,8 +144,8 @@ export default function CheckCard({
         className={`overflow-hidden relative ${
           myCheckResponses[check.id] === "down" ? "check-down rounded-2xl" :
           (check.isYours || check.isCoAuthor) ? "check-mine rounded-2xl" :
-          check.id === newlyAddedCheckId ? "bg-[#FFF5CC] border border-[#E8E0B0] rounded-sm" :
-          "bg-card border border-[#CDC999] rounded-2xl"
+          check.id === newlyAddedCheckId ? "bg-[var(--color-check-new-bg)] border border-[var(--color-check-new-border)] rounded-sm" :
+          "bg-card border border-border rounded-2xl"
         }`}
         style={check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : undefined}
       >

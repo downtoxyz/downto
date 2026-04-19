@@ -44,6 +44,10 @@ export function themeToCSSSVars(theme: ThemeTokens): string {
     `--color-on-accent: ${theme.onAccent};`,
     `--color-down-idle-bg: ${theme.downIdleBg};`,
     `--color-down-idle-border: ${theme.downIdleBorder};`,
+    `--color-check-mine-bg: ${theme.checkMineBg};`,
+    `--color-check-down-bg: ${theme.checkDownBg};`,
+    `--color-check-new-bg: ${theme.checkNewBg};`,
+    `--color-check-new-border: ${theme.checkNewBorder};`,
     `--font-mono: ${theme.fontMono};`,
     `--font-serif: ${theme.fontSerif};`,
   ].join(" ");

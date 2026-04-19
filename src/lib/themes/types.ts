@@ -36,6 +36,12 @@ export interface ThemeTokens {
   downIdleBg: string;
   downIdleBorder: string;
 
+  // Interest check card states
+  checkMineBg: string;      // user's own check
+  checkDownBg: string;      // user responded "down"
+  checkNewBg: string;       // newly added (freshly created)
+  checkNewBorder: string;
+
   // Fonts
   fontMono: string;
   fontSerif: string;
