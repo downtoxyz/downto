@@ -56,7 +56,7 @@ export default function InlineCommentsBox({
   };
 
   return (
-    <div className="bg-card border border-border rounded-2xl px-3 py-2.5 flex flex-col gap-1.5 cursor-pointer" onClick={() => setShowInput((v) => !v)}>
+    <div className="bg-card border border-border-light rounded-2xl px-3 py-2.5 flex flex-col gap-1.5 cursor-pointer" onClick={() => setShowInput((v) => !v)}>
       {comments.length === 0 ? (
         <span className="font-mono text-tiny text-faint py-0.5">{emptyText}</span>
       ) : (
