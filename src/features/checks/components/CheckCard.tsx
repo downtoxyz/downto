@@ -149,11 +149,23 @@ export default function CheckCard({
         style={check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : undefined}
       >
         {check.expiresIn !== "open" && (
-          <div className="h-0.75 bg-border relative overflow-hidden">
+          <div className="h-1 bg-border relative overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 bg-dt transition-all duration-1000 ease-in-out"
-              style={{ width: `${Math.max(0, 100 - check.expiryPercent)}%` }}
-            />
+              className="absolute inset-y-0 left-0 overflow-hidden transition-[width] duration-[2000ms] ease-out"
+              style={{
+                width: `${Math.max(0, 100 - check.expiryPercent)}%`,
+                background: "linear-gradient(90deg, var(--color-dt) 0%, var(--color-dt) 80%, color-mix(in srgb, var(--color-dt) 40%, transparent) 100%)",
+              }}
+            >
+              {/* Continuous shimmer so the bar feels alive */}
+              <div
+                className="absolute inset-y-0 w-1/3 pointer-events-none"
+                style={{
+                  background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)",
+                  animation: "expiryShimmer 2.4s ease-in-out infinite",
+                }}
+              />
+            </div>
           </div>
         )}
         <div
