@@ -165,7 +165,7 @@ const EventCard = ({
         }}
         className={cn(
           "rounded-2xl overflow-hidden mb-2 transition-all relative border cursor-pointer",
-          isNew ? "border-dt/40" : hovered ? "border-[#CDC999]" : "border-[#CDC999]"
+          isNew ? "border-dt/40" : "border-border"
         )}
         style={{
           background: "var(--color-card)",
@@ -176,6 +176,8 @@ const EventCard = ({
             "--color-muted": "#6B6B5A",
             "--color-dim": "#8A8A70",
             "--color-faint": "#B0B098",
+            // Lift the cream-washed body off the page bg so it reads as a distinct card
+            boxShadow: "0 6px 22px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06) inset",
           } as React.CSSProperties : {}),
           ...(isNew ? { animation: "accentGlow 2s ease-out forwards" } : {}),
         }}
