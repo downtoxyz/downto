@@ -191,28 +191,6 @@ const EditCheckModal = ({
             {check.text}
           </h2>
 
-          {/* Responders */}
-          {check.responses && check.responses.filter(r => r.status === "down").length > 0 && (
-            <div className="mb-5">
-              <div className="font-mono text-tiny uppercase text-dim mb-2" style={{ letterSpacing: "0.15em" }}>
-                Down · {check.responses.filter(r => r.status === "down").length}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {check.responses.filter(r => r.status === "down").map((r) => (
-                  <div
-                    key={r.name}
-                    className="flex items-center gap-1.5 bg-deep border border-border rounded-full pl-1 pr-2.5 py-0.5"
-                  >
-                    <div className="w-5 h-5 rounded-full bg-dt text-on-accent flex items-center justify-center font-mono text-[10px] font-bold">
-                      {r.avatar}
-                    </div>
-                    <span className="font-mono text-tiny text-primary">{r.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Text */}
           <div className="mb-4">
             <textarea
