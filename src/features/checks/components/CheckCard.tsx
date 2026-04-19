@@ -202,6 +202,19 @@ export default function CheckCard({
             </div>
           )}
 
+          {/* Author header */}
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="w-5 h-5 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-[9px] font-bold shrink-0">
+              {check.author[0]?.toUpperCase()}
+            </div>
+            <span className="font-mono text-tiny text-muted min-w-0 truncate">
+              <span className="text-dt font-semibold">{check.author}</span>
+              {check.viaFriendName && (
+                <span className="font-normal text-dim">{" "}via {check.viaFriendName}</span>
+              )}
+            </span>
+          </div>
+
           {/* Co-author tag prompt */}
           {check.pendingTagForYou && (
             <div className="flex items-center justify-between py-2 px-4 bg-dt/6 border-b border-dt/15">
@@ -266,19 +279,21 @@ export default function CheckCard({
           {/* Responses + comment toggle + down button */}
           <div className="mt-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              {check.responses.length > 0 ? (
-                <span className="font-mono text-tiny text-muted whitespace-nowrap">
-                  {(() => {
-                    const downCount = check.responses.filter(r => r.status === "down").length;
-                    return (
-                      <>
-                        <span className="text-dt font-semibold">{check.author}</span>
-                        {downCount > 0 && <span>{" "}+ {downCount} down</span>}
-                      </>
-                    );
-                  })()}
-                </span>
-              ) : (
+              {check.responses.filter(r => r.status === "down").length > 0 ? (() => {
+                const downResponders = check.responses.filter(r => r.status === "down");
+                const first = downResponders[0];
+                const othersCount = downResponders.length - 1;
+                return (
+                  <span className="font-mono text-tiny text-muted whitespace-nowrap">
+                    <span className="text-dt font-semibold">{first.name}</span>
+                    {othersCount > 0 ? (
+                      <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"} down</span>
+                    ) : (
+                      <span>{" "}is down</span>
+                    )}
+                  </span>
+                );
+              })() : (
                 <span className="font-mono text-tiny text-dim">no responses yet</span>
               )}
 

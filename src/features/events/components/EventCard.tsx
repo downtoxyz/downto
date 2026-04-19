@@ -182,6 +182,20 @@ const EventCard = ({
       >
         {bgImage}
         <div className="p-4 relative">
+          {/* Author header */}
+          {event.posterName && (
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-5 h-5 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-[9px] font-bold shrink-0">
+                {event.posterAvatar || event.posterName[0]?.toUpperCase()}
+              </div>
+              <span className="font-mono text-tiny text-muted min-w-0 truncate">
+                <span className="text-dt font-semibold">
+                  {event.createdBy === userId ? "You" : event.posterName}
+                </span>
+              </span>
+            </div>
+          )}
+
           {/* Title + date */}
           <div className="mb-3">
             <div className="flex justify-between items-start">
@@ -214,7 +228,11 @@ const EventCard = ({
                 return (
                   <>
                     <span className="text-dt font-semibold">{first.name}</span>
-                    {othersCount > 0 && <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"}</span>}
+                    {othersCount > 0 ? (
+                      <span>{" "}+ {othersCount} {othersCount === 1 ? "other" : "others"} down</span>
+                    ) : (
+                      <span>{" "}is down</span>
+                    )}
                   </>
                 );
               })() : null}
