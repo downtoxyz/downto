@@ -28,6 +28,9 @@ export const dark: ThemeTokens = {
 
   onAccent: "#000",
 
+  downIdleBg: "#2A2A24",
+  downIdleBorder: "#3D3D38",
+
   fontMono: "var(--font-space-mono), monospace",
   fontSerif: "var(--font-instrument-serif), serif",
 

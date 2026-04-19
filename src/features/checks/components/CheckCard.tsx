@@ -320,7 +320,7 @@ export default function CheckCard({
                         ? "bg-dt text-bg border-none cursor-pointer"
                         : myCheckResponses[check.id] === "waitlist"
                         ? "bg-transparent text-muted border border-dashed border-neutral-800 cursor-pointer"
-                        : "bg-[#F5F7EA] text-dt border border-[#CDC999] cursor-pointer"
+                        : "bg-[var(--color-down-idle-bg)] text-dt border border-[var(--color-down-idle-border)] cursor-pointer"
                     }`}
                   >
                     {myCheckResponses[check.id] === "down" ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : myCheckResponses[check.id] === "waitlist" ? "✓ Waitlisted" : "DOWN ?"}

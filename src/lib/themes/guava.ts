@@ -28,6 +28,9 @@ export const guava: ThemeTokens = {
 
   onAccent: "#fff",
 
+  downIdleBg: "#F5F7EA",
+  downIdleBorder: "#CDC999",
+
   fontMono: "var(--font-ibm-plex-mono), monospace",
   fontSerif: "var(--font-inter), sans-serif",
 

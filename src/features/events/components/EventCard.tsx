@@ -101,7 +101,7 @@ const EventCard = ({
           "rounded-full py-1.5 px-3 font-mono text-tiny font-bold whitespace-nowrap cursor-pointer",
           event.isDown
             ? "bg-dt text-bg border-none"
-            : "bg-[#F5F7EA] text-dt border border-[#CDC999]"
+            : "bg-[var(--color-down-idle-bg)] text-dt border border-[var(--color-down-idle-border)]"
         )}
       >
         {event.isDown ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : "DOWN ?"}
@@ -217,7 +217,7 @@ const EventCard = ({
                 "rounded-full py-1.5 px-3 font-mono text-tiny font-bold whitespace-nowrap cursor-pointer shrink-0",
                 event.isDown
                   ? "bg-dt text-on-accent border-none"
-                  : "bg-[#F5F7EA] text-dt border border-[#CDC999]"
+                  : "bg-[var(--color-down-idle-bg)] text-dt border border-[var(--color-down-idle-border)]"
               )}
             >
               {event.isDown ? <><span>DOWN</span><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" className="inline ml-1"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg></> : "DOWN ?"}

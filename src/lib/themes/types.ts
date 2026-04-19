@@ -32,6 +32,10 @@ export interface ThemeTokens {
   // Contrast
   onAccent: string;
 
+  // Down button (idle state — active state uses accent)
+  downIdleBg: string;
+  downIdleBorder: string;
+
   // Fonts
   fontMono: string;
   fontSerif: string;

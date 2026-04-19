@@ -42,6 +42,8 @@ export function themeToCSSSVars(theme: ThemeTokens): string {
     `--color-border-light: ${theme.borderLight};`,
     `--color-border-mid: ${theme.borderMid};`,
     `--color-on-accent: ${theme.onAccent};`,
+    `--color-down-idle-bg: ${theme.downIdleBg};`,
+    `--color-down-idle-border: ${theme.downIdleBorder};`,
     `--font-mono: ${theme.fontMono};`,
     `--font-serif: ${theme.fontSerif};`,
   ].join(" ");
