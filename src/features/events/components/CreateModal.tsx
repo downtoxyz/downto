@@ -737,25 +737,30 @@ const AddModal = ({
                 })()}
             </div>
             {/* When / Where inputs */}
-            <div className="flex gap-2 mb-1">
-              <input
-                type="text"
-                placeholder="when? (e.g. tmr 7pm)"
-                value={whenInput}
-                onChange={(e) => setWhenInput(e.target.value)}
-                className="flex-1 min-w-0 py-2.5 px-3 bg-deep rounded-lg font-mono text-xs text-primary outline-none box-border"
-                style={{
-                  border: `1px solid ${idea.trim() && !parsedDate ? '#ff6b6b44' : '#333'}`,
-                }}
-              />
-              <input
-                type="text"
-                placeholder="where?"
-                value={whereInput}
-                onChange={(e) => setWhereInput(e.target.value)}
-                className="min-w-0 py-2.5 px-3 bg-deep border border-border-mid rounded-lg font-mono text-xs text-primary outline-none box-border"
-                style={{ flex: 0.6 }}
-              />
+            <div className="flex gap-2 mb-1 items-end">
+              <div className="flex-1 min-w-0">
+                <div className="font-mono text-tiny uppercase text-dim mb-1" style={{ letterSpacing: "0.15em" }}>Date/Time</div>
+                <input
+                  type="text"
+                  placeholder="e.g. tmr 7pm"
+                  value={whenInput}
+                  onChange={(e) => setWhenInput(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-deep rounded-lg font-mono text-xs text-primary outline-none box-border"
+                  style={{
+                    border: `1px solid ${idea.trim() && !parsedDate ? '#ff6b6b44' : '#333'}`,
+                  }}
+                />
+              </div>
+              <div className="min-w-0" style={{ flex: 0.6 }}>
+                <div className="font-mono text-tiny uppercase text-dim mb-1" style={{ letterSpacing: "0.15em" }}>Where</div>
+                <input
+                  type="text"
+                  placeholder="location"
+                  value={whereInput}
+                  onChange={(e) => setWhereInput(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-deep border border-border-mid rounded-lg font-mono text-xs text-primary outline-none box-border"
+                />
+              </div>
             </div>
             {whenPreview && (
               <div className="font-mono text-tiny text-dim mb-2" style={{ paddingLeft: 2 }}>

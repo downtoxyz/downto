@@ -156,7 +156,7 @@ const EditEventModal = ({
             {/* When / Where — matching creation flow */}
             <div className="flex gap-2">
               <div className="flex-1">
-                <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>When</div>
+                <div className="font-mono text-tiny uppercase text-dim mb-1.5" style={{ letterSpacing: "0.15em" }}>Date/Time</div>
                 <input
                   type="text"
                   placeholder="e.g. fri 9pm"
