@@ -1,17 +1,32 @@
 "use client";
 
 import { useEffect } from "react";
-import { themes, themeToCSSSVars } from "@/lib/themes";
+import * as Sentry from "@sentry/nextjs";
+import { themes, themeToCSSSVars, DEFAULT_THEME } from "@/lib/themes";
 import type { ThemeName } from "@/lib/themes";
 
 const THEME_STORAGE_KEY = "downto-theme";
 const THEME_VERSION_KEY = "downto-theme-version";
 const CURRENT_THEME_VERSION = "4";
 
+/**
+ * Tag the active theme on the Sentry scope. Attaches to every error, session,
+ * and performance event so we can slice theme usage / theme-specific bugs.
+ */
+function tagTheme(name: ThemeName) {
+  Sentry.setTag("theme", name);
+  Sentry.addBreadcrumb({ category: "theme", message: `apply ${name}`, level: "info" });
+}
+
 /** Apply a theme by injecting CSS vars, updating meta theme-color, and bg image */
 export function applyTheme(name: ThemeName) {
   if (!(name in themes)) return;
-  if (name === document.documentElement.dataset.theme) return;
+  if (name === document.documentElement.dataset.theme) {
+    // Even a no-op apply should re-tag — covers the switcher re-applying the
+    // current theme and the initial hydration call on default users.
+    tagTheme(name);
+    return;
+  }
 
   const cssVars = themeToCSSSVars(themes[name]);
   document.documentElement.dataset.theme = name;
@@ -32,6 +47,8 @@ export function applyTheme(name: ThemeName) {
   document.body.style.background = t.bgImage
     ? `var(--t-bg) url(${t.bgImage}) center/cover fixed`
     : "var(--t-bg)";
+
+  tagTheme(name);
 }
 
 export default function ThemeHydrator() {
@@ -54,6 +71,10 @@ export default function ThemeHydrator() {
     const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeName | null;
     if (stored && stored in themes) {
       applyTheme(stored);
+    } else {
+      // No override stored → user is on the default theme. Still tag it so
+      // the Sentry "theme" breakdown reflects default-theme users too.
+      Sentry.setTag("theme", DEFAULT_THEME);
     }
   }, []);
 
