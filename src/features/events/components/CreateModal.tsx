@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useModalTransition } from '@/shared/hooks/useModalTransition';
 import type { ScrapedEvent } from '@/lib/ui-types';
 import { parseNaturalDate, parseNaturalTime, sanitize } from '@/lib/utils';
-import { logWarn } from '@/lib/logger';
+import { logError, logWarn } from '@/lib/logger';
 import * as db from '@/lib/db';
 import { API_BASE } from '@/lib/db';
 import cn from '@/lib/tailwindMerge';
@@ -262,6 +262,7 @@ const AddModal = ({
         }
       }
     } catch (err) {
+      logError('scrapeEvent', err, { url });
       setError('Network error. Please try again.');
     }
 

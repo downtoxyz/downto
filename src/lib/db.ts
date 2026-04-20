@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from './supabase';
 import { toLocalISODate } from './utils';
 
@@ -145,6 +146,13 @@ export async function createEvent(event: Omit<Event, 'id' | 'created_at' | 'crea
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  Sentry.addBreadcrumb({
+    category: 'db',
+    message: 'createEvent',
+    level: 'info',
+    data: { title: event.title, visibility: (event as { visibility?: string }).visibility, hasIg: !!event.ig_url, hasDice: !!event.dice_url, hasLetterboxd: !!event.letterboxd_url, hasRa: !!(event as { ra_url?: string }).ra_url },
+  });
+
   const { data, error } = await supabase
     .from('events')
     .insert({ ...event, created_by: user.id })
@@ -163,6 +171,13 @@ export async function updateEvent(
 ): Promise<Event> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+
+  Sentry.addBreadcrumb({
+    category: 'db',
+    message: 'updateEvent',
+    level: 'info',
+    data: { eventId, fields: Object.keys(updates) },
+  });
 
   const { data, error } = await supabase
     .from('events')

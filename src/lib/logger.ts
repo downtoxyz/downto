@@ -2,6 +2,24 @@ import * as Sentry from "@sentry/nextjs";
 
 const isDev = process.env.NODE_ENV === "development";
 
+/** Set the current user on the Sentry scope. Call after auth resolves. */
+export function setSentryUser(userId: string | null) {
+  if (userId) {
+    Sentry.setUser({ id: userId });
+  } else {
+    Sentry.setUser(null);
+  }
+}
+
+/** Browser-only context attached to every error report. */
+function browserContext(): Record<string, unknown> | undefined {
+  if (typeof window === "undefined") return undefined;
+  return {
+    url: window.location.href,
+    ua: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+  };
+}
+
 /**
  * Extract useful fields from Supabase/Postgres errors.
  */
@@ -32,22 +50,29 @@ export function logError(
   context?: Record<string, unknown>,
 ) {
   const errorInfo = extractErrorInfo(error);
+  const fullContext = { ...context, ...browserContext() };
 
   if (isDev) {
     console.groupCollapsed(`%c✖ ${action}`, "color: #ff6b6b; font-weight: bold");
     console.error("Error:", errorInfo);
-    if (context) console.log("Context:", context);
+    if (Object.keys(fullContext).length > 0) console.log("Context:", fullContext);
     if (error instanceof Error && error.stack) console.log("Stack:", error.stack);
     console.groupEnd();
   } else {
     console.error(
-      JSON.stringify({ level: "error", action, error: errorInfo, ...context }),
+      JSON.stringify({ level: "error", action, error: errorInfo, ...fullContext }),
     );
-    Sentry.captureException(error instanceof Error ? error : new Error(String(errorInfo.message ?? errorInfo.raw)), {
-      tags: { action },
-      extra: context,
-    });
   }
+
+  // Always ship to Sentry (it's a no-op if DSN isn't set). Report in dev too
+  // when the DSN is on — makes smoke-testing the wiring easy.
+  Sentry.captureException(
+    error instanceof Error ? error : new Error(String(errorInfo.message ?? errorInfo.raw)),
+    {
+      tags: { action },
+      extra: { ...errorInfo, ...fullContext },
+    },
+  );
 }
 
 export function logWarn(

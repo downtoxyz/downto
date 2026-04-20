@@ -661,7 +661,18 @@ export default function Home() {
         setNewlyAddedId(newEvent.id);
         setTimeout(() => setNewlyAddedId(null), 2500);
       } catch (err) {
-        logError("saveEvent", err, { title });
+        logError("saveEvent", err, {
+          userId,
+          title,
+          venue,
+          dateISO,
+          visibility,
+          igUrl,
+          diceUrl,
+          letterboxdUrl,
+          raUrl,
+          hasMovie: !!movieMetadata,
+        });
         showToast("Failed to save - try again");
         return;
       }

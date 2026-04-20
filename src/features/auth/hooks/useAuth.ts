@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import type { Profile } from "@/lib/types";
-import { logError } from "@/lib/logger";
+import { logError, setSentryUser } from "@/lib/logger";
 
 export function useAuth() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -17,6 +17,7 @@ export function useAuth() {
         if (session?.user) {
           setIsLoggedIn(true);
           setUserId(session.user.id);
+          setSentryUser(session.user.id);
 
           try {
             const { data } = await supabase
@@ -46,6 +47,7 @@ export function useAuth() {
           setIsLoggedIn(false);
           setUserId(null);
           setProfile(null);
+          setSentryUser(null);
           setIsLoading(false);
         }
       }

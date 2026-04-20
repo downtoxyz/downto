@@ -212,7 +212,14 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
           note: updated.note || null,
         });
       } catch (err) {
-        logError("updateEvent", err, { eventId: editingEvent.id });
+        logError("updateEvent", err, {
+          userId,
+          eventId: editingEvent.id,
+          fields: Object.keys(updated),
+          title: updated.title,
+          venue: updated.venue,
+          dateISO,
+        });
         showToast("Failed to update - try again");
         return;
       }
