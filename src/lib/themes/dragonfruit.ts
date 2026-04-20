@@ -1,47 +1,57 @@
 import type { ThemeTokens } from "./types";
+import { gray, magenta, lime } from "./scales";
 
+// Dragonfruit — Y2K direction: loud, saturated magenta borders, lime
+// accent at max punch. Built on OKLCH scales so tuning `scales.ts`
+// ripples through every token that references a step.
 export const dragonfruit: ThemeTokens = {
-  accent: "#E8FF5A",
-  bg: "#141412",
-  card: "#1c1c19",
-  surface: "#252521",
-  deep: "#181815",
-  text: "#E5E5DC",
-  muted: "#8A8A80",
-  dim: "#70706A",
-  faint: "#55554F",
-  border: "#3D1F3D",
-  borderLight: "#4A2548",
-  borderMid: "#5C2E5A",
-  pool: "#00D4FF",
+  // Surfaces — low chroma warm gray, dragonfruit-tinted
+  bg: gray[1],
+  card: gray[2],
+  surface: gray[3],
+  deep: gray[4],
 
-  danger: "#ff6b6b",
+  // Text ramp
+  text: gray[12],
+  muted: gray[10],
+  dim: gray[9],
+  faint: gray[8],
+
+  // Borders — vivid magenta. Meant to be seen.
+  border: magenta[6],
+  borderLight: magenta[7],
+  borderMid: magenta[9],
+
+  // Accent — lime at max punch
+  accent: lime[10],
+  onAccent: "#0a0a00",
+  accentFaint: `oklch(0.92 0.22 115 / 0.06)`,
+  accentSubtle: `oklch(0.92 0.22 115 / 0.12)`,
+  accentLight: `oklch(0.92 0.22 115 / 0.22)`,
+  accentMid: `oklch(0.92 0.22 115 / 0.55)`,
+
+  pool: "#00D4FF",
+  danger: "#ff4d6d",
   success: "#51cf66",
   warn: "#ffa94d",
   info: "#5ac8fa",
-  squad: "#a855f7",
+  squad: "#c026d3",
 
-  accentFaint: "rgba(232,255,90,0.04)",
-  accentSubtle: "rgba(232,255,90,0.08)",
-  accentLight: "rgba(232,255,90,0.15)",
-  accentMid: "rgba(232,255,90,0.5)",
+  downIdleBg: gray[5],
+  downIdleBorder: magenta[7],
 
-  onAccent: "#000",
+  // Check states
+  checkMineBg: magenta[3],
+  checkDownBg: lime[3],
+  checkNewBg: lime[4],
+  checkNewBorder: lime[7],
 
-  downIdleBg: "#2A2A24",
-  downIdleBorder: "#3D3D38",
-
-  checkMineBg: "#252419",
-  checkDownBg: "#3A3D1D",
-  checkNewBg: "#2A2A15",
-  checkNewBorder: "#55572A",
-
-  eventImageWash: "rgba(252,255,226,0.3)",
-  eventImageWashDown: "rgba(200,230,60,0.3)",
+  eventImageWash: "rgba(255,240,245,0.55)",
+  eventImageWashDown: "rgba(200,230,60,0.6)",
 
   fontMono: "var(--font-space-mono), monospace",
   fontSerif: "var(--font-instrument-serif), serif",
-  serifTitleTracking: "0.02em",
+  serifTitleTracking: "0.04em",
 
   themeColor: "#141412",
 };
