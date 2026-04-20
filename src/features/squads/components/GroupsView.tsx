@@ -4,11 +4,34 @@ import React from "react";
 import { color } from "@/lib/styles";
 import type { Squad } from "@/lib/ui-types";
 
-const getEventSortKey = (s: Squad): number => {
-  if (s.eventIsoDate) {
-    const t = new Date(s.eventIsoDate).getTime();
-    if (!Number.isNaN(t)) return t;
+// Parse "2026-04-20" + "7:20pm" into a local-time millisecond timestamp.
+// `new Date("2026-04-20")` is UTC midnight — which is "yesterday evening" in PT,
+// so using it directly makes countdowns flip to ENDED a day early. Parse as
+// local midnight, then overlay the event time when present.
+const getEventStartMs = (s: Squad): number | null => {
+  if (!s.eventIsoDate) return null;
+  const d = new Date(s.eventIsoDate + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  if (s.eventTime) {
+    const m = s.eventTime.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+    if (m) {
+      let h = parseInt(m[1]);
+      const mins = m[2] ? parseInt(m[2]) : 0;
+      if (m[3] === "pm" && h < 12) h += 12;
+      else if (m[3] === "am" && h === 12) h = 0;
+      d.setHours(h, mins, 0, 0);
+      return d.getTime();
+    }
   }
+  // Date-only event: treat end-of-day as the "start" so ENDED/PAST don't
+  // kick in at local midnight on the event day itself.
+  d.setHours(23, 59, 59, 999);
+  return d.getTime();
+};
+
+const getEventSortKey = (s: Squad): number => {
+  const t = getEventStartMs(s);
+  if (t !== null) return t;
   if (s.lastActivityAt) {
     const t = new Date(s.lastActivityAt).getTime();
     if (!Number.isNaN(t)) return t;
@@ -20,10 +43,8 @@ const isFading = (s: Squad): boolean => {
   const now = Date.now();
   const DAY_MS = 24 * 60 * 60 * 1000;
   // Event is "fading" only once it's been 24h since the event time
-  if (s.eventIsoDate) {
-    const t = new Date(s.eventIsoDate).getTime();
-    if (!Number.isNaN(t) && now - t > DAY_MS) return true;
-  }
+  const t = getEventStartMs(s);
+  if (t !== null && now - t > DAY_MS) return true;
   // Or when the squad is within 24h of its own expiry
   if (s.expiresAt) {
     const ms = new Date(s.expiresAt).getTime() - now;
@@ -49,15 +70,18 @@ const splitLastMsg = (lastMsg: string): { sender: string | null; text: string } 
 };
 
 const formatCountdown = (squad: Squad): { label: string; sub: string | null; urgent: boolean } | null => {
-  if (!squad.eventIsoDate) return null;
-  const eventTime = new Date(squad.eventIsoDate).getTime();
-  if (Number.isNaN(eventTime)) return null;
+  const eventTime = getEventStartMs(squad);
+  if (eventTime === null) return null;
   const now = Date.now();
   const diffMs = eventTime - now;
   const diffMin = Math.round(diffMs / (60 * 1000));
   const diffHr = Math.round(diffMs / (60 * 60 * 1000));
   const diffDay = Math.round(diffMs / (24 * 60 * 60 * 1000));
 
+  // ENDED/PAST only applies when the squad has committed to a date. If the
+  // underlying check is flexible and no one locked in a date, the shown date
+  // is just a placeholder — the squad's still active, so hide the countdown.
+  if (diffMs < 0 && squad.dateStatus !== 'locked') return null;
   if (diffMs < -24 * 60 * 60 * 1000) return { label: "PAST", sub: null, urgent: false };
   if (diffMs < 0) return { label: "ENDED", sub: null, urgent: false };
   if (diffHr < 1) return { label: `${Math.max(1, diffMin)}m`, sub: "from now", urgent: true };
