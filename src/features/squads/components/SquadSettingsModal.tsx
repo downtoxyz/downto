@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import * as db from "@/lib/db";
 import cn from "@/lib/tailwindMerge";
-import { color } from "@/lib/styles";
+import DetailSheet from "@/shared/components/DetailSheet";
 import type { Squad } from "@/lib/ui-types";
 import SquadMembersView from "./SquadMembersView";
 
@@ -38,145 +38,196 @@ export default function SquadSettingsModal({
 }: SquadSettingsModalProps) {
   const [view, setView] = useState<"menu" | "members">("menu");
 
-  return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 bg-black/30 flex items-center justify-center z-9999"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-neutral-950 border border-neutral-900 rounded-2xl px-5 py-6 max-w-75 w-11/12 max-h-[70vh] overflow-y-auto"
-      >
-        {view === "menu" ? (
-          <>
-            <div className="flex flex-col items-center mb-5">
-              <div className="flex items-center mb-1.5">
-                {squad.members.slice(0, 4).map((m, idx) => {
-                  const isLocked = squad.dateStatus === "locked";
-                  const isProposed = squad.dateStatus === "proposed";
-                  const confirmResponse = m.userId ? dateConfirms.get(m.userId) : undefined;
-                  const isConfirmed = isLocked || (isProposed && dateConfirms.size > 0 && confirmResponse === "yes");
-                  const isPending = isProposed && dateConfirms.size > 0 && confirmResponse !== "yes";
-                  const avatarBg = isConfirmed ? color.accent : isPending ? color.borderLight : m.name === "You" ? color.accent : color.borderLight;
-                  const avatarColor = isConfirmed ? "#000" : isPending ? color.dim : m.name === "You" ? "#000" : color.dim;
-                  return (
-                    <div
-                      key={m.name}
-                      className="size-6 rounded-full flex items-center justify-center font-mono text-tiny font-bold border-2 border-neutral-950 relative"
-                      style={{ background: avatarBg, color: avatarColor, marginLeft: idx === 0 ? 0 : -6, zIndex: 4 - idx }}
-                    >
-                      {m.avatar}
-                    </div>
-                  );
-                })}
-                {squad.members.length > 4 && (
-                  <span className="font-mono text-tiny font-bold text-neutral-500 ml-1">
-                    +{squad.members.length - 4}
-                  </span>
-                )}
-              </div>
-              <span className="font-mono text-tiny text-neutral-500">
-                {squad.members.length}{squad.maxSquadSize != null ? `/${squad.maxSquadSize}` : ""} member{squad.members.length !== 1 ? "s" : ""}
-              </span>
-            </div>
+  const dateLabel = squad.eventIsoDate
+    ? new Date(squad.eventIsoDate + "T00:00:00").toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
+  const timeLabel = squad.eventTime ?? null;
+  const location = squad.meetingSpot ?? squad.eventLocation ?? null;
+  const metaParts = [dateLabel, timeLabel, location].filter(Boolean);
 
-            <div className="flex flex-col">
-              <button
-                onClick={() => setView("members")}
-                className="bg-transparent border-none border-b border-neutral-900 text-white font-mono text-xs py-3 cursor-pointer text-center w-full"
-              >
-                See members
-              </button>
-              {squad.checkId && onUpdateSquadSize && (
-                <div className="flex items-center justify-center gap-3 py-3 border-b border-neutral-900">
-                  <span className="font-mono text-xs text-white">Squad size</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const newSize = (squad.maxSquadSize ?? 5) - 1;
-                        if (newSize >= squad.members.length) {
-                          onUpdateSquadSize(squad.checkId!, newSize);
-                          onLocalSquadUpdate((prev) => ({ ...prev, maxSquadSize: newSize }));
-                          onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === squad.id ? { ...s, maxSquadSize: newSize } : s));
-                        }
-                      }}
-                      disabled={(squad.maxSquadSize ?? 5) <= squad.members.length}
-                      className={cn("size-6 rounded-md border border-neutral-800 bg-transparent font-mono text-sm flex items-center justify-center p-0", {
-                        "text-neutral-700 cursor-default": (squad.maxSquadSize ?? 5) <= squad.members.length,
-                        "text-white cursor-pointer": (squad.maxSquadSize ?? 5) > squad.members.length,
-                      })}
-                    >
-                      −
-                    </button>
-                    <span className="font-mono text-sm text-dt font-bold min-w-5 text-center">
-                      {squad.maxSquadSize ?? 5}
-                    </span>
-                    <button
-                      onClick={() => {
-                        const newSize = (squad.maxSquadSize ?? 5) + 1;
-                        if (newSize <= 20) {
-                          onUpdateSquadSize(squad.checkId!, newSize);
-                          onLocalSquadUpdate((prev) => ({ ...prev, maxSquadSize: newSize }));
-                          onSquadUpdate((prev: Squad[]) => prev.map((s) => s.id === squad.id ? { ...s, maxSquadSize: newSize } : s));
-                        }
-                      }}
-                      disabled={(squad.maxSquadSize ?? 5) >= 20}
-                      className={cn("size-6 rounded-md border border-neutral-800 bg-transparent font-mono text-sm flex items-center justify-center p-0", {
-                        "text-neutral-700 cursor-default": (squad.maxSquadSize ?? 5) >= 20,
-                        "text-white cursor-pointer": (squad.maxSquadSize ?? 5) < 20,
-                      })}
-                    >
-                      +
-                    </button>
+  const currentSize = squad.maxSquadSize ?? 5;
+  const canShrink = currentSize > squad.members.length;
+  const canGrow = currentSize < 20;
+
+  return (
+    <DetailSheet onClose={onClose}>
+      {view === "menu" ? (
+        <>
+          {/* Event/check header */}
+          <h3 className="font-serif text-xl text-primary m-0 leading-snug font-normal tracking-[var(--serif-title-tracking)] mb-1.5">
+            {squad.name}
+          </h3>
+          {metaParts.length > 0 && (
+            <p className="font-mono text-xs text-dim mb-4 m-0">
+              {metaParts.join(" · ")}
+            </p>
+          )}
+
+          {/* Members preview */}
+          <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border">
+            <div className="flex items-center">
+              {squad.members.slice(0, 5).map((m, idx) => {
+                const isLocked = squad.dateStatus === "locked";
+                const isProposed = squad.dateStatus === "proposed";
+                const confirmResponse = m.userId ? dateConfirms.get(m.userId) : undefined;
+                const isConfirmed =
+                  isLocked || (isProposed && dateConfirms.size > 0 && confirmResponse === "yes");
+                const isYou = m.name === "You";
+                const bg = isConfirmed || isYou ? "var(--color-dt)" : "var(--color-border-light)";
+                const fg = isConfirmed || isYou ? "var(--color-on-accent)" : "var(--color-dt)";
+                return (
+                  <div
+                    key={m.name + idx}
+                    className="size-7 rounded-full flex items-center justify-center font-mono text-tiny font-bold"
+                    style={{
+                      background: bg,
+                      color: fg,
+                      border: "2px solid var(--color-surface)",
+                      marginLeft: idx === 0 ? 0 : -8,
+                      zIndex: 5 - idx,
+                      position: "relative",
+                    }}
+                  >
+                    {m.avatar}
                   </div>
-                </div>
+                );
+              })}
+              {squad.members.length > 5 && (
+                <span className="font-mono text-tiny font-bold text-muted ml-2">
+                  +{squad.members.length - 5}
+                </span>
               )}
-              {onOpenDatePicker && (
-                <button
-                  onClick={onOpenDatePicker}
-                  className="bg-transparent border-none border-b border-neutral-900 text-white font-mono text-xs py-3 cursor-pointer text-center w-full"
-                >
-                  Edit event
-                </button>
-              )}
-              <button
-                onClick={async () => {
-                  try {
-                    const newExpiry = await db.extendSquad(squad.id);
-                    onSquadUpdate((prev) => prev.map((s) =>
-                      s.id === squad.id ? { ...s, expiresAt: newExpiry } : s
-                    ));
-                    onLocalSquadUpdate((prev) => ({ ...prev, expiresAt: newExpiry }));
-                  } catch {}
-                  onClose();
-                }}
-                className="bg-transparent border-none border-b border-neutral-900 text-white font-mono text-xs py-3 cursor-pointer text-center w-full"
-              >
-                Extend +7 days
-              </button>
-              <button
-                onClick={() => { onClose(); onRequestLeave(); }}
-                className="bg-transparent border-none text-red-500 font-mono text-xs py-3 cursor-pointer text-center w-full"
-              >
-                Leave
-              </button>
             </div>
-          </>
-        ) : (
-          <SquadMembersView
-            squad={squad}
-            dateConfirms={dateConfirms}
-            onBack={() => setView("menu")}
-            onClose={onClose}
-            onViewProfile={onViewProfile}
-            onRequestKick={onRequestKick}
-            onSetMemberRole={onSetMemberRole}
-            onAddMember={onAddMember}
-            onSquadUpdate={onSquadUpdate}
-            onLocalSquadUpdate={onLocalSquadUpdate}
-          />
-        )}
-      </div>
-    </div>
+            <span className="font-mono text-tiny text-muted ml-auto">
+              {squad.members.length}
+              {squad.maxSquadSize != null ? `/${squad.maxSquadSize}` : ""} member
+              {squad.members.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {/* Settings label */}
+          <div
+            className="font-mono text-tiny uppercase text-faint mb-2"
+            style={{ letterSpacing: "0.15em" }}
+          >
+            Squad settings
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col">
+            <button
+              onClick={() => setView("members")}
+              className="flex items-center justify-between bg-transparent border-none border-b border-border text-primary font-mono text-xs py-3 cursor-pointer w-full"
+            >
+              <span>See members</span>
+              <span className="text-faint">→</span>
+            </button>
+
+            {squad.checkId && onUpdateSquadSize && (
+              <div className="flex items-center justify-between py-3 border-b border-border">
+                <span className="font-mono text-xs text-primary">Squad size</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const newSize = currentSize - 1;
+                      if (newSize >= squad.members.length) {
+                        onUpdateSquadSize(squad.checkId!, newSize);
+                        onLocalSquadUpdate((prev) => ({ ...prev, maxSquadSize: newSize }));
+                        onSquadUpdate((prev: Squad[]) =>
+                          prev.map((s) => (s.id === squad.id ? { ...s, maxSquadSize: newSize } : s))
+                        );
+                      }
+                    }}
+                    disabled={!canShrink}
+                    className={cn(
+                      "size-6 rounded-md border border-border-mid bg-transparent font-mono text-sm flex items-center justify-center p-0",
+                      canShrink ? "text-primary cursor-pointer" : "text-faint cursor-default"
+                    )}
+                  >
+                    −
+                  </button>
+                  <span className="font-mono text-sm text-dt font-bold min-w-5 text-center">
+                    {currentSize}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const newSize = currentSize + 1;
+                      if (newSize <= 20) {
+                        onUpdateSquadSize(squad.checkId!, newSize);
+                        onLocalSquadUpdate((prev) => ({ ...prev, maxSquadSize: newSize }));
+                        onSquadUpdate((prev: Squad[]) =>
+                          prev.map((s) => (s.id === squad.id ? { ...s, maxSquadSize: newSize } : s))
+                        );
+                      }
+                    }}
+                    disabled={!canGrow}
+                    className={cn(
+                      "size-6 rounded-md border border-border-mid bg-transparent font-mono text-sm flex items-center justify-center p-0",
+                      canGrow ? "text-primary cursor-pointer" : "text-faint cursor-default"
+                    )}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {onOpenDatePicker && (
+              <button
+                onClick={onOpenDatePicker}
+                className="flex items-center justify-between bg-transparent border-none border-b border-border text-primary font-mono text-xs py-3 cursor-pointer w-full"
+              >
+                <span>Edit event</span>
+                <span className="text-faint">→</span>
+              </button>
+            )}
+
+            <button
+              onClick={async () => {
+                try {
+                  const newExpiry = await db.extendSquad(squad.id);
+                  onSquadUpdate((prev) =>
+                    prev.map((s) => (s.id === squad.id ? { ...s, expiresAt: newExpiry } : s))
+                  );
+                  onLocalSquadUpdate((prev) => ({ ...prev, expiresAt: newExpiry }));
+                } catch {}
+                onClose();
+              }}
+              className="flex items-center justify-between bg-transparent border-none border-b border-border text-primary font-mono text-xs py-3 cursor-pointer w-full"
+            >
+              <span>Extend chat +7 days</span>
+              <span className="text-faint">→</span>
+            </button>
+
+            <button
+              onClick={() => {
+                onClose();
+                onRequestLeave();
+              }}
+              className="text-left bg-transparent border-none text-danger font-mono text-xs py-3 cursor-pointer w-full"
+            >
+              Leave squad
+            </button>
+          </div>
+        </>
+      ) : (
+        <SquadMembersView
+          squad={squad}
+          dateConfirms={dateConfirms}
+          onBack={() => setView("menu")}
+          onClose={onClose}
+          onViewProfile={onViewProfile}
+          onRequestKick={onRequestKick}
+          onSetMemberRole={onSetMemberRole}
+          onAddMember={onAddMember}
+          onSquadUpdate={onSquadUpdate}
+          onLocalSquadUpdate={onLocalSquadUpdate}
+        />
+      )}
+    </DetailSheet>
   );
 }

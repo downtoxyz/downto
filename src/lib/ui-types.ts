@@ -107,6 +107,7 @@ export interface Squad {
   eventDate?: string;
   eventIsoDate?: string;
   eventTime?: string;
+  eventLocation?: string;
   dateFlexible?: boolean;
   timeFlexible?: boolean;
   maxSquadSize?: number | null;
