@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   // Run queries in parallel
-  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauRpcRes, pushSubscribersRes] = await Promise.all([
+  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauRpcRes, pushSubscribersRes, friendshipsRes, pendingCountRes, blockedCountRes] = await Promise.all([
     admin.from('profiles').select('*', { count: 'exact', head: true }),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', true),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', false),
@@ -58,6 +58,13 @@ export async function GET(request: NextRequest) {
     admin.rpc('get_dau', { p_since: since30d, p_tz: tz }),
     admin.from('push_subscriptions')
       .select('user_id'),
+    // All accepted friendship edges — used to compute per-user degree, avg, top
+    admin.from('friendships')
+      .select('requester_id, addressee_id, created_at')
+      .eq('status', 'accepted')
+      .limit(100000),
+    admin.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    admin.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'blocked'),
   ]);
 
   // DAU from RPC — already grouped by date
@@ -184,6 +191,49 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.users - a.users);
   const themeUsersReporting = latestThemeByUser.size;
 
+  // Friendship graph — count accepted edges, compute per-user degree, avg,
+  // median, and the most-connected users. Pending/blocked counts come from
+  // dedicated HEAD queries above.
+  const acceptedEdges = (friendshipsRes.data ?? []) as { requester_id: string; addressee_id: string; created_at: string }[];
+  const degreeByUser = new Map<string, number>();
+  for (const edge of acceptedEdges) {
+    degreeByUser.set(edge.requester_id, (degreeByUser.get(edge.requester_id) || 0) + 1);
+    degreeByUser.set(edge.addressee_id, (degreeByUser.get(edge.addressee_id) || 0) + 1);
+  }
+  const degrees = Array.from(degreeByUser.values()).sort((a, b) => a - b);
+  const totalUsers = totalRes.count ?? 0;
+  const connectedUsers = degreeByUser.size;
+  const isolatedUsers = Math.max(0, totalUsers - connectedUsers);
+  const avgFriends = connectedUsers > 0
+    ? +(degrees.reduce((s, d) => s + d, 0) / connectedUsers).toFixed(2)
+    : 0;
+  const medianFriends = degrees.length > 0
+    ? degrees[Math.floor(degrees.length / 2)]
+    : 0;
+  const maxFriends = degrees.length > 0 ? degrees[degrees.length - 1] : 0;
+  // Top 10 most-connected users. Display name looked up via the profile map
+  // already loaded (fall back to id slice).
+  const mostConnected = Array.from(degreeByUser.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  // Fetch any missing display names for the top-10 that weren't already loaded
+  const topUserIds = mostConnected.map(([id]) => id);
+  const missingTopIds = topUserIds.filter(id => !profileNames.has(id));
+  if (missingTopIds.length > 0) {
+    const { data: topProfiles } = await admin.from('profiles')
+      .select('id, display_name, username')
+      .in('id', missingTopIds);
+    if (topProfiles) {
+      for (const p of topProfiles) {
+        profileNames.set(p.id, p.display_name || p.username || p.id.slice(0, 8));
+      }
+    }
+  }
+  const mostConnectedUsers = mostConnected.map(([id, count]) => ({
+    name: profileNames.get(id) || id.slice(0, 8),
+    count,
+  }));
+
   // Engagement metrics (7d)
   const [checksRes, responsesRes, commentsRes, messagesRes] = await Promise.all([
     admin.from('interest_checks')
@@ -289,6 +339,17 @@ export async function GET(request: NextRequest) {
     themes: {
       distribution: themeDistribution,
       usersReporting: themeUsersReporting,
+    },
+    friendships: {
+      accepted: acceptedEdges.length,
+      pending: pendingCountRes.count ?? 0,
+      blocked: blockedCountRes.count ?? 0,
+      connectedUsers,
+      isolatedUsers,
+      avgFriends,
+      medianFriends,
+      maxFriends,
+      mostConnected: mostConnectedUsers,
     },
     engagement: {
       active7d: activeUserIds.size,

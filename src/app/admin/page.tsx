@@ -16,7 +16,7 @@ interface PushFailure {
   error: string | null;
 }
 
-type AdminTab = "users" | "engagement" | "push" | "versions" | "themes";
+type AdminTab = "users" | "engagement" | "push" | "versions" | "themes" | "friendships";
 
 interface Metrics {
   totalUsers: number;
@@ -45,6 +45,17 @@ interface Metrics {
   themes: {
     distribution: { theme: string; users: number; pings24h: number; userNames: string[] }[];
     usersReporting: number;
+  };
+  friendships: {
+    accepted: number;
+    pending: number;
+    blocked: number;
+    connectedUsers: number;
+    isolatedUsers: number;
+    avgFriends: number;
+    medianFriends: number;
+    maxFriends: number;
+    mostConnected: { name: string; count: number }[];
   };
   engagement: {
     active7d: number;
@@ -163,6 +174,7 @@ export default function AdminPage() {
     { key: "push", label: "Push" },
     { key: "versions", label: "Versions" },
     { key: "themes", label: "Themes" },
+    { key: "friendships", label: "Friends" },
   ];
 
   return (
@@ -539,6 +551,76 @@ export default function AdminPage() {
               No theme data yet. Ship the ping and wait for users to load the app.
             </p>
           )}
+        </>
+      )}
+
+      {/* Friendships tab */}
+      {tab === "friendships" && (
+        <>
+          {/* Totals */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {[
+              { label: "Accepted", value: metrics.friendships.accepted },
+              { label: "Pending", value: metrics.friendships.pending },
+              { label: "Blocked", value: metrics.friendships.blocked },
+            ].map((s) => (
+              <div key={s.label} className="p-3 rounded-lg border border-border bg-card">
+                <div className="font-mono text-tiny text-dim uppercase" style={{ letterSpacing: "0.15em" }}>
+                  {s.label}
+                </div>
+                <div className="font-serif text-2xl text-primary font-normal mt-1">
+                  {s.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Per-user stats */}
+          <div className="p-3 rounded-lg border border-border bg-card mb-4">
+            <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
+              Per user
+            </div>
+            <div className="grid grid-cols-2 gap-y-1 gap-x-3 font-mono text-xs">
+              <span className="text-dim">Connected users</span>
+              <span className="text-primary text-right">
+                <span className="text-dt font-bold">{metrics.friendships.connectedUsers}</span>
+                <span className="text-faint"> / {metrics.totalUsers}</span>
+              </span>
+              <span className="text-dim">Isolated (0 friends)</span>
+              <span className="text-primary text-right">{metrics.friendships.isolatedUsers}</span>
+              <span className="text-dim">Avg friends</span>
+              <span className="text-primary text-right">{metrics.friendships.avgFriends}</span>
+              <span className="text-dim">Median friends</span>
+              <span className="text-primary text-right">{metrics.friendships.medianFriends}</span>
+              <span className="text-dim">Max friends</span>
+              <span className="text-primary text-right">{metrics.friendships.maxFriends}</span>
+            </div>
+          </div>
+
+          {/* Most connected */}
+          <div className="p-3 rounded-lg border border-border bg-card">
+            <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
+              Most connected
+            </div>
+            {metrics.friendships.mostConnected.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                {metrics.friendships.mostConnected.map((u, i) => (
+                  <div key={`${u.name}-${i}`} className="flex justify-between items-center font-mono text-xs">
+                    <span className="text-primary">
+                      <span className="text-faint mr-2">{i + 1}.</span>
+                      {u.name}
+                    </span>
+                    <span>
+                      <span className="text-dt font-bold">{u.count}</span>
+                      <span className="text-dim"> friends</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-faint font-mono text-xs">No friendships yet</p>
+            )}
+          </div>
         </>
       )}
     </div>
