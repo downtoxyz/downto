@@ -175,10 +175,13 @@ export interface Message {
   id: string;
   squad_id: string;
   sender_id: string | null;
-  text: string;
+  text: string | null;
   created_at: string;
   is_system: boolean;
   message_type: string;
+  image_path: string | null;
+  image_width: number | null;
+  image_height: number | null;
   // Joined data
   sender?: Profile;
 }

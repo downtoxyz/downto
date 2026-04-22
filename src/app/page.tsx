@@ -917,8 +917,13 @@ export default function Home() {
           onSquadUpdate={squadsHook.setSquads}
           onChatOpen={setChatOpen}
           onViewProfile={(uid) => setViewingUserId(uid)}
-          onSendMessage={async (squadDbId, text, mentions) => {
-            await db.sendMessage(squadDbId, text, mentions);
+          onSendMessage={async (squadDbId, text, mentions, image) => {
+            let imageMeta: { path: string; width: number; height: number } | undefined;
+            if (image) {
+              const path = await db.uploadChatImage(squadDbId, image.blob);
+              imageMeta = { path, width: image.width, height: image.height };
+            }
+            await db.sendMessage(squadDbId, text, mentions, imageMeta);
           }}
           onLeaveSquad={async (squadDbId) => {
             await db.leaveSquad(squadDbId);

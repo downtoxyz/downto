@@ -34,7 +34,13 @@ interface ChatMessageProps {
     isYou?: boolean;
     messageType?: 'date_confirm' | 'poll';
     messageId?: string;
+    imagePath?: string;
+    imageWidth?: number;
+    imageHeight?: number;
+    imagePreviewUrl?: string;
   };
+  imageUrl?: string;
+  onOpenImage?: (url: string) => void;
   isFirstInGroup: boolean;
   isLastInGroup: boolean;
   isLastConfirm: boolean;
@@ -57,6 +63,8 @@ interface ChatMessageProps {
 
 export default function ChatMessage({
   msg,
+  imageUrl,
+  onOpenImage,
   isFirstInGroup,
   isLastInGroup,
   isLastConfirm,
@@ -118,6 +126,25 @@ export default function ChatMessage({
     );
   }
 
+  const hasImage = !!msg.imagePath;
+  const hasText = !!msg.text && msg.text.length > 0;
+  const displayUrl = msg.imagePreviewUrl ?? imageUrl;
+  // Cap preview to a reasonable max so portrait shots don't hog the viewport.
+  // Keep aspect ratio from server-provided dimensions to prevent layout shift.
+  const MAX_W = 240;
+  const MAX_H = 320;
+  let imgStyle: React.CSSProperties | undefined;
+  if (hasImage && msg.imageWidth && msg.imageHeight) {
+    const ratio = msg.imageWidth / msg.imageHeight;
+    let w = Math.min(MAX_W, msg.imageWidth);
+    let h = w / ratio;
+    if (h > MAX_H) {
+      h = MAX_H;
+      w = h * ratio;
+    }
+    imgStyle = { width: Math.round(w), height: Math.round(h) };
+  }
+
   return (
     <div className={cn("flex flex-col", { "items-end": msg.isYou, "items-start": !msg.isYou, "mt-2": isFirstInGroup, "mt-0": !isFirstInGroup })}>
       {isFirstInGroup && !msg.isYou && (
@@ -125,31 +152,53 @@ export default function ChatMessage({
           {msg.sender}
         </span>
       )}
-      <div
-        className={cn("select-text font-serif max-w-[80%]",
-          msg.isYou
-            ? cn("bg-dt text-on-accent rounded-tr-2xl rounded-bl-2xl", {
-                "rounded-tl-2xl": isFirstInGroup,
-                "rounded-tl-lg": !isFirstInGroup,
-                "rounded-br": isLastInGroup,
-                "rounded-br-lg": !isLastInGroup,
-              })
-            : cn("bg-surface text-primary rounded-tl-2xl rounded-br-lg", {
-                "rounded-tr-2xl": isFirstInGroup,
-                "rounded-tr-lg": !isFirstInGroup,
-                "rounded-bl": isLastInGroup,
-                "rounded-bl-lg": !isLastInGroup,
-              })
-        )}
-        style={{
-          padding: "10px 14px",
-          fontSize: 12,
-          lineHeight: 1.3,
-          letterSpacing: "0.025em",
-        }}
-      >
-        {linkify(msg.text, !!msg.isYou)}
-      </div>
+      {hasImage && (
+        <div
+          className={cn(
+            "overflow-hidden bg-deep mb-1",
+            msg.isYou ? "rounded-tl-2xl rounded-bl-2xl rounded-tr-2xl rounded-br-lg" : "rounded-tr-2xl rounded-br-2xl rounded-tl-2xl rounded-bl-lg",
+          )}
+          style={imgStyle}
+        >
+          {displayUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={displayUrl}
+              alt={hasText ? msg.text : "shared image"}
+              onClick={() => onOpenImage?.(displayUrl)}
+              className="w-full h-full object-cover cursor-pointer"
+              loading="lazy"
+            />
+          ) : null}
+        </div>
+      )}
+      {hasText && (
+        <div
+          className={cn("select-text font-serif max-w-[80%]",
+            msg.isYou
+              ? cn("bg-dt text-on-accent rounded-tr-2xl rounded-bl-2xl", {
+                  "rounded-tl-2xl": isFirstInGroup && !hasImage,
+                  "rounded-tl-lg": !isFirstInGroup || hasImage,
+                  "rounded-br": isLastInGroup,
+                  "rounded-br-lg": !isLastInGroup,
+                })
+              : cn("bg-surface text-primary rounded-tl-2xl rounded-br-lg", {
+                  "rounded-tr-2xl": isFirstInGroup && !hasImage,
+                  "rounded-tr-lg": !isFirstInGroup || hasImage,
+                  "rounded-bl": isLastInGroup,
+                  "rounded-bl-lg": !isLastInGroup,
+                })
+          )}
+          style={{
+            padding: "10px 14px",
+            fontSize: 12,
+            lineHeight: 1.3,
+            letterSpacing: "0.025em",
+          }}
+        >
+          {linkify(msg.text, !!msg.isYou)}
+        </div>
+      )}
       {isLastInGroup && (
         <span className="font-mono text-tiny text-dim mt-0.5">
           {msg.time}
