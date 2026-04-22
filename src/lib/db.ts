@@ -1292,7 +1292,12 @@ export async function createSquad(
 // MESSAGES (with realtime)
 // ============================================================================
 
-export async function sendMessage(squadId: string, text: string, mentions: string[] = []): Promise<Message> {
+export async function sendMessage(
+  squadId: string,
+  text: string,
+  mentions: string[] = [],
+  image?: { path: string; width: number; height: number }
+): Promise<Message> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -1303,12 +1308,38 @@ export async function sendMessage(squadId: string, text: string, mentions: strin
       sender_id: user.id,
       text,
       mentions,
+      image_path: image?.path ?? null,
+      image_width: image?.width ?? null,
+      image_height: image?.height ?? null,
     })
     .select('*, sender:profiles(*)')
     .single();
 
   if (error) throw error;
   return data;
+}
+
+export async function uploadChatImage(squadId: string, blob: Blob): Promise<string> {
+  const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${squadId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('squad-chat-images')
+    .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+export async function getChatImageSignedUrls(paths: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (paths.length === 0) return out;
+  const { data, error } = await supabase.storage
+    .from('squad-chat-images')
+    .createSignedUrls(paths, 3600);
+  if (error) throw error;
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) out.set(entry.path, entry.signedUrl);
+  }
+  return out;
 }
 
 export function subscribeToMessages(

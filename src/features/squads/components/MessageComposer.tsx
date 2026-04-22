@@ -1,13 +1,26 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { color } from "@/lib/styles";
 import type { Squad } from "@/lib/ui-types";
+import { resizeImageForChat } from "@/lib/imageResize";
+import { logError } from "@/lib/logger";
+
+interface PendingImage {
+  blob: Blob;
+  width: number;
+  height: number;
+  previewUrl: string;
+}
 
 interface MessageComposerProps {
   members: Squad['members'];
   activePoll: { status: string } | null;
-  onSend: (text: string, mentionUserIds: string[]) => Promise<void>;
+  onSend: (
+    text: string,
+    mentionUserIds: string[],
+    image?: { blob: Blob; width: number; height: number }
+  ) => Promise<void>;
   onOpenPollCreator?: () => void;
 }
 
@@ -20,13 +33,46 @@ export default function MessageComposer({
   const [newMsg, setNewMsg] = useState("");
   const [chatMentionQuery, setChatMentionQuery] = useState<string | null>(null);
   const [chatMentionIdx, setChatMentionIdx] = useState(-1);
+  const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
+  const [preparingImage, setPreparingImage] = useState(false);
+  const [sending, setSending] = useState(false);
   const msgInputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const otherMembers = members.filter((m) => m.name !== "You");
 
+  useEffect(() => {
+    return () => {
+      if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
+    };
+  }, [pendingImage]);
+
+  const clearPendingImage = () => {
+    if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
+    setPendingImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handlePickImage = async (file: File) => {
+    setPreparingImage(true);
+    try {
+      const { blob, width, height } = await resizeImageForChat(file);
+      if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
+      setPendingImage({ blob, width, height, previewUrl: URL.createObjectURL(blob) });
+    } catch (err) {
+      logError("resizeImage", err);
+      alert("Couldn't prepare that image. Try a different one?");
+    } finally {
+      setPreparingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const canSend = (newMsg.trim().length > 0 || !!pendingImage) && !sending && !preparingImage;
+
   const handleSend = async () => {
+    if (!canSend) return;
     const text = newMsg.trim();
-    if (!text) return;
 
     const mentionedNames = [...text.matchAll(/@(\S+)/g)].map((m) => m[1].toLowerCase());
     const mentionedIds = otherMembers
@@ -36,12 +82,25 @@ export default function MessageComposer({
       .map((m) => m.userId)
       .filter((id): id is string => !!id);
 
+    const imagePayload = pendingImage
+      ? { blob: pendingImage.blob, width: pendingImage.width, height: pendingImage.height }
+      : undefined;
+
     setNewMsg("");
     setChatMentionQuery(null);
     setChatMentionIdx(-1);
     if (msgInputRef.current) msgInputRef.current.style.height = "auto";
+    // Clear preview state but keep the blob reference we captured above
+    if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
+    setPendingImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
-    await onSend(text, mentionedIds);
+    setSending(true);
+    try {
+      await onSend(text, mentionedIds, imagePayload);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -79,11 +138,51 @@ export default function MessageComposer({
           </div>
         );
       })()}
+      {/* Image preview */}
+      {pendingImage && (
+        <div className="px-5 pt-2 bg-surface">
+          <div className="relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pendingImage.previewUrl}
+              alt="attachment preview"
+              className="rounded-lg object-cover"
+              style={{ width: 88, height: 88 }}
+            />
+            <button
+              onClick={clearPendingImage}
+              aria-label="Remove image"
+              className="absolute -top-1.5 -right-1.5 bg-black/80 border border-border-mid text-white rounded-full w-5 h-5 flex items-center justify-center font-mono cursor-pointer"
+              style={{ fontSize: 11, lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       {/* Input row */}
       <div
         className="flex gap-2 items-end"
         style={{ padding: "12px 20px" }}
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handlePickImage(file);
+          }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={preparingImage}
+          aria-label="Attach image"
+          className="bg-none border-none p-0 opacity-60 cursor-pointer leading-none mb-2"
+        >
+          <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M208,56H180.28L166.65,35.56A8,8,0,0,0,160,32H96a8,8,0,0,0-6.65,3.56L75.71,56H48A24,24,0,0,0,24,80V192a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V80A24,24,0,0,0,208,56Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H80a8,8,0,0,0,6.66-3.56L100.28,48h55.43l13.63,20.44A8,8,0,0,0,176,72h32a8,8,0,0,1,8,8ZM128,88a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,88Zm0,72a28,28,0,1,1,28-28A28,28,0,0,1,128,160Z"/></svg>
+        </button>
         {(!activePoll || activePoll.status === 'closed') && onOpenPollCreator && (
           <button
             onClick={onOpenPollCreator}
@@ -123,7 +222,7 @@ export default function MessageComposer({
             }
           }}
           enterKeyHint="send"
-          placeholder="Message..."
+          placeholder={pendingImage ? "Add a caption..." : "Message..."}
           rows={1}
           className="flex-1 bg-card border border-border-mid rounded-[20px] text-primary font-mono outline-none resize-none max-h-[120px] overflow-y-auto"
           style={{
@@ -135,15 +234,15 @@ export default function MessageComposer({
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleSend}
-          disabled={!newMsg.trim()}
+          disabled={!canSend}
           className="border-none rounded-full w-10 h-10 font-bold text-base"
           style={{
-            background: newMsg.trim() ? color.accent : color.borderMid,
-            color: newMsg.trim() ? "var(--color-on-accent)" : color.dim,
-            cursor: newMsg.trim() ? "pointer" : "default",
+            background: canSend ? color.accent : color.borderMid,
+            color: canSend ? "var(--color-on-accent)" : color.dim,
+            cursor: canSend ? "pointer" : "default",
           }}
         >
-          ↑
+          {preparingImage || sending ? "…" : "↑"}
         </button>
       </div>
     </>

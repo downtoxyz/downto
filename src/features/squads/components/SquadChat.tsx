@@ -19,7 +19,7 @@ interface SquadChatProps {
   onSquadUpdate: (updater: Squad[] | ((prev: Squad[]) => Squad[])) => void;
   onChatOpen?: (open: boolean) => void;
   onViewProfile?: (userId: string) => void;
-  onSendMessage?: (squadDbId: string, text: string, mentions?: string[]) => Promise<void>;
+  onSendMessage?: (squadDbId: string, text: string, mentions?: string[], image?: { blob: Blob; width: number; height: number }) => Promise<void>;
   onLeaveSquad?: (squadDbId: string) => Promise<void>;
   onSetSquadDate?: (squadDbId: string, date: string, time?: string | null, locked?: boolean) => Promise<void>;
   onClearSquadDate?: (squadDbId: string) => Promise<void>;
@@ -58,6 +58,9 @@ const SquadChat = ({
 
   // Local messages state (decoupled from squad prop for realtime updates)
   const [messages, setMessages] = useState(squad.messages);
+  // path -> signed URL for chat image attachments
+  const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   // Local squad state for non-message fields (members, sizes, dates, etc.)
   const [localSquad, setLocalSquad] = useState(squad);
@@ -312,11 +315,16 @@ const SquadChat = ({
       const msgs = raw.map((msg) => ({
         id: msg.id,
         sender: msg.is_system || !msg.sender_id ? "system" : (msg.sender_id === userId ? "You" : (msg.sender?.display_name ?? "Unknown")),
-        text: msg.text,
+        text: msg.text ?? "",
         time: formatTimeAgo(new Date(msg.created_at)),
         isYou: msg.sender_id === userId,
         ...(msg.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: msg.id } : {}),
         ...(msg.message_type === 'poll' ? { messageType: 'poll' as const, messageId: msg.id } : {}),
+        ...(msg.image_path ? {
+          imagePath: msg.image_path,
+          imageWidth: msg.image_width ?? undefined,
+          imageHeight: msg.image_height ?? undefined,
+        } : {}),
       }));
       const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
       // Merge: keep any realtime messages that arrived before this fetch completed
@@ -326,16 +334,41 @@ const SquadChat = ({
         const merged = [...msgs, ...realtimeOnly];
         return merged;
       });
+      const previewForLast = (m: typeof msgs[number]) => {
+        const body = m.text && m.text.length > 0 ? m.text : (m.imagePath ? "📷" : "");
+        return m.sender === "system" ? body : `${m.sender}: ${body}`;
+      };
       onSquadUpdateRef.current((prev) =>
         prev.map((s) =>
           s.id === localSquad.id
-            ? { ...s, messages: msgs, lastMsg: last ? (last.sender === "system" ? last.text : `${last.sender}: ${last.text}`) : s.lastMsg }
+            ? { ...s, messages: msgs, lastMsg: last ? previewForLast(last) : s.lastMsg }
             : s
         )
       );
     }).catch(() => {});
     return () => { stale = true; };
   }, [localSquad.id, userId]);
+
+  // Batch-fetch signed URLs for any new image paths. Signed URLs expire after
+  // 1h; if a chat stays open longer than that, the page will reload or
+  // re-enter, which re-runs this effect against the fresh message list.
+  useEffect(() => {
+    const needed = messages
+      .map((m) => m.imagePath)
+      .filter((p): p is string => !!p && !imageUrls.has(p));
+    if (needed.length === 0) return;
+    const unique = Array.from(new Set(needed));
+    let stale = false;
+    db.getChatImageSignedUrls(unique).then((urls) => {
+      if (stale || urls.size === 0) return;
+      setImageUrls((prev) => {
+        const next = new Map(prev);
+        for (const [k, v] of urls) next.set(k, v);
+        return next;
+      });
+    }).catch((err) => logError("getChatImageSignedUrls", err));
+    return () => { stale = true; };
+  }, [messages, imageUrls]);
 
   // Subscribe to realtime messages for the squad
   useEffect(() => {
@@ -348,11 +381,16 @@ const SquadChat = ({
       const msg = {
         id: newMessage.id,
         sender: senderName,
-        text: newMessage.text,
+        text: newMessage.text ?? "",
         time: "now",
         isYou: false,
         ...(newMessage.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: newMessage.id } : {}),
         ...(newMessage.message_type === 'poll' ? { messageType: 'poll' as const, messageId: newMessage.id } : {}),
+        ...(newMessage.image_path ? {
+          imagePath: newMessage.image_path,
+          imageWidth: newMessage.image_width ?? undefined,
+          imageHeight: newMessage.image_height ?? undefined,
+        } : {}),
       };
       // Refresh poll data when a poll message arrives
       if (newMessage.message_type === 'poll' && localSquad.id) {
@@ -370,7 +408,10 @@ const SquadChat = ({
           }
         }).catch(() => {});
       }
-      const lastMsgPreview = isSystem ? newMessage.text : `${senderName}: ${newMessage.text}`;
+      const bodyPreview = newMessage.text && newMessage.text.length > 0
+        ? newMessage.text
+        : (newMessage.image_path ? "📷" : "");
+      const lastMsgPreview = isSystem ? bodyPreview : `${senderName}: ${bodyPreview}`;
       setMessages((prev) => {
         if (prev.some((m) => m.id && m.id === msg.id)) return prev;
         return [...prev, msg];
@@ -389,9 +430,25 @@ const SquadChat = ({
     };
   }, [localSquad.id, userId]);
 
-  const handleSend = async (text: string, mentionIds: string[]) => {
-    const newMsgObj = { sender: "You", text, time: "now", isYou: true };
-    const lastMsgPreview = `You: ${text}`;
+  const handleSend = async (
+    text: string,
+    mentionIds: string[],
+    image?: { blob: Blob; width: number; height: number },
+  ) => {
+    const previewUrl = image ? URL.createObjectURL(image.blob) : undefined;
+    const newMsgObj = {
+      sender: "You",
+      text,
+      time: "now",
+      isYou: true,
+      ...(image ? {
+        imagePath: `pending-${Date.now()}`,
+        imageWidth: image.width,
+        imageHeight: image.height,
+        imagePreviewUrl: previewUrl,
+      } : {}),
+    };
+    const lastMsgPreview = image && !text ? "You: 📷" : `You: ${text}`;
     const now = new Date().toISOString();
 
     setMessages((prev) => [...prev, newMsgObj]);
@@ -406,9 +463,8 @@ const SquadChat = ({
       return updated;
     });
 
-    // Persist to DB
     if (localSquad.id && onSendMessage) {
-      onSendMessage(localSquad.id, text, mentionIds.length > 0 ? mentionIds : undefined).catch((err) =>
+      onSendMessage(localSquad.id, text, mentionIds.length > 0 ? mentionIds : undefined, image).catch((err) =>
         logError("sendMessage", err, { squadId: localSquad.id })
       );
     }
@@ -751,6 +807,8 @@ const SquadChat = ({
               <ChatMessage
                 key={i}
                 msg={msg}
+                imageUrl={msg.imagePath ? imageUrls.get(msg.imagePath) : undefined}
+                onOpenImage={(url) => setFullscreenImage(url)}
                 isFirstInGroup={!sameSenderAsPrev}
                 isLastInGroup={!sameSenderAsNext}
                 isLastConfirm={i === lastConfirmIdx}
@@ -916,6 +974,21 @@ const SquadChat = ({
           onSquadUpdate={onSquadUpdate}
           onLocalSquadUpdate={setLocalSquad}
         />
+      )}
+
+      {/* Fullscreen image viewer */}
+      {fullscreenImage && (
+        <div
+          onClick={() => setFullscreenImage(null)}
+          className="fixed inset-0 bg-black/95 flex items-center justify-center z-[10000] cursor-zoom-out"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fullscreenImage}
+            alt="attachment"
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
       )}
 
       {/* Poll creation modal */}

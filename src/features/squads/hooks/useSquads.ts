@@ -157,11 +157,16 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
       const messages = sortedRawMessages.map((msg) => ({
           id: msg.id,
           sender: msg.is_system ? "system" : (msg.sender_id === userId ? "You" : (msg.sender?.display_name ?? "Unknown")),
-          text: msg.text,
+          text: msg.text ?? "",
           time: formatTimeAgo(new Date(msg.created_at)),
           isYou: msg.sender_id === userId,
           ...(msg.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: msg.id } : {}),
           ...(msg.message_type === 'poll' ? { messageType: 'poll' as const, messageId: msg.id } : {}),
+          ...(msg.image_path ? {
+            imagePath: msg.image_path,
+            imageWidth: msg.image_width ?? undefined,
+            imageHeight: msg.image_height ?? undefined,
+          } : {}),
         }));
       const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
       return {
