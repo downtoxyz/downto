@@ -63,6 +63,16 @@ interface Metrics {
     medianTimeToFirstFriend: number | null;
     activeButIsolated: number;
     activeButIsolatedNames: string[];
+    singleFriend: number;
+    activeSingleFriend: number;
+    activeSingleFriendNames: string[];
+    activeInactiveBootstrap: number;
+    activeInactiveBootstrapNames: string[];
+    growth: {
+      d7: { users: number; median: number };
+      d30: { users: number; median: number };
+      d90: { users: number; median: number };
+    };
   };
   squads: {
     totalActive: number;
@@ -85,6 +95,27 @@ interface Metrics {
 
 function localDateKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Rough targets — where we'd want each friendship metric to be. Not science,
+ * just a prior to flag drift. Tweak as you get real data.
+ * - `min`: metric is healthy when value >= min
+ * - `max`: metric is healthy when value <= max
+ */
+const FRIENDSHIP_TARGETS = {
+  acceptanceRate: { min: 70, label: "≥70%" },
+  blockRate: { max: 5, label: "<5%" },
+  activeInactiveBootstrapPct: { max: 5, label: "<5%" },
+  activeSingleFriendPct: { max: 15, label: "<15%" },
+  growthD7: { min: 3, label: "≥3" },
+  growthD30: { min: 5, label: "≥5" },
+  growthD90: { min: 8, label: "≥8" },
+};
+
+function statusClass(hit: boolean, neutral = false) {
+  if (neutral) return "text-primary";
+  return hit ? "text-dt" : "text-danger";
 }
 
 export default function AdminPage() {
@@ -612,39 +643,117 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Quality signals */}
+          {/* Quality — invite health + stuck users */}
+          {(() => {
+            const f = metrics.friendships;
+            return (
+              <div className="p-3 rounded-lg border border-border bg-card mb-4">
+                <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
+                  Quality
+                </div>
+                <div className="grid grid-cols-[1fr_auto_auto] gap-y-1 gap-x-3 font-mono text-xs items-baseline">
+                  <span className="text-dim">Acceptance rate</span>
+                  <span className={statusClass(f.acceptanceRate >= FRIENDSHIP_TARGETS.acceptanceRate.min)}>
+                    {f.acceptanceRate}%
+                  </span>
+                  <span className="text-faint">{FRIENDSHIP_TARGETS.acceptanceRate.label}</span>
+
+                  <span className="text-dim">Block rate</span>
+                  <span className={statusClass(f.blockRate <= FRIENDSHIP_TARGETS.blockRate.max)}>
+                    {f.blockRate}%
+                  </span>
+                  <span className="text-faint">{FRIENDSHIP_TARGETS.blockRate.label}</span>
+
+                  <span className="text-dim">Active · only 1 friend</span>
+                  <span className="text-primary">{f.activeSingleFriend}</span>
+                  <span className="text-faint">users</span>
+
+                  <span className="text-dim">Active · bootstrap inactive 7d</span>
+                  <span className={f.activeInactiveBootstrap > 0 ? "text-danger" : "text-primary"}>
+                    {f.activeInactiveBootstrap}
+                  </span>
+                  <span className="text-faint">users</span>
+                </div>
+                {f.activeInactiveBootstrapNames.length > 0 && (
+                  <>
+                    <div className="font-mono text-tiny text-dim mt-3 mb-1">Churn watchlist (only friend is dormant)</div>
+                    <div className="flex flex-wrap gap-1">
+                      {f.activeInactiveBootstrapNames.map((n) => (
+                        <span key={n} className="font-mono text-tiny text-on-accent bg-danger px-2 py-0.5 rounded-md">
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {f.activeSingleFriendNames.length > 0 && (
+                  <>
+                    <div className="font-mono text-tiny text-dim mt-3 mb-1">Stuck at minimum (1 friend)</div>
+                    <div className="flex flex-wrap gap-1">
+                      {f.activeSingleFriendNames.map((n) => (
+                        <span key={n} className="font-mono text-tiny text-muted bg-border-light px-2 py-0.5 rounded-md">
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Growth — median friends by signup cohort */}
           <div className="p-3 rounded-lg border border-border bg-card mb-4">
             <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
-              Quality
+              Post-onboarding growth
             </div>
-            <div className="grid grid-cols-2 gap-y-1 gap-x-3 font-mono text-xs">
-              <span className="text-dim">Acceptance rate</span>
-              <span className="text-primary text-right">{metrics.friendships.acceptanceRate}%</span>
-              <span className="text-dim">Block rate</span>
-              <span className={`text-right ${metrics.friendships.blockRate > 5 ? "text-danger" : "text-primary"}`}>
-                {metrics.friendships.blockRate}%
-              </span>
-              <span className="text-dim">Median time-to-first-friend</span>
-              <span className="text-primary text-right">
-                {metrics.friendships.medianTimeToFirstFriend !== null
-                  ? `${metrics.friendships.medianTimeToFirstFriend}d`
-                  : "—"}
-              </span>
-              <span className="text-dim">Active-but-isolated (7d)</span>
-              <span className={`text-right ${metrics.friendships.activeButIsolated > 0 ? "text-danger" : "text-primary"}`}>
-                {metrics.friendships.activeButIsolated}
-              </span>
+            <div className="grid grid-cols-[1fr_auto_auto] gap-y-1 gap-x-3 font-mono text-xs items-baseline">
+              {([
+                ["d7", "Joined 7+ days ago", "median", FRIENDSHIP_TARGETS.growthD7],
+                ["d30", "Joined 30+ days ago", "median", FRIENDSHIP_TARGETS.growthD30],
+                ["d90", "Joined 90+ days ago", "median", FRIENDSHIP_TARGETS.growthD90],
+              ] as const).map(([k, label, , target]) => {
+                const bucket = metrics.friendships.growth[k];
+                return (
+                  <Fragment key={k}>
+                    <span className="text-dim">{label}</span>
+                    <span className={statusClass(bucket.median >= target.min)}>
+                      {bucket.median} <span className="text-faint">friends</span>
+                    </span>
+                    <span className="text-faint">{target.label} · n={bucket.users}</span>
+                  </Fragment>
+                );
+              })}
             </div>
-            {metrics.friendships.activeButIsolatedNames.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {metrics.friendships.activeButIsolatedNames.map((n) => (
-                  <span key={n} className="font-mono text-tiny text-muted bg-border-light px-2 py-0.5 rounded-md">
-                    {n}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
+
+          {/* Bug canaries — these should all be ~0 given the onboarding gate */}
+          {(metrics.friendships.activeButIsolated > 0 || (metrics.friendships.medianTimeToFirstFriend ?? 0) > 0) && (
+            <div className="p-3 rounded-lg border border-danger bg-card mb-4">
+              <div className="font-mono text-tiny text-danger uppercase mb-1" style={{ letterSpacing: "0.15em" }}>
+                Anomalies (expected 0)
+              </div>
+              <div className="grid grid-cols-2 gap-y-1 gap-x-3 font-mono text-xs">
+                <span className="text-dim">Active but 0 friends</span>
+                <span className="text-primary text-right">{metrics.friendships.activeButIsolated}</span>
+                <span className="text-dim">Median time-to-first-friend</span>
+                <span className="text-primary text-right">
+                  {metrics.friendships.medianTimeToFirstFriend !== null
+                    ? `${metrics.friendships.medianTimeToFirstFriend}d`
+                    : "—"}
+                </span>
+              </div>
+              {metrics.friendships.activeButIsolatedNames.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {metrics.friendships.activeButIsolatedNames.map((n) => (
+                    <span key={n} className="font-mono text-tiny text-muted bg-border-light px-2 py-0.5 rounded-md">
+                      {n}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* New friendships per day (30d) */}
           {(() => {

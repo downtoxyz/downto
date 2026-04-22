@@ -209,6 +209,15 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.users - a.users);
   const themeUsersReporting = latestThemeByUser.size;
 
+  // Compute activeUserIds early (last-7d pings) — friendship metrics below
+  // need it to classify "active-with-1-friend" / "bootstrap-friend-inactive".
+  const activeUserIds = new Set<string>();
+  if (versionPingsRes.data) {
+    for (const row of versionPingsRes.data) {
+      activeUserIds.add(row.user_id);
+    }
+  }
+
   // Friendship graph — scoped to ONBOARDED users only so test/abandoned
   // accounts don't skew the numbers. Edges are kept only when both
   // endpoints are onboarded.
@@ -276,6 +285,52 @@ export async function GET(request: NextRequest) {
       newFriendshipsByDate[d] = (newFriendshipsByDate[d] || 0) + 1;
     }
   }
+
+  // Single-friend users — passed the onboarding gate with the minimum (1 friend)
+  // and never expanded. Higher churn risk than a truly isolated user.
+  const singleFriendUserIds = [...degreeByUser.entries()]
+    .filter(([, count]) => count === 1)
+    .map(([id]) => id);
+  const activeSingleFriendIds = singleFriendUserIds.filter(id => activeUserIds.has(id));
+
+  // Bootstrap friend: for a single-friend user, find their one friend.
+  const onlyFriendOf = new Map<string, string>();
+  for (const edge of acceptedEdges) {
+    if (degreeByUser.get(edge.requester_id) === 1) {
+      onlyFriendOf.set(edge.requester_id, edge.addressee_id);
+    }
+    if (degreeByUser.get(edge.addressee_id) === 1) {
+      onlyFriendOf.set(edge.addressee_id, edge.requester_id);
+    }
+  }
+  // Active users whose only friend hasn't opened the app in 7d — feed is
+  // empty for them; top churn predictor given the onboarding gate.
+  const activeInactiveBootstrapIds = [...onlyFriendOf.entries()]
+    .filter(([user, friend]) => activeUserIds.has(user) && !activeUserIds.has(friend))
+    .map(([user]) => user);
+
+  // Friendship growth — median friend count by signup cohort. Each threshold
+  // is "users who've had at least N days to accumulate friends".
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const NOW_MS = Date.now();
+  const cohortFriends: Record<string, number[]> = { d7: [], d30: [], d90: [] };
+  for (const p of onboardedProfiles) {
+    const ageDays = (NOW_MS - new Date(p.created_at).getTime()) / DAY_MS;
+    const n = degreeByUser.get(p.id) || 0;
+    if (ageDays >= 7) cohortFriends.d7.push(n);
+    if (ageDays >= 30) cohortFriends.d30.push(n);
+    if (ageDays >= 90) cohortFriends.d90.push(n);
+  }
+  function median(arr: number[]): number {
+    if (arr.length === 0) return 0;
+    const s = [...arr].sort((a, b) => a - b);
+    return s[Math.floor(s.length / 2)];
+  }
+  const growth = {
+    d7: { users: cohortFriends.d7.length, median: median(cohortFriends.d7) },
+    d30: { users: cohortFriends.d30.length, median: median(cohortFriends.d30) },
+    d90: { users: cohortFriends.d90.length, median: median(cohortFriends.d90) },
+  };
 
   // Time-to-first-friend — median days between profile.created_at and
   // a user's first accepted friendship edge. Onboarded users only.
@@ -370,13 +425,7 @@ export async function GET(request: NextRequest) {
       .limit(10000),
   ]);
 
-  // Active users (opened app in last 7d)
-  const activeUserIds = new Set<string>();
-  if (versionPingsRes.data) {
-    for (const row of versionPingsRes.data) {
-      activeUserIds.add(row.user_id);
-    }
-  }
+  // (activeUserIds was computed earlier — friendship metrics needed it first)
 
   // Engaged users (did something in last 7d)
   const engagedUserIds = new Set<string>();
@@ -390,15 +439,21 @@ export async function GET(request: NextRequest) {
   const lurkerNames: string[] = lurkerIds.map(id => profileNames.get(id) || id.slice(0, 8));
 
   // Active-but-isolated: loaded the app in last 7d AND have 0 accepted friends.
-  // Onboarded only — pre-onboarding users legitimately have no friends yet.
-  // These are high-churn candidates who'd benefit from a friend-nudge.
+  // With the onboarding-gate-requires-a-friend rule this should be ~0; treat
+  // as a bug canary (ungated signups, user un-friended their only connection).
   const activeIsolatedIds = [...activeUserIds].filter(id => onboardedSet.has(id) && !degreeByUser.has(id));
-  // Fetch display names for any we didn't already look up
-  const missingIsolatedIds = activeIsolatedIds.filter(id => !profileNames.has(id));
-  if (missingIsolatedIds.length > 0) {
+  // Resolve display names for the three audit lists in one extra profile
+  // fetch. These are the users you'd actually contact or investigate.
+  const auditIds = new Set<string>([
+    ...activeIsolatedIds,
+    ...activeSingleFriendIds,
+    ...activeInactiveBootstrapIds,
+  ]);
+  const missingAuditIds = [...auditIds].filter(id => !profileNames.has(id));
+  if (missingAuditIds.length > 0) {
     const { data: extra } = await admin.from('profiles')
       .select('id, display_name, username')
-      .in('id', missingIsolatedIds);
+      .in('id', missingAuditIds);
     if (extra) {
       for (const p of extra) {
         profileNames.set(p.id, p.display_name || p.username || p.id.slice(0, 8));
@@ -406,6 +461,8 @@ export async function GET(request: NextRequest) {
     }
   }
   const activeIsolatedNames = activeIsolatedIds.map(id => profileNames.get(id) || id.slice(0, 8));
+  const activeSingleFriendNames = activeSingleFriendIds.map(id => profileNames.get(id) || id.slice(0, 8));
+  const activeInactiveBootstrapNames = activeInactiveBootstrapIds.map(id => profileNames.get(id) || id.slice(0, 8));
 
   // Daily activity counts (grouped by local date)
   const checksByDate: Record<string, number> = {};
@@ -490,6 +547,12 @@ export async function GET(request: NextRequest) {
       medianTimeToFirstFriend, // days, null if no data
       activeButIsolated: activeIsolatedIds.length,
       activeButIsolatedNames: activeIsolatedNames,
+      singleFriend: singleFriendUserIds.length,
+      activeSingleFriend: activeSingleFriendIds.length,
+      activeSingleFriendNames,
+      activeInactiveBootstrap: activeInactiveBootstrapIds.length,
+      activeInactiveBootstrapNames,
+      growth,
     },
     squads: {
       totalActive: activeSquads.length,
