@@ -923,7 +923,8 @@ export default function Home() {
               const path = await db.uploadChatImage(squadDbId, image.blob);
               imageMeta = { path, width: image.width, height: image.height };
             }
-            await db.sendMessage(squadDbId, text, mentions, imageMeta);
+            const saved = await db.sendMessage(squadDbId, text, mentions, imageMeta);
+            return { id: saved.id, image_path: saved.image_path };
           }}
           onLeaveSquad={async (squadDbId) => {
             await db.leaveSquad(squadDbId);

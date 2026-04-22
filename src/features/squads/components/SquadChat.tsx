@@ -19,7 +19,7 @@ interface SquadChatProps {
   onSquadUpdate: (updater: Squad[] | ((prev: Squad[]) => Squad[])) => void;
   onChatOpen?: (open: boolean) => void;
   onViewProfile?: (userId: string) => void;
-  onSendMessage?: (squadDbId: string, text: string, mentions?: string[], image?: { blob: Blob; width: number; height: number }) => Promise<void>;
+  onSendMessage?: (squadDbId: string, text: string, mentions?: string[], image?: { blob: Blob; width: number; height: number }) => Promise<{ id: string; image_path?: string | null } | void>;
   onLeaveSquad?: (squadDbId: string) => Promise<void>;
   onSetSquadDate?: (squadDbId: string, date: string, time?: string | null, locked?: boolean) => Promise<void>;
   onClearSquadDate?: (squadDbId: string) => Promise<void>;
@@ -436,13 +436,16 @@ const SquadChat = ({
     image?: { blob: Blob; width: number; height: number },
   ) => {
     const previewUrl = image ? URL.createObjectURL(image.blob) : undefined;
+    // Client-generated id so we can find this exact message later to swap in
+    // server data (real id + image_path) or remove on failure.
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const newMsgObj = {
+      id: tempId,
       sender: "You",
       text,
       time: "now",
       isYou: true,
       ...(image ? {
-        imagePath: `pending-${Date.now()}`,
         imageWidth: image.width,
         imageHeight: image.height,
         imagePreviewUrl: previewUrl,
@@ -464,9 +467,52 @@ const SquadChat = ({
     });
 
     if (localSquad.id && onSendMessage) {
-      onSendMessage(localSquad.id, text, mentionIds.length > 0 ? mentionIds : undefined, image).catch((err) =>
-        logError("sendMessage", err, { squadId: localSquad.id })
-      );
+      try {
+        const saved = await onSendMessage(
+          localSquad.id,
+          text,
+          mentionIds.length > 0 ? mentionIds : undefined,
+          image,
+        );
+        if (saved) {
+          // Swap the optimistic entry for server truth (real id + image_path).
+          // Keep imagePreviewUrl so the image stays visible until a signed URL
+          // resolves (effect in useEffect below picks up the new imagePath).
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId
+                ? { ...m, id: saved.id, imagePath: saved.image_path ?? undefined }
+                : m
+            )
+          );
+          onSquadUpdate((prev) =>
+            prev.map((s) =>
+              s.id !== localSquad.id
+                ? s
+                : {
+                    ...s,
+                    messages: s.messages.map((m) =>
+                      m.id === tempId
+                        ? { ...m, id: saved.id, imagePath: saved.image_path ?? undefined }
+                        : m
+                    ),
+                  }
+            )
+          );
+        }
+      } catch (err) {
+        logError("sendMessage", err, { squadId: localSquad.id });
+        // Roll back the optimistic message and free the blob URL.
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        onSquadUpdate((prev) =>
+          prev.map((s) =>
+            s.id !== localSquad.id
+              ? s
+              : { ...s, messages: s.messages.filter((m) => m.id !== tempId) }
+          )
+        );
+      }
     }
   };
 

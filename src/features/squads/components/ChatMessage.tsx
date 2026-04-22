@@ -126,7 +126,9 @@ export default function ChatMessage({
     );
   }
 
-  const hasImage = !!msg.imagePath;
+  // An optimistic message has imagePreviewUrl before it has imagePath, so
+  // check either so the bubble renders during upload too.
+  const hasImage = !!msg.imagePath || !!msg.imagePreviewUrl;
   const hasText = !!msg.text && msg.text.length > 0;
   const displayUrl = msg.imagePreviewUrl ?? imageUrl;
   // Cap preview to a reasonable max so portrait shots don't hog the viewport.
