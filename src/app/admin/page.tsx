@@ -50,6 +50,7 @@ interface Metrics {
     accepted: number;
     pending: number;
     blocked: number;
+    onboardedUsers: number;
     connectedUsers: number;
     isolatedUsers: number;
     avgFriends: number;
@@ -598,7 +599,7 @@ export default function AdminPage() {
               <span className="text-dim">Connected users</span>
               <span className="text-primary text-right">
                 <span className="text-dt font-bold">{metrics.friendships.connectedUsers}</span>
-                <span className="text-faint"> / {metrics.totalUsers}</span>
+                <span className="text-faint"> / {metrics.friendships.onboardedUsers}</span>
               </span>
               <span className="text-dim">Isolated (0 friends)</span>
               <span className="text-primary text-right">{metrics.friendships.isolatedUsers}</span>

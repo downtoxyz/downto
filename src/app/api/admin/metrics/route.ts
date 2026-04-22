@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   // Run queries in parallel
-  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauRpcRes, pushSubscribersRes, friendshipsRes, pendingCountRes, blockedCountRes, allProfilesRes, squadsRes, squadMembersRes, squadMessages7dRes] = await Promise.all([
+  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauRpcRes, pushSubscribersRes, friendshipsRes, _pendingSlot, _blockedSlot, onboardedProfilesRes, squadsRes, squadMembersRes, squadMessages7dRes] = await Promise.all([
     admin.from('profiles').select('*', { count: 'exact', head: true }),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', true),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', false),
@@ -58,15 +58,21 @@ export async function GET(request: NextRequest) {
     admin.rpc('get_dau', { p_since: since30d, p_tz: tz }),
     admin.from('push_subscriptions')
       .select('user_id'),
-    // All accepted friendship edges — used to compute per-user degree, avg, top
+    // All friendship rows — filtered to edges between onboarded users below.
+    // We return status so we can compute accepted/pending/blocked from one fetch.
     admin.from('friendships')
-      .select('requester_id, addressee_id, created_at')
-      .eq('status', 'accepted')
+      .select('requester_id, addressee_id, status, created_at')
+      .limit(200000),
+    // Placeholders kept so destructuring stays aligned. pendingCountRes and
+    // blockedCountRes are derived in-memory from the filtered friendship set.
+    Promise.resolve({ count: 0 }),
+    Promise.resolve({ count: 0 }),
+    // Onboarded profiles — gates all friendship metrics to real users.
+    admin.from('profiles')
+      .select('id, created_at')
+      .eq('onboarded', true)
+      .not('created_at', 'is', null)
       .limit(100000),
-    admin.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    admin.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'blocked'),
-    // All profile created_at timestamps — for time-to-first-friend
-    admin.from('profiles').select('id, created_at').not('created_at', 'is', null).limit(100000),
     // Squads (all, we filter active/archived in-memory)
     admin.from('squads').select('id, created_at, archived_at, expires_at, name').limit(100000),
     // Squad memberships — for avg size + top-squad sizes
@@ -203,19 +209,26 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.users - a.users);
   const themeUsersReporting = latestThemeByUser.size;
 
-  // Friendship graph — count accepted edges, compute per-user degree, avg,
-  // median, and the most-connected users. Pending/blocked counts come from
-  // dedicated HEAD queries above.
-  const acceptedEdges = (friendshipsRes.data ?? []) as { requester_id: string; addressee_id: string; created_at: string }[];
+  // Friendship graph — scoped to ONBOARDED users only so test/abandoned
+  // accounts don't skew the numbers. Edges are kept only when both
+  // endpoints are onboarded.
+  const onboardedProfiles = (onboardedProfilesRes.data ?? []) as { id: string; created_at: string }[];
+  const onboardedSet = new Set(onboardedProfiles.map(p => p.id));
+  const onboardedUsersCount = onboardedSet.size;
+  const allEdges = (friendshipsRes.data ?? []) as { requester_id: string; addressee_id: string; status: string; created_at: string }[];
+  const onboardedEdges = allEdges.filter(e => onboardedSet.has(e.requester_id) && onboardedSet.has(e.addressee_id));
+  const acceptedEdges = onboardedEdges.filter(e => e.status === 'accepted');
+  const pendingCount = onboardedEdges.filter(e => e.status === 'pending').length;
+  const blockedCount = onboardedEdges.filter(e => e.status === 'blocked').length;
+
   const degreeByUser = new Map<string, number>();
   for (const edge of acceptedEdges) {
     degreeByUser.set(edge.requester_id, (degreeByUser.get(edge.requester_id) || 0) + 1);
     degreeByUser.set(edge.addressee_id, (degreeByUser.get(edge.addressee_id) || 0) + 1);
   }
   const degrees = Array.from(degreeByUser.values()).sort((a, b) => a - b);
-  const totalUsers = totalRes.count ?? 0;
   const connectedUsers = degreeByUser.size;
-  const isolatedUsers = Math.max(0, totalUsers - connectedUsers);
+  const isolatedUsers = Math.max(0, onboardedUsersCount - connectedUsers);
   const avgFriends = connectedUsers > 0
     ? +(degrees.reduce((s, d) => s + d, 0) / connectedUsers).toFixed(2)
     : 0;
@@ -246,10 +259,8 @@ export async function GET(request: NextRequest) {
     count,
   }));
 
-  // Acceptance / decline / block rates (as percentages)
-  const pendingCount = pendingCountRes.count ?? 0;
-  const blockedCount = blockedCountRes.count ?? 0;
-  const totalFriendshipRows = acceptedEdges.length + pendingCount + blockedCount;
+  // Acceptance / block rates among edges between onboarded users
+  const totalFriendshipRows = onboardedEdges.length;
   const acceptanceRate = totalFriendshipRows > 0
     ? Math.round((acceptedEdges.length / totalFriendshipRows) * 100)
     : 0;
@@ -267,9 +278,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Time-to-first-friend — median days between profile.created_at and
-  // a user's first accepted friendship edge.
+  // a user's first accepted friendship edge. Onboarded users only.
   const signupByUser = new Map<string, string>();
-  for (const p of (allProfilesRes.data ?? []) as { id: string; created_at: string }[]) {
+  for (const p of onboardedProfiles) {
     signupByUser.set(p.id, p.created_at);
   }
   const firstFriendshipByUser = new Map<string, string>();
@@ -379,8 +390,9 @@ export async function GET(request: NextRequest) {
   const lurkerNames: string[] = lurkerIds.map(id => profileNames.get(id) || id.slice(0, 8));
 
   // Active-but-isolated: loaded the app in last 7d AND have 0 accepted friends.
+  // Onboarded only — pre-onboarding users legitimately have no friends yet.
   // These are high-churn candidates who'd benefit from a friend-nudge.
-  const activeIsolatedIds = [...activeUserIds].filter(id => !degreeByUser.has(id));
+  const activeIsolatedIds = [...activeUserIds].filter(id => onboardedSet.has(id) && !degreeByUser.has(id));
   // Fetch display names for any we didn't already look up
   const missingIsolatedIds = activeIsolatedIds.filter(id => !profileNames.has(id));
   if (missingIsolatedIds.length > 0) {
@@ -465,6 +477,7 @@ export async function GET(request: NextRequest) {
       accepted: acceptedEdges.length,
       pending: pendingCount,
       blocked: blockedCount,
+      onboardedUsers: onboardedUsersCount,
       connectedUsers,
       isolatedUsers,
       avgFriends,
