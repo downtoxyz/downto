@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   // Run queries in parallel
-  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauRpcRes, pushSubscribersRes, friendshipsRes, pendingCountRes, blockedCountRes] = await Promise.all([
+  const [totalRes, onboardedRes, notOnboardedRes, recentRes, signupsRes, pushSentRes, pushFailedRes, pushStaleRes, pushRecentFailures, versionPingsRes, dauRpcRes, pushSubscribersRes, friendshipsRes, pendingCountRes, blockedCountRes, allProfilesRes, squadsRes, squadMembersRes, squadMessages7dRes] = await Promise.all([
     admin.from('profiles').select('*', { count: 'exact', head: true }),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', true),
     admin.from('profiles').select('*', { count: 'exact', head: true }).eq('onboarded', false),
@@ -65,6 +65,18 @@ export async function GET(request: NextRequest) {
       .limit(100000),
     admin.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     admin.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'blocked'),
+    // All profile created_at timestamps — for time-to-first-friend
+    admin.from('profiles').select('id, created_at').not('created_at', 'is', null).limit(100000),
+    // Squads (all, we filter active/archived in-memory)
+    admin.from('squads').select('id, created_at, archived_at, expires_at, name').limit(100000),
+    // Squad memberships — for avg size + top-squad sizes
+    admin.from('squad_members').select('squad_id, user_id').limit(200000),
+    // Non-system messages in last 7d — for active-squad classification
+    admin.from('messages')
+      .select('squad_id, created_at')
+      .eq('is_system', false)
+      .gte('created_at', since7d)
+      .limit(100000),
   ]);
 
   // DAU from RPC — already grouped by date
@@ -234,6 +246,98 @@ export async function GET(request: NextRequest) {
     count,
   }));
 
+  // Acceptance / decline / block rates (as percentages)
+  const pendingCount = pendingCountRes.count ?? 0;
+  const blockedCount = blockedCountRes.count ?? 0;
+  const totalFriendshipRows = acceptedEdges.length + pendingCount + blockedCount;
+  const acceptanceRate = totalFriendshipRows > 0
+    ? Math.round((acceptedEdges.length / totalFriendshipRows) * 100)
+    : 0;
+  const blockRate = totalFriendshipRows > 0
+    ? Math.round((blockedCount / totalFriendshipRows) * 100)
+    : 0;
+
+  // New-friendships-per-day (30d) — accepted edges grouped by local date
+  const newFriendshipsByDate: Record<string, number> = {};
+  for (const edge of acceptedEdges) {
+    if (edge.created_at >= since30d) {
+      const d = toLocalDate(edge.created_at, tz);
+      newFriendshipsByDate[d] = (newFriendshipsByDate[d] || 0) + 1;
+    }
+  }
+
+  // Time-to-first-friend — median days between profile.created_at and
+  // a user's first accepted friendship edge.
+  const signupByUser = new Map<string, string>();
+  for (const p of (allProfilesRes.data ?? []) as { id: string; created_at: string }[]) {
+    signupByUser.set(p.id, p.created_at);
+  }
+  const firstFriendshipByUser = new Map<string, string>();
+  // acceptedEdges aren't guaranteed sorted; sort ascending so we capture first
+  const edgesAsc = [...acceptedEdges].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  for (const edge of edgesAsc) {
+    if (!firstFriendshipByUser.has(edge.requester_id)) {
+      firstFriendshipByUser.set(edge.requester_id, edge.created_at);
+    }
+    if (!firstFriendshipByUser.has(edge.addressee_id)) {
+      firstFriendshipByUser.set(edge.addressee_id, edge.created_at);
+    }
+  }
+  const timeToFirstDays: number[] = [];
+  for (const [uid, firstAt] of firstFriendshipByUser.entries()) {
+    const signup = signupByUser.get(uid);
+    if (!signup) continue;
+    const days = (new Date(firstAt).getTime() - new Date(signup).getTime()) / (24 * 60 * 60 * 1000);
+    if (days >= 0) timeToFirstDays.push(days);
+  }
+  timeToFirstDays.sort((a, b) => a - b);
+  const medianTimeToFirstFriend = timeToFirstDays.length > 0
+    ? +timeToFirstDays[Math.floor(timeToFirstDays.length / 2)].toFixed(1)
+    : null;
+
+  // Squads metrics — filter active (not archived, not expired) in-memory
+  const nowIso = new Date().toISOString();
+  const squadsAll = (squadsRes.data ?? []) as { id: string; created_at: string; archived_at: string | null; expires_at: string | null; name: string }[];
+  const activeSquads = squadsAll.filter(s =>
+    !s.archived_at && (!s.expires_at || s.expires_at > nowIso)
+  );
+  const activeSquadIds = new Set(activeSquads.map(s => s.id));
+
+  // Members per squad (active squads only)
+  const membersBySquad = new Map<string, number>();
+  for (const m of (squadMembersRes.data ?? []) as { squad_id: string; user_id: string }[]) {
+    if (activeSquadIds.has(m.squad_id)) {
+      membersBySquad.set(m.squad_id, (membersBySquad.get(m.squad_id) || 0) + 1);
+    }
+  }
+  const sizes = Array.from(membersBySquad.values());
+  const avgSquadSize = sizes.length > 0
+    ? +(sizes.reduce((s, n) => s + n, 0) / sizes.length).toFixed(2)
+    : 0;
+
+  // Squads with any non-system message in last 7d = active-by-activity
+  const activeByMessages = new Set<string>();
+  const messagesBySquad = new Map<string, number>();
+  for (const m of (squadMessages7dRes.data ?? []) as { squad_id: string; created_at: string }[]) {
+    if (!activeSquadIds.has(m.squad_id)) continue;
+    activeByMessages.add(m.squad_id);
+    messagesBySquad.set(m.squad_id, (messagesBySquad.get(m.squad_id) || 0) + 1);
+  }
+  const newSquads7d = activeSquads.filter(s => s.created_at >= since7d).length;
+
+  // Top 10 most-active squads by message count in last 7d
+  const mostActiveSquads = Array.from(messagesBySquad.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id, msgs]) => {
+      const s = activeSquads.find(x => x.id === id);
+      return {
+        name: s?.name || id.slice(0, 8),
+        members: membersBySquad.get(id) || 0,
+        messages7d: msgs,
+      };
+    });
+
   // Engagement metrics (7d)
   const [checksRes, responsesRes, commentsRes, messagesRes] = await Promise.all([
     admin.from('interest_checks')
@@ -273,6 +377,23 @@ export async function GET(request: NextRequest) {
   // Lurkers: active but not engaged
   const lurkerIds = [...activeUserIds].filter(id => !engagedUserIds.has(id));
   const lurkerNames: string[] = lurkerIds.map(id => profileNames.get(id) || id.slice(0, 8));
+
+  // Active-but-isolated: loaded the app in last 7d AND have 0 accepted friends.
+  // These are high-churn candidates who'd benefit from a friend-nudge.
+  const activeIsolatedIds = [...activeUserIds].filter(id => !degreeByUser.has(id));
+  // Fetch display names for any we didn't already look up
+  const missingIsolatedIds = activeIsolatedIds.filter(id => !profileNames.has(id));
+  if (missingIsolatedIds.length > 0) {
+    const { data: extra } = await admin.from('profiles')
+      .select('id, display_name, username')
+      .in('id', missingIsolatedIds);
+    if (extra) {
+      for (const p of extra) {
+        profileNames.set(p.id, p.display_name || p.username || p.id.slice(0, 8));
+      }
+    }
+  }
+  const activeIsolatedNames = activeIsolatedIds.map(id => profileNames.get(id) || id.slice(0, 8));
 
   // Daily activity counts (grouped by local date)
   const checksByDate: Record<string, number> = {};
@@ -342,14 +463,27 @@ export async function GET(request: NextRequest) {
     },
     friendships: {
       accepted: acceptedEdges.length,
-      pending: pendingCountRes.count ?? 0,
-      blocked: blockedCountRes.count ?? 0,
+      pending: pendingCount,
+      blocked: blockedCount,
       connectedUsers,
       isolatedUsers,
       avgFriends,
       medianFriends,
       maxFriends,
       mostConnected: mostConnectedUsers,
+      acceptanceRate,
+      blockRate,
+      newByDate: newFriendshipsByDate,
+      medianTimeToFirstFriend, // days, null if no data
+      activeButIsolated: activeIsolatedIds.length,
+      activeButIsolatedNames: activeIsolatedNames,
+    },
+    squads: {
+      totalActive: activeSquads.length,
+      newLast7d: newSquads7d,
+      activeByMessages7d: activeByMessages.size,
+      avgSize: avgSquadSize,
+      mostActive: mostActiveSquads,
     },
     engagement: {
       active7d: activeUserIds.size,

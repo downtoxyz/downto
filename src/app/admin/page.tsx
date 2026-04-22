@@ -16,7 +16,7 @@ interface PushFailure {
   error: string | null;
 }
 
-type AdminTab = "users" | "engagement" | "push" | "versions" | "themes" | "friendships";
+type AdminTab = "users" | "engagement" | "push" | "versions" | "themes" | "friendships" | "squads";
 
 interface Metrics {
   totalUsers: number;
@@ -56,6 +56,19 @@ interface Metrics {
     medianFriends: number;
     maxFriends: number;
     mostConnected: { name: string; count: number }[];
+    acceptanceRate: number;
+    blockRate: number;
+    newByDate: Record<string, number>;
+    medianTimeToFirstFriend: number | null;
+    activeButIsolated: number;
+    activeButIsolatedNames: string[];
+  };
+  squads: {
+    totalActive: number;
+    newLast7d: number;
+    activeByMessages7d: number;
+    avgSize: number;
+    mostActive: { name: string; members: number; messages7d: number }[];
   };
   engagement: {
     active7d: number;
@@ -175,6 +188,7 @@ export default function AdminPage() {
     { key: "versions", label: "Versions" },
     { key: "themes", label: "Themes" },
     { key: "friendships", label: "Friends" },
+    { key: "squads", label: "Squads" },
   ];
 
   return (
@@ -597,6 +611,73 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* Quality signals */}
+          <div className="p-3 rounded-lg border border-border bg-card mb-4">
+            <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
+              Quality
+            </div>
+            <div className="grid grid-cols-2 gap-y-1 gap-x-3 font-mono text-xs">
+              <span className="text-dim">Acceptance rate</span>
+              <span className="text-primary text-right">{metrics.friendships.acceptanceRate}%</span>
+              <span className="text-dim">Block rate</span>
+              <span className={`text-right ${metrics.friendships.blockRate > 5 ? "text-danger" : "text-primary"}`}>
+                {metrics.friendships.blockRate}%
+              </span>
+              <span className="text-dim">Median time-to-first-friend</span>
+              <span className="text-primary text-right">
+                {metrics.friendships.medianTimeToFirstFriend !== null
+                  ? `${metrics.friendships.medianTimeToFirstFriend}d`
+                  : "—"}
+              </span>
+              <span className="text-dim">Active-but-isolated (7d)</span>
+              <span className={`text-right ${metrics.friendships.activeButIsolated > 0 ? "text-danger" : "text-primary"}`}>
+                {metrics.friendships.activeButIsolated}
+              </span>
+            </div>
+            {metrics.friendships.activeButIsolatedNames.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {metrics.friendships.activeButIsolatedNames.map((n) => (
+                  <span key={n} className="font-mono text-tiny text-muted bg-border-light px-2 py-0.5 rounded-md">
+                    {n}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* New friendships per day (30d) */}
+          {(() => {
+            const days: { date: string; count: number }[] = [];
+            for (let i = 29; i >= 0; i--) {
+              const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+              const key = localDateKey(d);
+              days.push({ date: key, count: metrics.friendships.newByDate[key] || 0 });
+            }
+            const maxN = Math.max(...days.map((d) => d.count), 1);
+            return (
+              <div className="p-3 rounded-lg border border-border bg-card mb-4">
+                <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
+                  New friendships (30d)
+                </div>
+                {days.map(({ date, count }) => (
+                  <div key={date} className="flex items-center gap-2 mb-0.5">
+                    <span className="font-mono text-tiny text-dim w-10 shrink-0">{date.slice(5)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="h-3 bg-dt rounded-sm"
+                        style={{
+                          width: count > 0 ? `${(count / maxN) * 100}%` : 0,
+                          minWidth: count > 0 ? 4 : 0,
+                        }}
+                      />
+                    </div>
+                    {count > 0 && <span className="font-mono text-tiny text-muted shrink-0">{count}</span>}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
           {/* Most connected */}
           <div className="p-3 rounded-lg border border-border bg-card">
             <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
@@ -619,6 +700,55 @@ export default function AdminPage() {
               </div>
             ) : (
               <p className="text-faint font-mono text-xs">No friendships yet</p>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Squads tab */}
+      {tab === "squads" && (
+        <>
+          {/* Totals */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[
+              { label: "Total active", value: metrics.squads.totalActive },
+              { label: "New (7d)", value: metrics.squads.newLast7d },
+              { label: "Active by msg (7d)", value: metrics.squads.activeByMessages7d },
+              { label: "Avg size", value: metrics.squads.avgSize },
+            ].map((s) => (
+              <div key={s.label} className="p-3 rounded-lg border border-border bg-card">
+                <div className="font-mono text-tiny text-dim uppercase" style={{ letterSpacing: "0.15em" }}>
+                  {s.label}
+                </div>
+                <div className="font-serif text-2xl text-primary font-normal mt-1">
+                  {s.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Most active */}
+          <div className="p-3 rounded-lg border border-border bg-card">
+            <div className="font-mono text-tiny text-dim uppercase mb-2" style={{ letterSpacing: "0.15em" }}>
+              Most active (7d messages)
+            </div>
+            {metrics.squads.mostActive.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                {metrics.squads.mostActive.map((s, i) => (
+                  <div key={`${s.name}-${i}`} className="flex justify-between items-center font-mono text-xs gap-2">
+                    <span className="text-primary min-w-0 truncate">
+                      <span className="text-faint mr-2">{i + 1}.</span>
+                      {s.name}
+                    </span>
+                    <span className="shrink-0">
+                      <span className="text-dt font-bold">{s.messages7d}</span>
+                      <span className="text-dim"> msgs · {s.members} members</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-faint font-mono text-xs">No active squads</p>
             )}
           </div>
         </>
