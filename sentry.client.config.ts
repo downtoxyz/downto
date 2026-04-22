@@ -19,7 +19,9 @@ Sentry.init({
     // Supabase auth lock stolen between tabs / across Strict Mode remounts.
     // The stealing side recovers (supabase-js/locks.ts); the stolen side's
     // in-flight query rejects with this AbortError and re-runs on next refresh.
-    "Lock broken by another request with the 'steal' option",
+    // Chrome and Safari word this differently; match both.
+    "Lock broken by another request with the 'steal' option", // Chrome / V8
+    "Lock was stolen by another request", // Safari / WebKit
   ],
   beforeSend(event) {
     // Defensive: strip free-text fields (event notes, scraped captions) that
