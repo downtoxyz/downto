@@ -34,27 +34,27 @@ const Header = ({
       paddingTop: "env(safe-area-inset-top, 16px)",
     }}
   >
-    {/* Blur layer — smooth 8-stop eased fade */}
+    {/* Blur layer — smooth 8-stop eased fade. Hidden at rest; fades in on scroll. */}
     <div className="absolute pointer-events-none transition-opacity duration-300" style={{
       inset: "0 0 -24px 0",
-      opacity: scrolled ? 1 : 0.5,
-      backdropFilter: "blur(40px)",
-      WebkitBackdropFilter: "blur(40px)",
+      opacity: scrolled ? 1 : 0,
+      backdropFilter: scrolled ? "blur(40px)" : "blur(0px)",
+      WebkitBackdropFilter: scrolled ? "blur(40px)" : "blur(0px)",
       mask: "linear-gradient(to bottom, black 0%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,0.5) 65%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.15) 85%, rgba(0,0,0,0.05) 93%, transparent 100%)",
       WebkitMaskImage: "linear-gradient(to bottom, black 0%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,0.5) 65%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.15) 85%, rgba(0,0,0,0.05) 93%, transparent 100%)",
     }} />
     {/* Color tint — smooth fade with noise dithering */}
     <div className="absolute pointer-events-none transition-opacity duration-300" style={{
       inset: "0 0 -24px 0",
-      opacity: scrolled ? 0.4 : 0.05,
+      opacity: scrolled ? 0.4 : 0,
       background: "var(--color-bg)",
       mask: "linear-gradient(to bottom, black 25%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.15) 82%, rgba(0,0,0,0.05) 92%, transparent 100%)",
       WebkitMaskImage: "linear-gradient(to bottom, black 25%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.15) 82%, rgba(0,0,0,0.05) 92%, transparent 100%)",
     }} />
     {/* Noise dither overlay to break up gradient banding */}
-    <div className="absolute pointer-events-none" style={{
+    <div className="absolute pointer-events-none transition-opacity duration-300" style={{
       inset: "0 0 -24px 0",
-      opacity: 0.12,
+      opacity: scrolled ? 0.12 : 0,
       backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
       mask: "linear-gradient(to bottom, transparent 30%, black 60%, transparent 100%)",
       WebkitMaskImage: "linear-gradient(to bottom, transparent 30%, black 60%, transparent 100%)",
