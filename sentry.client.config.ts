@@ -7,15 +7,19 @@ Sentry.init({
   enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
   release: process.env.NEXT_PUBLIC_BUILD_ID,
   tracesSampleRate: 0.1,
-  // Transient network failures (user lost wifi, cellular hiccup, request aborted).
-  // Not actionable — the app already catches and retries on refocus.
+  // Transient failures the app already recovers from — not actionable as bugs.
   ignoreErrors: [
+    // Network drops / aborted requests (user lost wifi, cellular hiccup, tab backgrounded).
     "Load failed", // Safari / WebKit
     "Failed to fetch", // Chrome, Firefox, Edge
     "NetworkError when attempting to fetch resource", // Firefox
     "The network connection was lost", // iOS
     "The Internet connection appears to be offline", // iOS
     "cancelled", // Safari aborted request
+    // Supabase auth lock stolen between tabs / across Strict Mode remounts.
+    // The stealing side recovers (supabase-js/locks.ts); the stolen side's
+    // in-flight query rejects with this AbortError and re-runs on next refresh.
+    "Lock broken by another request with the 'steal' option",
   ],
   beforeSend(event) {
     // Defensive: strip free-text fields (event notes, scraped captions) that
