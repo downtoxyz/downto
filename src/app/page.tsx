@@ -977,7 +977,6 @@ export default function Home() {
             if (t !== "feed") checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null });
           }}
           hasSquadsUnread={squadsHook.squads.some((s) => s.hasUnread) || notificationsHook.notifications.some((n) => n.type === "squad_invite" && !n.is_read)}
-          hasProfileUnread={pendingFriendRequestCount > 0}
         />
       </div>
 
