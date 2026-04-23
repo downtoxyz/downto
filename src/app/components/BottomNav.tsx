@@ -31,10 +31,12 @@ const BottomNav = ({
   tab,
   onTabChange,
   hasSquadsUnread,
+  hasProfileUnread,
 }: {
   tab: Tab;
   onTabChange: (t: Tab) => void;
   hasSquadsUnread: boolean;
+  hasProfileUnread?: boolean;
 }) => {
   const prevTab = useRef(tab);
   const highlightRef = useRef<HTMLDivElement>(null);
@@ -132,6 +134,12 @@ const BottomNav = ({
             {t === "squads" && hasSquadsUnread && (
               <div
                 data-testid="squads-unread-dot"
+                className="absolute top-1 right-2 w-[7px] h-[7px] rounded-full bg-[#ff3b30]"
+              />
+            )}
+            {t === "profile" && hasProfileUnread && (
+              <div
+                data-testid="profile-unread-dot"
                 className="absolute top-1 right-2 w-[7px] h-[7px] rounded-full bg-[#ff3b30]"
               />
             )}
