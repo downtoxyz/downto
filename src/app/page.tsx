@@ -739,11 +739,12 @@ export default function Home() {
       />
 
       {/* Sticky banner: surfaces pending incoming friend requests. Stays visible
-          on every tab until the viewer has accepted / rejected all of them. */}
+          on every tab until the viewer has accepted / rejected all of them.
+          Incoming-requests list renders on the "add" tab, so jump there directly. */}
       <FriendRequestBanner
         count={pendingFriendRequestCount}
         onOpen={() => {
-          friendsHook.setFriendsInitialTab("friends");
+          friendsHook.setFriendsInitialTab("add");
           friendsHook.setFriendsOpen(true);
         }}
       />
