@@ -25,6 +25,7 @@ import SquadChat from "@/features/squads/components/SquadChat";
 import ProfileView from "@/features/profile/components/ProfileView";
 import Header, { HEADER_HEIGHT_PX, HEADER_HEIGHT_WITH_TABS_PX, HEADER_OFFSET_PX } from "@/app/components/Header";
 import BottomNav from "@/app/components/BottomNav";
+import FriendRequestBanner, { FRIEND_REQUEST_BANNER_HEIGHT_PX } from "@/app/components/FriendRequestBanner";
 import Toast from "@/app/components/Toast";
 import NotificationsPanel from "@/features/notifications/components/NotificationsPanel";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -691,6 +692,11 @@ export default function Home() {
 
   if (onboarding.onboardingScreen) return onboarding.onboardingScreen;
 
+  // Count incoming (pending inbound) friend requests — drives the sticky
+  // banner + the profile-tab dot.
+  const pendingFriendRequestCount = friendsHook.suggestions.filter(
+    (s) => s.status === "incoming",
+  ).length;
 
   return (
     <FeedContext.Provider value={{
@@ -732,6 +738,16 @@ export default function Home() {
         scrolled={scrolledDown}
       />
 
+      {/* Sticky banner: surfaces pending incoming friend requests. Stays visible
+          on every tab until the viewer has accepted / rejected all of them. */}
+      <FriendRequestBanner
+        count={pendingFriendRequestCount}
+        onOpen={() => {
+          friendsHook.setFriendsInitialTab("friends");
+          friendsHook.setFriendsOpen(true);
+        }}
+      />
+
       {/* Scroll area with fade edges */}
       <div className="flex-1 relative overflow-hidden">
         {/* Top fade — visible when scrolled */}
@@ -748,7 +764,7 @@ export default function Home() {
         <div
           ref={scrollRef}
           className="h-full overflow-y-auto"
-          style={{ paddingTop: `calc(env(safe-area-inset-top, 16px) + ${(HEADER_HEIGHT_PX) + HEADER_OFFSET_PX}px)`, paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
+          style={{ paddingTop: `calc(env(safe-area-inset-top, 16px) + ${(HEADER_HEIGHT_PX) + HEADER_OFFSET_PX + (pendingFriendRequestCount > 0 ? FRIEND_REQUEST_BANNER_HEIGHT_PX : 0)}px)`, paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
           onScroll={() => {
             const scrolled = (scrollRef.current?.scrollTop ?? 0) > 0;
             if (scrolled !== scrolledDown) setScrolledDown(scrolled);
@@ -960,6 +976,7 @@ export default function Home() {
             if (t !== "feed") checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null });
           }}
           hasSquadsUnread={squadsHook.squads.some((s) => s.hasUnread) || notificationsHook.notifications.some((n) => n.type === "squad_invite" && !n.is_read)}
+          hasProfileUnread={pendingFriendRequestCount > 0}
         />
       </div>
 
