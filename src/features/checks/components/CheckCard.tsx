@@ -10,6 +10,7 @@ import InlineCommentsBox from "@/shared/components/InlineCommentsBox";
 import CheckDetailSheet from "./CheckDetailSheet";
 import EditCheckModal from "./EditCheckModal";
 import ReportSheet from "@/shared/components/ReportSheet";
+import CheckActionsSheet from "@/shared/components/CheckActionsSheet";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
 
 function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: string; dimmed?: boolean; coAuthors?: { name: string; userId?: string }[]; onViewProfile?: (userId: string) => void }) {
@@ -110,6 +111,7 @@ export default function CheckCard({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   const { comments, commentCount, openComments, postComment } = useCheckComments({
     checkId: check.id,
@@ -250,19 +252,12 @@ export default function CheckCard({
                   </span>
                 )}
                 {!check.isYours && !check.isCoAuthor && (
-                  <>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
-                      className="bg-transparent border-none text-dim py-0.5 px-1 font-mono text-xs cursor-pointer leading-none"
-                      title="Report this check"
-                      aria-label="Report this check"
-                    >⚐</button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); hideCheck(check.id); }}
-                      className="bg-transparent border-none text-dim py-0.5 px-1 font-mono text-xs cursor-pointer leading-none"
-                      title="Hide this check"
-                    >✕</button>
-                  </>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowActions(true); }}
+                    className="bg-transparent border-none text-dim py-0.5 px-1 font-mono text-base cursor-pointer leading-none"
+                    title="More"
+                    aria-label="More actions"
+                  >⋯</button>
                 )}
               </div>
             </div>
@@ -436,6 +431,14 @@ export default function CheckCard({
           await loadRealData();
         }}
       />
+
+      {showActions && (
+        <CheckActionsSheet
+          onHide={() => hideCheck(check.id)}
+          onReport={() => setShowReport(true)}
+          onClose={() => setShowActions(false)}
+        />
+      )}
 
       {showReport && (
         <ReportSheet
