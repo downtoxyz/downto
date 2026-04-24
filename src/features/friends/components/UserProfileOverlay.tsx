@@ -6,22 +6,27 @@ import type { Profile } from "@/lib/types";
 import * as db from "@/lib/db";
 import { logError } from "@/lib/logger";
 import cn from "@/lib/tailwindMerge";
+import ReportSheet from "@/shared/components/ReportSheet";
 
 const UserProfileOverlay = ({
   targetUserId,
   currentUserId,
   onClose,
   onFriendAction,
+  showToast,
 }: {
   targetUserId: string;
   currentUserId: string | null;
   onClose: () => void;
   onFriendAction: () => void;
+  showToast?: (msg: string) => void;
 }) => {
   const [profileData, setProfileData] = useState<Profile | null>(null);
   const [friendship, setFriendship] = useState<{ id: string; status: string; isRequester: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -34,13 +39,15 @@ const UserProfileOverlay = ({
     (async () => {
       setLoading(true);
       try {
-        const [p, f] = await Promise.all([
+        const [p, f, b] = await Promise.all([
           db.getProfileById(targetUserId),
           currentUserId ? db.getFriendshipWith(targetUserId) : Promise.resolve(null),
+          currentUserId && currentUserId !== targetUserId ? db.isBlocked(targetUserId) : Promise.resolve(false),
         ]);
         if (!cancelled) {
           setProfileData(p);
           setFriendship(f);
+          setBlocked(b);
         }
       } catch (err) {
         logError("loadProfile", err, { targetUserId });
@@ -76,6 +83,38 @@ const UserProfileOverlay = ({
       onFriendAction();
     } catch (err) {
       logError("friendAction", err, { targetUserId, friendStatus });
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleToggleBlock = async () => {
+    if (!currentUserId || isSelf || acting) return;
+    const display = profileData?.display_name ?? "user";
+    setActing(true);
+    try {
+      if (blocked) {
+        await db.unblockUser(targetUserId);
+        setBlocked(false);
+        showToast?.(`Unblocked ${display}`);
+      } else {
+        const confirmed = typeof window !== "undefined"
+          ? window.confirm(`Block ${display}? You won't see their checks or messages, and they won't see yours.`)
+          : true;
+        if (!confirmed) { setActing(false); return; }
+        await db.blockUser(targetUserId);
+        setBlocked(true);
+        // Break any existing friendship so it doesn't linger
+        if (friendship && friendStatus !== "none") {
+          try { await db.removeFriend(friendship.id); } catch (err) { logError("removeFriendOnBlock", err); }
+          setFriendship(null);
+        }
+        showToast?.(`Blocked ${display}`);
+        onFriendAction();
+      }
+    } catch (err) {
+      logError("toggleBlock", err, { targetUserId, blocked });
+      showToast?.("Something went wrong");
     } finally {
       setActing(false);
     }
@@ -167,7 +206,7 @@ const UserProfileOverlay = ({
             </div>
 
             {/* Action button */}
-            {!isSelf && currentUserId && (
+            {!isSelf && currentUserId && !blocked && (
               <button
                 onClick={handleAction}
                 disabled={actionDisabled}
@@ -189,9 +228,42 @@ const UserProfileOverlay = ({
                 {acting ? "..." : actionLabel}
               </button>
             )}
+
+            {/* Block / Report row */}
+            {!isSelf && currentUserId && (
+              <div className="flex items-center justify-center gap-3 mt-4 font-mono text-tiny text-faint">
+                <button
+                  onClick={handleToggleBlock}
+                  disabled={acting}
+                  className="bg-transparent border-none text-faint cursor-pointer underline-offset-2 hover:underline disabled:opacity-60"
+                >
+                  {blocked ? "Unblock" : "Block"}
+                </button>
+                {!blocked && (
+                  <>
+                    <span className="text-faint">·</span>
+                    <button
+                      onClick={() => setShowReport(true)}
+                      className="bg-transparent border-none text-faint cursor-pointer underline-offset-2 hover:underline"
+                    >
+                      Report user
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
+      {showReport && profileData && (
+        <ReportSheet
+          targetType="profile"
+          targetId={targetUserId}
+          targetLabel={`@${profileData.username}`}
+          onClose={() => setShowReport(false)}
+          onSubmitted={() => showToast?.("Report submitted — thanks")}
+        />
+      )}
     </div>
   );
 };

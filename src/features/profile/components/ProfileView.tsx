@@ -72,6 +72,24 @@ const ProfileView = ({
   const [igInput, setIgInput] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [activeTheme, setActiveTheme] = useState<ThemeName | null>(null);
+  const [blockedUsers, setBlockedUsers] = useState<(Profile & { blocked_at: string })[]>([]);
+  const [showBlocked, setShowBlocked] = useState(false);
+
+  useEffect(() => {
+    db.listBlockedUsers()
+      .then(setBlockedUsers)
+      .catch(() => { /* silent — empty list is fine */ });
+  }, []);
+
+  const handleUnblock = async (userId: string, displayName: string) => {
+    try {
+      await db.unblockUser(userId);
+      setBlockedUsers((prev) => prev.filter((u) => u.id !== userId));
+      showToast?.(`Unblocked ${displayName}`);
+    } catch {
+      showToast?.("Couldn't unblock — try again");
+    }
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeName | null;
@@ -435,6 +453,50 @@ const ProfileView = ({
                   className="bg-transparent border border-border-mid rounded-xl py-1.5 px-3 font-mono text-xs text-primary cursor-pointer shrink-0"
                 >
                   Restore
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
+    {blockedUsers.length > 0 && (
+      <div className="mt-8">
+        <button
+          onClick={() => setShowBlocked((v) => !v)}
+          className="w-full bg-transparent border-none p-0 flex items-center justify-between cursor-pointer mb-3"
+        >
+          <span
+            className="font-mono text-tiny uppercase text-faint"
+            style={{ letterSpacing: "0.15em" }}
+          >
+            Blocked ({blockedUsers.length})
+          </span>
+          <span className="font-mono text-tiny text-faint">{showBlocked ? "hide" : "show"}</span>
+        </button>
+        {showBlocked && (
+          <div className="flex flex-col gap-2">
+            {blockedUsers.map((u) => (
+              <div
+                key={u.id}
+                className="flex items-center justify-between py-2 px-3 rounded-xl bg-card border border-border"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-xs font-bold">
+                    {u.avatar_letter}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-mono text-xs text-primary truncate">{u.display_name}</div>
+                    <div className="font-mono text-tiny text-dim truncate">@{u.username}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleUnblock(u.id, u.display_name)}
+                  className="bg-transparent border border-border-mid rounded-lg py-1.5 px-3 font-mono text-tiny uppercase text-primary cursor-pointer"
+                  style={{ letterSpacing: "0.08em" }}
+                >
+                  Unblock
                 </button>
               </div>
             ))}

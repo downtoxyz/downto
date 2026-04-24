@@ -1116,6 +1116,7 @@ export default function Home() {
           onFriendAction={() => {
             if (userId) loadRealData();
           }}
+          showToast={showToast}
         />
       )}
     </div>
