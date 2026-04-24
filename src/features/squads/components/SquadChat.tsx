@@ -1283,9 +1283,11 @@ const SquadChat = ({
           return dates.length * slotsPerDay;
         };
         const gridSlotCount = computeGridSlotCount();
+        const gridRangeValid = computeGridDates() !== null;
+        const gridSlotsOverMax = gridSlotCount > MAX_WHEN_SLOTS;
         const canCreateText = !!pollQuestion.trim() && pollOptions.filter((o) => o.trim()).length >= 2;
         const canCreateDates = pollDateOptions.length >= 2;
-        const canCreateGrid = computeGridDates() !== null && gridSlotCount > 0 && gridSlotCount <= MAX_WHEN_SLOTS;
+        const canCreateGrid = gridRangeValid && gridSlotCount > 0 && !gridSlotsOverMax;
         const canCreate = (
           pollVariant === 'text' ? canCreateText
           : pollVariant === 'dates' ? canCreateDates
@@ -1438,17 +1440,17 @@ const SquadChat = ({
                                 type="date"
                                 value={gridCustomStart}
                                 onChange={(e) => setGridCustomStart(e.target.value)}
-                                className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                                className="min-w-0 flex-1 bg-card border border-border-mid rounded-lg py-2 px-2 text-primary font-mono text-xs outline-none"
                               />
                               <input
                                 type="date"
                                 value={gridCustomEnd}
                                 onChange={(e) => setGridCustomEnd(e.target.value)}
                                 min={gridCustomStart || undefined}
-                                className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                                className="min-w-0 flex-1 bg-card border border-border-mid rounded-lg py-2 px-2 text-primary font-mono text-xs outline-none"
                               />
                             </div>
-                            {!canCreateGrid && gridCustomStart && gridCustomEnd && (
+                            {!gridRangeValid && gridCustomStart && gridCustomEnd && (
                               <p className="font-mono text-tiny text-faint mt-1.5">
                                 range must span 1–21 days
                               </p>
@@ -1504,53 +1506,59 @@ const SquadChat = ({
                       </div>
                     )}
                   </div>
-                  <div className="mb-3">
-                    <div className="font-mono text-tiny text-faint mb-1.5" style={{ letterSpacing: '0.08em' }}>WINDOW</div>
-                    <div className="flex bg-card border border-border-mid rounded-lg p-0.5">
-                      {([
-                        { k: 'evenings', label: '6–11p' },
-                        { k: 'afternoons', label: '12–5p' },
-                        { k: 'all-day', label: 'all day' },
-                      ] as const).map(({ k, label }) => (
-                        <button
-                          key={k}
-                          onClick={() => setGridWindow(k)}
-                          className={cn(
-                            "flex-1 py-1.5 rounded-md font-mono text-tiny font-bold uppercase",
-                            gridWindow === k ? "bg-dt text-on-accent" : "bg-transparent text-dim"
-                          )}
-                          style={{ letterSpacing: '0.08em' }}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                  <div className="grid grid-cols-[3fr_2fr] gap-2 mb-3">
+                    <div>
+                      <div className="font-mono text-tiny text-faint mb-1.5" style={{ letterSpacing: '0.08em' }}>WINDOW</div>
+                      <div className="flex bg-card border border-border-mid rounded-lg p-0.5">
+                        {([
+                          { k: 'evenings', label: '6–11p' },
+                          { k: 'afternoons', label: '12–5p' },
+                          { k: 'all-day', label: 'all day' },
+                        ] as const).map(({ k, label }) => (
+                          <button
+                            key={k}
+                            onClick={() => setGridWindow(k)}
+                            className={cn(
+                              "flex-1 py-1.5 rounded-md font-mono text-tiny font-bold uppercase whitespace-nowrap",
+                              gridWindow === k ? "bg-dt text-on-accent" : "bg-transparent text-dim"
+                            )}
+                            style={{ letterSpacing: '0.08em' }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-mono text-tiny text-faint mb-1.5" style={{ letterSpacing: '0.08em' }}>SLOT</div>
+                      <div className="flex bg-card border border-border-mid rounded-lg p-0.5">
+                        {([60, 30] as const).map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => setGridSlotMinutes(n)}
+                            className={cn(
+                              "flex-1 py-1.5 rounded-md font-mono text-tiny font-bold uppercase",
+                              gridSlotMinutes === n ? "bg-dt text-on-accent" : "bg-transparent text-dim"
+                            )}
+                            style={{ letterSpacing: '0.08em' }}
+                          >
+                            {n === 60 ? '1h' : '30m'}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="mb-3">
-                    <div className="font-mono text-tiny text-faint mb-1.5" style={{ letterSpacing: '0.08em' }}>GRANULARITY</div>
-                    <div className="flex bg-card border border-border-mid rounded-lg p-0.5">
-                      {([60, 30] as const).map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => setGridSlotMinutes(n)}
-                          className={cn(
-                            "flex-1 py-1.5 rounded-md font-mono text-tiny font-bold uppercase",
-                            gridSlotMinutes === n ? "bg-dt text-on-accent" : "bg-transparent text-dim"
-                          )}
-                          style={{ letterSpacing: '0.08em' }}
-                        >
-                          {n === 60 ? '1 hour' : '30 min'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {gridSlotCount > MAX_WHEN_SLOTS ? (
+                  {gridSlotsOverMax ? (
                     <p className="font-mono text-tiny text-[#ff4444] mb-4 text-center">
-                      too many slots ({gridSlotCount}) — narrow the range, window, or granularity. max {MAX_WHEN_SLOTS}.
+                      {gridSlotCount} / {MAX_WHEN_SLOTS} slots — narrow the range, window, or granularity
+                    </p>
+                  ) : gridRangeValid ? (
+                    <p className="font-mono text-tiny text-faint mb-4 text-center">
+                      {gridSlotCount} / {MAX_WHEN_SLOTS} slots · tap to paint once created
                     </p>
                   ) : (
                     <p className="font-mono text-tiny text-faint mb-4 text-center">
-                      tap every slot that works for you in the grid after creating.
+                      pick a date range above
                     </p>
                   )}
                 </>
