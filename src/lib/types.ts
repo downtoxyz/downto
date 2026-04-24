@@ -79,6 +79,7 @@ export interface InterestCheck {
   expires_at: string | null;
   event_date: string | null; // ISO date from natural language parsing
   event_time: string | null; // display time like "7 PM"
+  event_tz: string | null;   // IANA tz of author at insert; resolves "today" for check_is_active()
   date_flexible: boolean;
   time_flexible: boolean;
   location: string | null;

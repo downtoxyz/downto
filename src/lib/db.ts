@@ -717,11 +717,9 @@ export async function getFofAnnotations(): Promise<{ check_id: string; via_frien
 }
 
 export async function getActiveChecks(): Promise<(InterestCheck & { author: Profile; responses: (CheckResponse & { user: Profile })[]; squads: { id: string; archived_at: string | null; members: { id: string }[] }[]; co_authors: (CheckCoAuthor & { user: Profile })[] })[]> {
-  const now = new Date();
-  const nowIso = now.toISOString();
-  // Local-timezone YYYY-MM-DD — using UTC here dropped checks for "today" from
-  // users west of UTC once it rolled past midnight server-side.
-  const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // Activeness (archived_at, expires_at, event_date) and visibility (friend/FoF/
+  // co-author) are both enforced by RLS via public.check_is_active + the SELECT
+  // policy. See migration 20260424000001.
   const { data, error } = await supabase
     .from('interest_checks')
     .select(`
@@ -731,9 +729,6 @@ export async function getActiveChecks(): Promise<(InterestCheck & { author: Prof
       squads(id, archived_at, members:squad_members(id, user_id, role)),
       co_authors:check_co_authors(*, user:profiles!user_id(*))
     `)
-    .or(`expires_at.gt.${nowIso},expires_at.is.null,event_date.gte.${todayLocal}`)
-    .or(`event_date.gte.${todayLocal},event_date.is.null`)
-    .is('archived_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -761,12 +756,17 @@ export async function createInterestCheck(
     expiresAt = d.toISOString();
   }
 
+  // Capture the author's local timezone so check_is_active() in SQL can
+  // resolve "today" the same way the author did when picking event_date.
+  const eventTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   const insertData: Record<string, unknown> = {
     author_id: user.id,
     text,
     expires_at: expiresAt,
     event_date: eventDate,
     event_time: eventTime,
+    event_tz: eventTz,
     date_flexible: dateFlexible,
     time_flexible: timeFlexible,
     max_squad_size: maxSquadSize,
