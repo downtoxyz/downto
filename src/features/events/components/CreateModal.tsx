@@ -758,7 +758,8 @@ const AddModal = ({
                   placeholder="location"
                   value={whereInput}
                   onChange={(e) => setWhereInput(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-deep border border-border-mid rounded-lg font-mono text-xs text-primary outline-none box-border"
+                  className="w-full py-2.5 px-3 bg-deep rounded-lg font-mono text-xs text-primary outline-none box-border"
+                  style={{ border: '1px solid #333' }}
                 />
               </div>
             </div>
