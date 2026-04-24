@@ -445,7 +445,20 @@ export async function sendFriendRequest(userId: string): Promise<Friendship> {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Race with a concurrent sendFriendRequest (double-tap) or a pre-existing
+    // row we didn't match above (e.g. blocked). Treat as idempotent.
+    if ((error as { code?: string }).code === '23505') {
+      const { data: existing } = await supabase
+        .from('friendships')
+        .select('*')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
+        .maybeSingle();
+      if (existing) return existing;
+    }
+    throw error;
+  }
   return data;
 }
 
