@@ -747,7 +747,7 @@ const AddModal = ({
                   onChange={(e) => setWhenInput(e.target.value)}
                   className="w-full py-2.5 px-3 bg-deep rounded-lg font-mono text-xs text-primary outline-none box-border"
                   style={{
-                    border: `1px solid ${idea.trim() && !parsedDate ? '#ff6b6b44' : '#333'}`,
+                    border: `1px solid ${whenInput.trim() && !parsedDate && !parsedTime ? '#ff6b6b44' : '#333'}`,
                   }}
                 />
               </div>
@@ -767,12 +767,12 @@ const AddModal = ({
                 {whenPreview}
               </div>
             )}
-            {!whenPreview && idea.trim() && !parsedDate && (
+            {!whenPreview && whenInput.trim() && (
               <div className="font-mono text-tiny text-danger mb-2" style={{ paddingLeft: 2 }}>
-                add a date (e.g. &quot;fri&quot;, &quot;3/14&quot;, &quot;next sat&quot;)
+                couldn&apos;t read that — try &quot;fri&quot;, &quot;3/14&quot;, &quot;next sat&quot;
               </div>
             )}
-            {!whenPreview && (!idea.trim() || parsedDate) && <div className="mb-2" />}
+            {!whenPreview && !whenInput.trim() && <div className="mb-2" />}
             {/* Movie preview from detected Letterboxd link */}
             {checkMovieLoading && (
               <div className="flex items-center gap-2 mb-3 py-2.5 px-3 bg-deep rounded-lg border border-border-light">
@@ -957,10 +957,10 @@ const AddModal = ({
                   close();
                 }
               }}
-              disabled={!idea.trim() || !parsedDate}
+              disabled={!idea.trim()}
               className={cn(
                 'w-full border-none rounded-xl py-3.5 font-mono text-sm font-bold uppercase',
-                idea.trim() && parsedDate
+                idea.trim()
                   ? 'bg-dt text-on-accent cursor-pointer'
                   : 'bg-border-mid text-dim cursor-not-allowed'
               )}
