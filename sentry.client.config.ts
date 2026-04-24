@@ -2,9 +2,14 @@ import * as Sentry from "@sentry/nextjs";
 
 const SENSITIVE_KEYS = ["note", "rawCaption", "caption", "email", "password"];
 
+// Preview deploys race the staging Supabase migrations workflow, so they
+// produce transient schema-cache errors that aren't real bugs. Only page
+// from production; dev (no DSN) and preview both stay silent.
+const isProd = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
+
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+  enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN && isProd,
   release: process.env.NEXT_PUBLIC_BUILD_ID,
   tracesSampleRate: 0.1,
   // Transient failures the app already recovers from — not actionable as bugs.
