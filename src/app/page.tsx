@@ -238,7 +238,12 @@ export default function Home() {
       notificationsHook.loadNotifications();
 
     } catch (err) {
-      logError("loadRealData", err);
+      // Session can drop mid-request; not a bug worth paging on.
+      if (err instanceof Error && err.message === "Not authenticated") {
+        logWarn("loadRealData", "auth lost mid-request", { error: err.message });
+      } else {
+        logError("loadRealData", err);
+      }
     } finally {
       isLoadingRef.current = false;
       setFeedLoaded(true);
