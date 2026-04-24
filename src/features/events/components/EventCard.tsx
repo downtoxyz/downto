@@ -222,9 +222,17 @@ const EventCard = ({
           {/* Responders + down button on same line */}
           <div className="flex items-center justify-between gap-2">
             <span className="font-mono text-tiny text-muted min-w-0 truncate">
-              {event.socialLoaded && event.peopleDown.length > 0 ? (() => {
-                const first = event.peopleDown[0];
-                const othersCount = event.peopleDown.length - 1;
+              {(() => {
+                if (!event.socialLoaded) return null;
+                // Hide the event's poster from this row — their name already
+                // appears elsewhere on the card, so "Kat is down" on Kat's
+                // own event reads as redundant.
+                const othersDown = event.createdBy
+                  ? event.peopleDown.filter((p) => p.userId !== event.createdBy)
+                  : event.peopleDown;
+                if (othersDown.length === 0) return null;
+                const first = othersDown[0];
+                const othersCount = othersDown.length - 1;
                 return (
                   <>
                     <span className="text-dt font-semibold">{first.name}</span>
@@ -235,7 +243,7 @@ const EventCard = ({
                     )}
                   </>
                 );
-              })() : null}
+              })()}
             </span>
             <button
               onClick={onToggleDown}
