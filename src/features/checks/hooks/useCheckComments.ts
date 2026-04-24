@@ -44,8 +44,12 @@ export function useCheckComments({
   const [loaded, setLoaded] = useState(false);
   const [realtimeCount, setRealtimeCount] = useState(0);
 
+  // Dev-mode fixture checks aren't real rows — skip DB calls for them.
+  const isMockCheck = checkId.startsWith("dev-mock-");
+
   // Always-on subscription — open when check card mounts
   useEffect(() => {
+    if (isMockCheck) return;
     const channel = db.subscribeToCheckComments(checkId, (comment) => {
       if (comment.user_id === userId) return;
       const ui = toCommentUI(comment, userId);
@@ -53,10 +57,11 @@ export function useCheckComments({
       setRealtimeCount(n => n + 1);
     });
     return () => channel.unsubscribe();
-  }, [checkId, userId]);
+  }, [checkId, userId, isMockCheck]);
 
   const openComments = useCallback(async () => {
     if (loaded) return;
+    if (isMockCheck) { setLoaded(true); return; }
     try {
       const fetched = await db.getCheckComments(checkId);
       setComments(fetched.map(c => toCommentUI(c, userId)));
@@ -65,7 +70,7 @@ export function useCheckComments({
     } catch (err) {
       logError("loadCheckComments", err, { checkId });
     }
-  }, [checkId, userId]);
+  }, [checkId, userId, isMockCheck]);
 
   const postComment = useCallback(async (text: string, mentions: string[] = []) => {
     if (!userId || !profile) return;
