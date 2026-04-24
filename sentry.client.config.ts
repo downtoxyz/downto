@@ -22,6 +22,10 @@ Sentry.init({
     // Chrome and Safari word this differently; match both.
     "Lock broken by another request with the 'steal' option", // Chrome / V8
     "Lock was stolen by another request", // Safari / WebKit
+    // Stale refresh token — the session row is gone server-side (expired, or
+    // the user signed out elsewhere). supabase-js already signs the user out
+    // locally and emits SIGNED_OUT; the thrown AuthApiError is just leaked.
+    "Invalid Refresh Token: Refresh Token Not Found",
   ],
   beforeSend(event) {
     // Defensive: strip free-text fields (event notes, scraped captions) that
