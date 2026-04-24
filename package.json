@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:prod": "bash -c '[ -f .env.development.local ] && mv .env.development.local .env.development.local.bak; trap \"[ -f .env.development.local.bak ] && mv .env.development.local.bak .env.development.local\" EXIT; next dev'",
+    "dev:staging": "bash -c 'if [ ! -f .env.staging.local ]; then echo \"missing .env.staging.local (create it with NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY for staging)\"; exit 1; fi; [ -f .env.development.local ] && mv .env.development.local .env.development.local.bak; cp .env.staging.local .env.development.local; trap \"rm -f .env.development.local; [ -f .env.development.local.bak ] && mv .env.development.local.bak .env.development.local\" EXIT; next dev'",
     "build": "next build",
     "build:capacitor": "bash scripts/build-capacitor.sh",
     "cap:sync": "npx cap sync ios",
