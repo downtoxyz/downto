@@ -6,7 +6,7 @@
 -- immediately notice. Everything else (FoF, expiry, archive) is downstream.
 
 BEGIN;
-SELECT plan(11);
+SELECT plan(14);
 
 -- =============================================================================
 -- Fixture setup: 4 profiles, friend graph, and 4 checks in different states.
@@ -63,6 +63,25 @@ INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_tz) V
    now() - interval '1 hour',
    'America/New_York');
 
+-- A dateless idea-only check (no event_date, no expires_at). This is the
+-- shape emitted when a user types just the idea and hits Send — the minimum
+-- viable interest check per specs/interest-check-flow.md.
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_tz) VALUES
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+   '11111111-1111-1111-1111-111111111111',
+   'dateless idea-only',
+   NULL, NULL, 'America/New_York');
+
+-- A dateless check with a 24h expiry (the default when user picks no date
+-- but leaves the timer at 24h).
+INSERT INTO public.interest_checks (id, author_id, text, expires_at, event_date, event_tz) VALUES
+  ('ffffffff-ffff-ffff-ffff-ffffffffffff',
+   '11111111-1111-1111-1111-111111111111',
+   'dateless 24h',
+   now() + interval '24 hours',
+   NULL,
+   'America/New_York');
+
 
 -- =============================================================================
 -- THE CORE INVARIANT: author sees their own freshly-posted check.
@@ -74,6 +93,18 @@ SET LOCAL "request.jwt.claims" TO '{"sub":"11111111-1111-1111-1111-111111111111"
 SELECT ok(
   EXISTS (SELECT 1 FROM public.interest_checks WHERE id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
   'CORE: author sees their own freshly-posted check (event_date = today in author tz)'
+);
+
+-- CORE invariant #2 + #3: the minimum-viable interest check is just an idea —
+-- no date, no place. Both dateless flavors (no expiry, 24h expiry) must be
+-- visible to the author immediately after posting.
+SELECT ok(
+  EXISTS (SELECT 1 FROM public.interest_checks WHERE id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  'CORE: author sees their own dateless idea-only check (no event_date, no expires_at)'
+);
+SELECT ok(
+  EXISTS (SELECT 1 FROM public.interest_checks WHERE id = 'ffffffff-ffff-ffff-ffff-ffffffffffff'),
+  'CORE: author sees their own dateless 24h-expiry check'
 );
 
 
