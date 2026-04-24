@@ -154,10 +154,12 @@ export default function CheckCard({
       >
         {isNew && (
           <div
-            className="absolute top-2 right-2 bg-dt font-mono text-[10px] font-bold uppercase py-0.5 px-2 rounded-sm z-10 leading-none"
+            className="absolute top-2 right-0 font-mono text-[10px] font-bold uppercase py-0.5 px-2.5 z-10 leading-none"
             style={{
-              color: "#c94dff",
-              border: "1px solid #c94dff",
+              background: "#d4f090", // pale chartreuse
+              color: "#ff00d4",       // electric fuchsia
+              borderTopLeftRadius: 3,
+              borderBottomLeftRadius: 3,
               letterSpacing: "0.12em",
             }}
           >
