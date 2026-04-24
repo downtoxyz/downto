@@ -717,6 +717,11 @@ export async function getFofAnnotations(): Promise<{ check_id: string; via_frien
 }
 
 export async function getActiveChecks(): Promise<(InterestCheck & { author: Profile; responses: (CheckResponse & { user: Profile })[]; squads: { id: string; archived_at: string | null; members: { id: string }[] }[]; co_authors: (CheckCoAuthor & { user: Profile })[] })[]> {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  // Local-timezone YYYY-MM-DD — using UTC here dropped checks for "today" from
+  // users west of UTC once it rolled past midnight server-side.
+  const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const { data, error } = await supabase
     .from('interest_checks')
     .select(`
@@ -726,8 +731,8 @@ export async function getActiveChecks(): Promise<(InterestCheck & { author: Prof
       squads(id, archived_at, members:squad_members(id, user_id, role)),
       co_authors:check_co_authors(*, user:profiles!user_id(*))
     `)
-    .or(`expires_at.gt.${new Date().toISOString()},expires_at.is.null,event_date.gte.${new Date().toISOString().slice(0, 10)}`)
-    .or(`event_date.gte.${new Date().toISOString().slice(0, 10)},event_date.is.null`)
+    .or(`expires_at.gt.${nowIso},expires_at.is.null,event_date.gte.${todayLocal}`)
+    .or(`event_date.gte.${todayLocal},event_date.is.null`)
     .is('archived_at', null)
     .order('created_at', { ascending: false });
 
