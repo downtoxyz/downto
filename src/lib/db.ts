@@ -1314,17 +1314,21 @@ export async function sendMessage(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const row: Record<string, unknown> = {
+    squad_id: squadId,
+    sender_id: user.id,
+    text,
+    mentions,
+  };
+  if (image) {
+    row.image_path = image.path;
+    row.image_width = image.width;
+    row.image_height = image.height;
+  }
+
   const { data, error } = await supabase
     .from('messages')
-    .insert({
-      squad_id: squadId,
-      sender_id: user.id,
-      text,
-      mentions,
-      image_path: image?.path ?? null,
-      image_width: image?.width ?? null,
-      image_height: image?.height ?? null,
-    })
+    .insert(row)
     .select('*, sender:profiles(*)')
     .single();
 
