@@ -152,6 +152,14 @@ export default function CheckCard({
         }`}
         style={check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : undefined}
       >
+        {isNew && (
+          <div
+            className="absolute top-0 right-0 bg-dt text-on-accent font-mono text-[9px] font-bold uppercase py-1 px-2.5 rounded-bl-lg z-10 leading-none"
+            style={{ letterSpacing: "0.15em" }}
+          >
+            new
+          </div>
+        )}
         {check.expiresIn !== "open" && (
           <div className="h-1 bg-border relative overflow-hidden">
             <div
@@ -248,9 +256,6 @@ export default function CheckCard({
                 <Linkify coAuthors={check.coAuthors} onViewProfile={onViewProfile}>{check.text}</Linkify>
               </p>
               <div className="flex items-center gap-1 shrink-0 mt-1">
-                {isNew && (
-                  <span className="bg-dt text-on-accent font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full leading-none">new</span>
-                )}
                 {!check.isYours && !check.isCoAuthor && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowActions(true); }}
