@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Event } from "@/lib/ui-types";
+import type { Profile } from "@/lib/types";
 import cn from "@/lib/tailwindMerge";
 import * as db from "@/lib/db";
 import InlineCommentsBox from "@/shared/components/InlineCommentsBox";
@@ -10,6 +11,7 @@ import DetailSheet from "@/shared/components/DetailSheet";
 const EventCard = ({
   event,
   userId,
+  profile,
   onToggleDown,
   onOpenSocial,
   onEdit,
@@ -18,6 +20,7 @@ const EventCard = ({
 }: {
   event: Event;
   userId?: string | null;
+  profile?: Profile | null;
   onToggleDown: () => void;
   onOpenSocial: () => void;
   onEdit?: () => void;
@@ -44,13 +47,20 @@ const EventCard = ({
   const postCmt = useCallback(async (text: string, _mentions?: string[]) => {
     const t = text.trim();
     if (!t || !event.id) return;
-    const opt = { id: `opt-${Date.now()}`, userId: userId ?? "", userName: "You", userAvatar: "?", text: t, isYours: true };
+    const opt = {
+      id: `opt-${Date.now()}`,
+      userId: userId ?? "",
+      userName: profile?.display_name ?? "You",
+      userAvatar: profile?.avatar_letter ?? "?",
+      text: t,
+      isYours: true,
+    };
     setEvComments((p) => [...p, opt]);
     try {
       const saved = await db.postEventComment(event.id, t);
       setEvComments((p) => p.map((c) => c.id === opt.id ? { id: saved.id, userId: saved.user_id, userName: saved.user?.display_name ?? "You", userAvatar: saved.user?.avatar_letter ?? "?", text: saved.text, isYours: true } : c));
     } catch { setEvComments((p) => p.filter((c) => c.id !== opt.id)); }
-  }, [event.id, userId]);
+  }, [event.id, userId, profile]);
 
   const poolPeople = event.peopleDown.filter((p) => p.inPool);
   const poolFriends = poolPeople.filter((p) => p.mutual);

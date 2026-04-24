@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest, isAuthError } from '@/lib/api-auth';
+import { proposeSquadDate, formatDateLabel } from '@/lib/server/squadDate';
 
 export async function POST(req: NextRequest) {
   const auth = await authenticateRequest(req);
@@ -99,26 +100,34 @@ export async function POST(req: NextRequest) {
   // Check-based squads use the confirm flow unless the user locked everything in
   const isProposal = !!squad?.check_id && !locked;
 
-  // Update expires_at to date + 24h
+  if (isProposal) {
+    const { expiresAt } = await proposeSquadDate({
+      adminClient,
+      squadId,
+      date,
+      time: time ?? null,
+      proposerUserId: user.id,
+      proposerDisplayName: displayName,
+    });
+    return NextResponse.json({ ok: true, expires_at: expiresAt, date_status: 'proposed' });
+  }
+
+  // --- Standard lock flow ---
   const expiresAt = new Date(date + 'T23:59:59Z');
   expiresAt.setHours(expiresAt.getHours() + 24);
-
-  const dateStatus = locked ? 'locked' : isProposal ? 'proposed' : null;
 
   const { error: updateError } = await supabase
     .from('squads')
     .update({
       expires_at: expiresAt.toISOString(),
       locked_date: date,
-      date_status: dateStatus,
+      date_status: locked ? 'locked' : null,
     })
     .eq('id', squadId);
-
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  // Sync date/time back to the linked interest check
   if (squad?.check_id) {
     await adminClient
       .from('interest_checks')
@@ -129,106 +138,16 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', squad.check_id);
   }
-
-  // Sync date back to the linked event (events store date in YYYY-MM-DD)
   if (squad?.event_id) {
     await adminClient
       .from('events')
-      .update({
-        date,
-        ...(time ? { time_display: time } : {}),
-      })
+      .update({ date, ...(time ? { time_display: time } : {}) })
       .eq('id', squad.event_id);
   }
 
-  const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-
+  const dateLabel = formatDateLabel(date);
   const timeLabel = time ? ` at ${time}` : '';
 
-  if (isProposal) {
-    // --- Proposal flow: insert date_confirm message + confirm rows ---
-
-    // Clear any old confirms (if re-proposing)
-    await adminClient
-      .from('squad_date_confirms')
-      .delete()
-      .eq('squad_id', squadId);
-
-    // Insert interactive system message
-    const { data: msg } = await adminClient
-      .from('messages')
-      .insert({
-        squad_id: squadId,
-        sender_id: null,
-        text: `${displayName} proposed ${dateLabel}${timeLabel} — are you still down?`,
-        is_system: true,
-        message_type: 'date_confirm',
-      })
-      .select('id')
-      .single();
-
-    const messageId = msg?.id;
-    if (!messageId) {
-      return NextResponse.json({ error: 'Failed to create message' }, { status: 500 });
-    }
-
-    // Get all squad members except proposer
-    const { data: members } = await adminClient
-      .from('squad_members')
-      .select('user_id')
-      .eq('squad_id', squadId)
-      .neq('user_id', user.id);
-
-    const otherMembers = members ?? [];
-
-    // Auto-confirm proposer as "still down"
-    await adminClient
-      .from('squad_date_confirms')
-      .insert({
-        squad_id: squadId,
-        message_id: messageId,
-        user_id: user.id,
-        response: 'yes',
-      });
-
-    // Create pending confirm rows for other members
-    if (otherMembers.length > 0) {
-      await adminClient
-        .from('squad_date_confirms')
-        .insert(otherMembers.map((m) => ({
-          squad_id: squadId,
-          message_id: messageId,
-          user_id: m.user_id,
-        })));
-
-      // Get squad name for notifications
-      const { data: squadData } = await supabase
-        .from('squads')
-        .select('name')
-        .eq('id', squadId)
-        .single();
-
-      // Create notifications (not push — just in-app)
-      await adminClient
-        .from('notifications')
-        .insert(otherMembers.map((m) => ({
-          user_id: m.user_id,
-          type: 'date_confirm',
-          title: squadData?.name ?? 'Squad',
-          body: `${displayName} proposed ${dateLabel}${timeLabel} — are you still down?`,
-          related_squad_id: squadId,
-          related_user_id: user.id,
-        })));
-    }
-
-    return NextResponse.json({ ok: true, expires_at: expiresAt.toISOString(), date_status: 'proposed' });
-  }
-
-  // --- Standard lock flow ---
   await adminClient
     .from('messages')
     .insert({

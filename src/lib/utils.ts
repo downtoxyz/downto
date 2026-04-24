@@ -253,25 +253,8 @@ const formatTimeMatch = (rawHour: number, minutes: string | null, meridiem: "am"
   return `${rawHour}${suffix}`;
 };
 
-/** Parse a location from text, e.g. "dinner at Jollibee" → "Jollibee" */
-// TODO: disabled — parsing not reliable enough yet
+/** Parse a location from text, e.g. "dinner at Jollibee" → "Jollibee". Disabled: parsing not reliable yet. */
 export const parseNaturalLocation = (_text: string): string | null => {
-  return null; // disabled
-  const lower = _text.toLowerCase(); // eslint-disable-line no-unreachable
-
-  // Skip "at" followed by time-like words
-  const timeWords = /^(noon|midnight|night|\d{1,2}(:\d{2})?\s*(am|pm)?)\b/;
-
-  // Match "at {location}" — capture everything after "at" until end or temporal/stop words
-  const atMatch = lower.match(/\bat\s+(.+?)(?:\s*[·|,]|\s+(?:on|at|around|from|with|tonight|today|tomorrow|tmrw|tmr|tn|this|next|in|mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\s*$)/);
-  if (atMatch && atMatch[1]) {
-    const candidate = atMatch[1].trim();
-    if (timeWords.test(candidate)) return null;
-    if (candidate.length < 2 || candidate.length > 50) return null;
-    // Capitalize first letter of each space-separated word (avoid apostrophe boundaries)
-    return candidate.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  }
-
   return null;
 };
 

@@ -1708,7 +1708,13 @@ export async function getPollVotes(pollId: string) {
   }));
 }
 
-export async function createPoll(squadId: string, question: string, options: string[], multiSelect = true) {
+export async function createPoll(
+  squadId: string,
+  question: string,
+  options: string[] | Array<{ date: string; time: string | null }>,
+  multiSelect = true,
+  pollType: 'text' | 'dates' = 'text',
+) {
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
@@ -1718,7 +1724,7 @@ export async function createPoll(squadId: string, question: string, options: str
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ squadId, question, options, multiSelect }),
+    body: JSON.stringify({ squadId, question, options, multiSelect, pollType }),
   });
 
   if (!res.ok) {
@@ -1788,6 +1794,140 @@ export function subscribeToPollVotes(
       (payload) => callback(payload.new as { user_id: string; option_index: number; poll_id: string })
     )
     .subscribe();
+}
+
+export async function getPollAvailability(pollId: string) {
+  const { data, error } = await supabase
+    .from('squad_poll_availability')
+    .select('user_id, day_offset, slot_index, user:profiles(display_name)')
+    .eq('poll_id', pollId);
+
+  if (error) throw error;
+  return (data ?? []).map((c: Record<string, unknown>) => ({
+    userId: c.user_id as string,
+    dayOffset: c.day_offset as number,
+    slotIndex: c.slot_index as number,
+    displayName: (c.user as { display_name?: string } | null)?.display_name ?? 'Unknown',
+  }));
+}
+
+export function subscribeToPollAvailability(
+  pollId: string,
+  callback: () => void,
+) {
+  return supabase
+    .channel(`poll_availability:${pollId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'squad_poll_availability',
+        filter: `poll_id=eq.${pollId}`,
+      },
+      () => callback(),
+    )
+    .subscribe();
+}
+
+export async function toggleAvailabilityCell(pollId: string, dayOffset: number, slotIndex: number) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(`${API_BASE}/api/squads/vote-availability`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ pollId, dayOffset, slotIndex }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to toggle availability');
+  }
+
+  return res.json();
+}
+
+export async function clearMyAvailability(pollId: string) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(`${API_BASE}/api/squads/clear-availability`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ pollId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to clear availability');
+  }
+
+  return res.json();
+}
+
+export type WhenSlot = {
+  date: string;
+  startMin: number | null;
+  endMin: number | null;
+  label: string | null;
+};
+
+export async function createWhenPoll(
+  squadId: string,
+  slots: WhenSlot[],
+  collectionStyle: 'preference' | 'availability',
+) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(`${API_BASE}/api/squads/create-poll`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      squadId,
+      pollType: 'when',
+      slots,
+      collectionStyle,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to create when poll');
+  }
+
+  return res.json();
+}
+
+export async function clearMyWhenVotes(pollId: string) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(`${API_BASE}/api/squads/clear-my-votes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ pollId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to clear votes');
+  }
+
+  return res.json();
 }
 
 // ============================================================================

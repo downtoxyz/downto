@@ -5,16 +5,52 @@ import * as db from "@/lib/db";
 import { color } from "@/lib/styles";
 import cn from "@/lib/tailwindMerge";
 
+type DateOption = { date: string; time: string | null };
+type WhenSlot = { date: string; startMin: number | null; endMin: number | null; label: string | null };
+
 interface PollMessageProps {
   poll: {
     id: string; messageId: string; question: string;
-    options: string[]; status: string; createdBy: string; multiSelect: boolean;
+    options: string[] | DateOption[] | WhenSlot[];
+    status: string; createdBy: string; multiSelect: boolean;
+    // 'availability' polls and 'when' polls with availability collection style
+    // aren't rendered here (ChatMessage routes them to GridPollMessage), but the
+    // type is widened so ChatMessage can pass the shared poll entry through
+    // without narrowing.
+    pollType?: 'text' | 'dates' | 'availability' | 'when';
+    collectionStyle?: 'preference' | 'availability';
   };
   pollVotes: Array<{ userId: string; optionIndex: number; displayName: string }>;
   userId: string | null;
   isWaitlisted: boolean;
   pollMessageRef: React.RefObject<HTMLDivElement | null>;
   onPollClosed?: () => void;
+}
+
+function formatDateOption(o: DateOption): string {
+  const d = new Date(o.date + 'T00:00:00');
+  const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+  return o.time ? `${dayLabel} · ${o.time}` : dayLabel;
+}
+
+function formatMinuteOfDay(min: number): string {
+  const h24 = Math.floor(min / 60);
+  const m = min % 60;
+  const ampm = h24 >= 12 ? 'pm' : 'am';
+  const h12 = ((h24 + 11) % 12) + 1;
+  return m === 0 ? `${h12}${ampm}` : `${h12}:${m.toString().padStart(2, '0')}${ampm}`;
+}
+
+function formatWhenSlot(s: WhenSlot): string {
+  const d = new Date(s.date + 'T00:00:00');
+  const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+  // Display priority: explicit label → concrete time range → day-only.
+  if (s.label) return `${dayLabel} · ${s.label}`;
+  if (s.startMin !== null && s.endMin !== null) {
+    return `${dayLabel} · ${formatMinuteOfDay(s.startMin)}–${formatMinuteOfDay(s.endMin)}`;
+  }
+  if (s.startMin !== null) return `${dayLabel} · ${formatMinuteOfDay(s.startMin)}`;
+  return dayLabel;
 }
 
 export default function PollMessage({
@@ -55,6 +91,30 @@ export default function PollMessage({
   const myVotes = userId ? new Set(votes.filter((v) => v.userId === userId).map((v) => v.optionIndex)) : new Set<number>();
   const isCreator = userId === poll.createdBy;
 
+  const isDatesPoll = poll.pollType === 'dates';
+  const isWhenPoll = poll.pollType === 'when';
+  // Render in chronological order for date-like polls; vote lookups use the
+  // option's original index so sorting doesn't break tallies.
+  const renderOrder: Array<{ origIndex: number; label: string }> = isDatesPoll
+    ? (poll.options as DateOption[])
+        .map((o, i) => ({ origIndex: i, o }))
+        .sort((a, b) => {
+          if (a.o.date !== b.o.date) return a.o.date < b.o.date ? -1 : 1;
+          return (a.o.time ?? '').localeCompare(b.o.time ?? '');
+        })
+        .map(({ origIndex, o }) => ({ origIndex, label: formatDateOption(o) }))
+    : isWhenPoll
+    ? (poll.options as WhenSlot[])
+        .map((s, i) => ({ origIndex: i, s }))
+        .sort((a, b) => {
+          if (a.s.date !== b.s.date) return a.s.date < b.s.date ? -1 : 1;
+          const aStart = a.s.startMin ?? -1;
+          const bStart = b.s.startMin ?? -1;
+          return aStart - bStart;
+        })
+        .map(({ origIndex, s }) => ({ origIndex, label: formatWhenSlot(s) }))
+    : (poll.options as string[]).map((label, i) => ({ origIndex: i, label }));
+
   return (
     <div ref={pollMessageRef} className="flex justify-center py-2">
       <div className="bg-card border border-border-mid rounded-xl p-4 max-w-[300px] w-full">
@@ -63,10 +123,10 @@ export default function PollMessage({
           <span className="font-serif text-base text-primary">{poll.question}</span>
         </div>
         <div className="font-mono text-tiny text-faint mb-2.5">
-          {poll.multiSelect ? 'Select all that apply' : 'Pick one'}
+          {isDatesPoll || isWhenPoll ? 'tap every time that works' : poll.multiSelect ? 'Select all that apply' : 'Pick one'}
         </div>
         <div className="flex flex-col gap-1.5">
-          {poll.options.map((opt, oi) => {
+          {renderOrder.map(({ origIndex: oi, label }) => {
             const isMyVote = myVotes.has(oi);
             const votersForOption = votes.filter((v) => v.optionIndex === oi);
             const count = votersForOption.length;
@@ -96,7 +156,7 @@ export default function PollMessage({
                   <span className={cn(
                     "font-mono text-xs",
                     isMyVote ? "text-black font-bold" : "text-primary font-normal"
-                  )}>{opt}</span>
+                  )}>{label}</span>
                   {totalVoters > 0 && (
                     <span className={cn(
                       "font-mono text-tiny font-bold",

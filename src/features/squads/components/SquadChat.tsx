@@ -11,6 +11,54 @@ import MessageComposer from "./MessageComposer";
 import ChatMessage from "./ChatMessage";
 import SquadSettingsModal from "./SquadSettingsModal";
 
+type WhenSlot = { date: string; startMin: number | null; endMin: number | null; label: string | null };
+type PollEntry = {
+  id: string; messageId: string; question: string;
+  options: string[] | Array<{ date: string; time: string | null }> | WhenSlot[];
+  status: string; createdBy: string;
+  multiSelect: boolean;
+  // 'dates' and 'availability' are legacy; new polls use 'when' with collectionStyle.
+  pollType?: 'text' | 'dates' | 'availability' | 'when';
+  collectionStyle?: 'preference' | 'availability';
+  // Legacy 'availability' poll type stores grid params on the row directly.
+  gridDates?: string[];
+  gridHourStart?: number;
+  gridHourEnd?: number;
+  gridSlotMinutes?: 30 | 60;
+};
+type PollVote = { userId: string; optionIndex: number; displayName: string };
+type PollAvailability = { userId: string; dayOffset: number; slotIndex: number; displayName: string };
+
+function pollRowToEntry(p: { id: string; message_id: string; question: string; options: unknown; status: string; created_by: string; multi_select?: boolean | null }): PollEntry {
+  const raw = p as Record<string, unknown>;
+  const pollType = (raw.poll_type as PollEntry['pollType']) ?? 'text';
+  return {
+    id: p.id,
+    messageId: p.message_id,
+    question: p.question,
+    options: p.options as PollEntry['options'],
+    status: p.status,
+    createdBy: p.created_by,
+    multiSelect: p.multi_select ?? true,
+    pollType,
+    ...(pollType === 'when' ? {
+      collectionStyle: raw.collection_style as 'preference' | 'availability' | undefined,
+    } : {}),
+    ...(pollType === 'availability' ? {
+      gridDates: raw.grid_dates as string[],
+      gridHourStart: raw.grid_hour_start as number,
+      gridHourEnd: raw.grid_hour_end as number,
+      gridSlotMinutes: raw.grid_slot_minutes as 30 | 60,
+    } : {}),
+  };
+}
+
+// A poll uses the squad_poll_availability cell table only when it's the legacy
+// 'availability' poll_type. Everything else (text/dates/when) uses squad_poll_votes.
+function pollUsesCellTable(p: { pollType?: PollEntry['pollType'] }): boolean {
+  return p.pollType === 'availability';
+}
+
 
 interface SquadChatProps {
   squad: Squad;
@@ -28,7 +76,13 @@ interface SquadChatProps {
   onAddMember?: (squadId: string, userId: string) => Promise<void>;
   onSetMemberRole?: (squadId: string, userId: string, role: 'member' | 'waitlist') => Promise<void>;
   onKickMember?: (squadId: string, userId: string) => Promise<void>;
-  onCreatePoll?: (squadId: string, question: string, options: string[], multiSelect: boolean) => Promise<void>;
+  onCreatePoll?: (
+    squadId: string,
+    question: string,
+    options: string[] | Array<{ date: string; time: string | null }>,
+    multiSelect: boolean,
+    pollType?: 'text' | 'dates',
+  ) => Promise<void>;
   pendingJoinRequests?: { squadId: string; userId: string; name: string; avatar: string }[];
   onRespondToJoinRequest?: (squadId: string, userId: string, accept: boolean) => Promise<void>;
 }
@@ -96,18 +150,28 @@ const SquadChat = ({
   const [dateConfirms, setDateConfirms] = useState<Map<string, 'yes' | 'no' | null>>(new Map());
   const [confirmLoading, setConfirmLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  // Poll state
-  const [activePoll, setActivePoll] = useState<{
-    id: string; messageId: string; question: string;
-    options: string[]; status: string; createdBy: string;
-    multiSelect: boolean;
-  } | null>(null);
-  const [pollVotes, setPollVotes] = useState<Array<{ userId: string; optionIndex: number; displayName: string }>>([]);
+  // Poll state — multiple polls can be active at once, so we index by message_id
+  // (each poll row maps to exactly one chat message).
+  const [pollsByMessageId, setPollsByMessageId] = useState<Map<string, PollEntry>>(new Map());
+  const [pollVotesByPollId, setPollVotesByPollId] = useState<Map<string, PollVote[]>>(new Map());
+  const [pollAvailabilityByPollId, setPollAvailabilityByPollId] = useState<Map<string, PollAvailability[]>>(new Map());
   const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollVariant, setPollVariant] = useState<'text' | 'dates' | 'grid'>('text');
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   const [pollMultiSelect, setPollMultiSelect] = useState(true);
   const [pollCreating, setPollCreating] = useState(false);
+  const [pollDateInput, setPollDateInput] = useState("");
+  const [pollDateOptions, setPollDateOptions] = useState<Array<{ date: string; time: string | null }>>([]);
+  // Grid creator state — defaults to next 7 days, 6pm–11pm, 1h slots
+  const [gridRangePreset, setGridRangePreset] = useState<'weekend' | 'next-7' | 'next-14' | 'custom'>('next-7');
+  const [gridCustomMode, setGridCustomMode] = useState<'range' | 'specific'>('range');
+  const [gridCustomStart, setGridCustomStart] = useState<string>('');
+  const [gridCustomEnd, setGridCustomEnd] = useState<string>('');
+  const [gridSpecificInput, setGridSpecificInput] = useState<string>('');
+  const [gridSpecificDates, setGridSpecificDates] = useState<string[]>([]);
+  const [gridWindow, setGridWindow] = useState<'evenings' | 'afternoons' | 'all-day'>('evenings');
+  const [gridSlotMinutes, setGridSlotMinutes] = useState<30 | 60>(60);
   const pollMessageRef = useRef<HTMLDivElement>(null);
 
   // Notify parent + service worker when chat opens/closes
@@ -264,47 +328,78 @@ const SquadChat = ({
   // Load active poll when entering a squad
   useEffect(() => {
     if (!localSquad.id) {
-      setActivePoll(null);
-      setPollVotes([]);
+      setPollsByMessageId(new Map());
+      setPollVotesByPollId(new Map());
+      setPollAvailabilityByPollId(new Map());
       return;
     }
     let stale = false;
-    db.getSquadPolls(localSquad.id).then((polls) => {
+    db.getSquadPolls(localSquad.id).then(async (polls) => {
       if (stale) return;
-      const active = polls.find((p: { status: string }) => p.status === 'active');
-      if (active) {
-        setActivePoll({
-          id: active.id,
-          messageId: active.message_id,
-          question: active.question,
-          options: active.options as string[],
-          status: active.status,
-          createdBy: active.created_by,
-          multiSelect: active.multi_select ?? true,
-        });
-        db.getPollVotes(active.id).then((votes) => {
-          if (stale) return;
-          setPollVotes(votes);
-        }).catch(() => {});
-      } else {
-        setActivePoll(null);
-        setPollVotes([]);
-      }
+      const entries = polls.map(pollRowToEntry);
+      setPollsByMessageId(new Map(entries.map((e) => [e.messageId, e])));
+      // Fetch per-poll data in parallel — option votes for everything except legacy
+      // availability polls (which use squad_poll_availability cells).
+      const voteResults = await Promise.all(
+        entries
+          .filter((e) => !pollUsesCellTable(e))
+          .map((e) => db.getPollVotes(e.id).then((v) => [e.id, v] as const).catch(() => [e.id, [] as PollVote[]] as const))
+      );
+      const availResults = await Promise.all(
+        entries
+          .filter(pollUsesCellTable)
+          .map((e) => db.getPollAvailability(e.id).then((a) => [e.id, a] as const).catch(() => [e.id, [] as PollAvailability[]] as const))
+      );
+      if (stale) return;
+      setPollVotesByPollId(new Map(voteResults));
+      setPollAvailabilityByPollId(new Map(availResults));
     }).catch(() => {});
     return () => { stale = true; };
   }, [localSquad.id]);
 
-  // Realtime subscription for poll votes
+  // Realtime subscriptions — one channel per active poll, by type.
+  const activeOptionPollIds = Array.from(pollsByMessageId.values())
+    .filter((p) => p.status === 'active' && !pollUsesCellTable(p))
+    .map((p) => p.id)
+    .sort()
+    .join(',');
+  const activeGridPollIds = Array.from(pollsByMessageId.values())
+    .filter((p) => p.status === 'active' && pollUsesCellTable(p))
+    .map((p) => p.id)
+    .sort()
+    .join(',');
   useEffect(() => {
-    if (!activePoll?.id || activePoll.status !== 'active') return;
-    const channel = db.subscribeToPollVotes(activePoll.id, () => {
-      // Refetch all votes to get display names
-      db.getPollVotes(activePoll.id).then((votes) => {
-        setPollVotes(votes);
-      }).catch(() => {});
-    });
-    return () => { channel.unsubscribe(); };
-  }, [activePoll?.id, activePoll?.status]);
+    if (!activeOptionPollIds) return;
+    const ids = activeOptionPollIds.split(',').filter(Boolean);
+    const channels = ids.map((pollId) =>
+      db.subscribeToPollVotes(pollId, () => {
+        db.getPollVotes(pollId).then((votes) => {
+          setPollVotesByPollId((prev) => {
+            const next = new Map(prev);
+            next.set(pollId, votes);
+            return next;
+          });
+        }).catch(() => {});
+      })
+    );
+    return () => { channels.forEach((c) => c.unsubscribe()); };
+  }, [activeOptionPollIds]);
+  useEffect(() => {
+    if (!activeGridPollIds) return;
+    const ids = activeGridPollIds.split(',').filter(Boolean);
+    const channels = ids.map((pollId) =>
+      db.subscribeToPollAvailability(pollId, () => {
+        db.getPollAvailability(pollId).then((cells) => {
+          setPollAvailabilityByPollId((prev) => {
+            const next = new Map(prev);
+            next.set(pollId, cells);
+            return next;
+          });
+        }).catch(() => {});
+      })
+    );
+    return () => { channels.forEach((c) => c.unsubscribe()); };
+  }, [activeGridPollIds]);
 
   // Fetch fresh messages when chat opens (covers gap before realtime subscribes)
   useEffect(() => {
@@ -392,20 +487,24 @@ const SquadChat = ({
           imageHeight: newMessage.image_height ?? undefined,
         } : {}),
       };
-      // Refresh poll data when a poll message arrives
+      // Refresh poll data when a poll message arrives — a new poll may have
+      // just been created, or one may have transitioned to closed.
       if (newMessage.message_type === 'poll' && localSquad.id) {
-        db.getSquadPolls(localSquad.id).then((polls) => {
-          const active = polls.find((p: { status: string }) => p.status === 'active');
-          if (active) {
-            setActivePoll({
-              id: active.id, messageId: active.message_id, question: active.question,
-              options: active.options as string[], status: active.status, createdBy: active.created_by,
-              multiSelect: active.multi_select ?? true,
-            });
-            db.getPollVotes(active.id).then((votes) => {
-              setPollVotes(votes);
-            }).catch(() => {});
-          }
+        db.getSquadPolls(localSquad.id).then(async (polls) => {
+          const entries = polls.map(pollRowToEntry);
+          setPollsByMessageId(new Map(entries.map((e) => [e.messageId, e])));
+          const voteResults = await Promise.all(
+            entries
+              .filter((e) => !pollUsesCellTable(e))
+              .map((e) => db.getPollVotes(e.id).then((v) => [e.id, v] as const).catch(() => [e.id, [] as PollVote[]] as const))
+          );
+          const availResults = await Promise.all(
+            entries
+              .filter(pollUsesCellTable)
+              .map((e) => db.getPollAvailability(e.id).then((a) => [e.id, a] as const).catch(() => [e.id, [] as PollAvailability[]] as const))
+          );
+          setPollVotesByPollId(new Map(voteResults));
+          setPollAvailabilityByPollId(new Map(availResults));
         }).catch(() => {});
       }
       const bodyPreview = newMessage.text && newMessage.text.length > 0
@@ -849,6 +948,9 @@ const SquadChat = ({
             const next = i < messages.length - 1 ? messages[i + 1] : null;
             const sameSenderAsPrev = prev && prev.sender === msg.sender && prev.sender !== "system";
             const sameSenderAsNext = next && next.sender === msg.sender && next.sender !== "system";
+            const msgPoll = msg.messageId ? pollsByMessageId.get(msg.messageId) : undefined;
+            const msgPollVotes = msgPoll ? pollVotesByPollId.get(msgPoll.id) ?? [] : [];
+            const msgPollAvail = msgPoll ? pollAvailabilityByPollId.get(msgPoll.id) ?? [] : [];
             return (
               <ChatMessage
                 key={i}
@@ -860,12 +962,19 @@ const SquadChat = ({
                 isLastConfirm={i === lastConfirmIdx}
                 confirmLoading={confirmLoading}
                 dateConfirmStatus={dateConfirmStatus}
-                activePoll={activePoll}
-                pollVotes={pollVotes}
+                poll={msgPoll}
+                pollVotes={msgPollVotes}
+                pollAvailability={msgPollAvail}
                 userId={userId}
                 isWaitlisted={localSquad.isWaitlisted ?? false}
                 pollMessageRef={pollMessageRef}
-                onPollClosed={() => setActivePoll((prev) => prev ? { ...prev, status: 'closed' } : prev)}
+                onPollClosed={(pollId) => setPollsByMessageId((prev) => {
+                  const next = new Map(prev);
+                  for (const [k, v] of next) {
+                    if (v.id === pollId) next.set(k, { ...v, status: 'closed' });
+                  }
+                  return next;
+                })}
               />
             );
           });
@@ -935,23 +1044,38 @@ const SquadChat = ({
             </div>
           </div>
         )}
-        {/* Active poll chip */}
-        {activePoll?.status === 'active' && (
-          <div
-            onClick={() => pollMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-            className="flex items-center gap-1.5 px-5 py-1.5 cursor-pointer"
-          >
-            <div className="flex items-center gap-1.5 bg-card border border-dt rounded-2xl px-3 py-1.5 flex-1 min-w-0">
-              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" className="shrink-0"><path d="M224,200h-8V40a8,8,0,0,0-8-8H152a8,8,0,0,0-8,8V80H96a8,8,0,0,0-8,8v40H48a8,8,0,0,0-8,8v64H32a8,8,0,0,1,0-16H224a8,8,0,0,1,0,16ZM160,48h40V200H160ZM104,96h40V200H104ZM56,144H88v56H56Z"/></svg>
-              <span className="font-mono text-xs text-primary overflow-hidden text-ellipsis whitespace-nowrap flex-1">
-                {activePoll.question}
-              </span>
-              <span className="font-mono text-tiny font-bold text-dt shrink-0">
-                {new Set(pollVotes.map((v) => v.userId)).size}
-              </span>
+        {/* Active poll chip — shows the most recent active poll; clicking scrolls to it.
+            If multiple polls are active, the chip label reflects the count. */}
+        {(() => {
+          const activePolls = Array.from(pollsByMessageId.values()).filter((p) => p.status === 'active');
+          if (activePolls.length === 0) return null;
+          // Most recent by message order: find whichever active poll's message appears latest
+          const msgIdxByPoll = new Map<string, number>();
+          messages.forEach((m, idx) => { if (m.messageId) msgIdxByPoll.set(m.messageId, idx); });
+          const latest = activePolls.reduce((acc, p) =>
+            (msgIdxByPoll.get(p.messageId) ?? -1) > (msgIdxByPoll.get(acc.messageId) ?? -1) ? p : acc
+          , activePolls[0]);
+          const latestVotes = pollVotesByPollId.get(latest.id) ?? [];
+          const label = activePolls.length > 1
+            ? `${activePolls.length} active polls · latest: ${latest.question}`
+            : latest.question;
+          return (
+            <div
+              onClick={() => pollMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              className="flex items-center gap-1.5 px-5 py-1.5 cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5 bg-card border border-dt rounded-2xl px-3 py-1.5 flex-1 min-w-0">
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" className="shrink-0"><path d="M224,200h-8V40a8,8,0,0,0-8-8H152a8,8,0,0,0-8,8V80H96a8,8,0,0,0-8,8v40H48a8,8,0,0,0-8,8v64H32a8,8,0,0,1,0-16H224a8,8,0,0,1,0,16ZM160,48h40V200H160ZM104,96h40V200H104ZM56,144H88v56H56Z"/></svg>
+                <span className="font-mono text-xs text-primary overflow-hidden text-ellipsis whitespace-nowrap flex-1">
+                  {label}
+                </span>
+                <span className="font-mono text-tiny font-bold text-dt shrink-0">
+                  {new Set(latestVotes.map((v) => v.userId)).size}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
         {/* Join request banners */}
         {pendingJoinRequests && onRespondToJoinRequest && localSquad && pendingJoinRequests
           .filter((r) => r.squadId === localSquad.id)
@@ -985,9 +1109,13 @@ const SquadChat = ({
         }
         <MessageComposer
           members={localSquad.members}
-          activePoll={activePoll}
           onSend={handleSend}
-          onOpenPollCreator={onCreatePoll ? () => setShowPollCreator(true) : undefined}
+          onOpenPollCreator={onCreatePoll ? () => {
+            // Default to dates variant when the squad hasn't picked a date yet —
+            // that's where this tool is most useful.
+            setPollVariant(localSquad.eventIsoDate ? 'text' : 'dates');
+            setShowPollCreator(true);
+          } : undefined}
         />
       </div>
       )}
@@ -1038,113 +1166,523 @@ const SquadChat = ({
       )}
 
       {/* Poll creation modal */}
-      {showPollCreator && (
-        <div
-          onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiSelect(true); }}
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
-        >
+      {showPollCreator && (() => {
+        const closeCreator = () => {
+          setShowPollCreator(false);
+          setPollQuestion("");
+          setPollOptions(["", ""]);
+          setPollMultiSelect(true);
+          setPollDateInput("");
+          setPollDateOptions([]);
+          setGridRangePreset('next-7');
+          setGridCustomMode('range');
+          setGridCustomStart('');
+          setGridCustomEnd('');
+          setGridSpecificInput('');
+          setGridSpecificDates([]);
+          setGridWindow('evenings');
+          setGridSlotMinutes(60);
+        };
+
+        const addDateOption = () => {
+          const input = pollDateInput.trim();
+          if (!input) return;
+          const parsedDate = parseNaturalDate(input);
+          const iso = parsedDate?.iso ?? parseDateToISO(input);
+          if (!iso) return;
+          const time = parseNaturalTime(input);
+          const key = `${iso}|${time ?? ''}`;
+          if (pollDateOptions.some((o) => `${o.date}|${o.time ?? ''}` === key)) {
+            setPollDateInput("");
+            return;
+          }
+          const next = [...pollDateOptions, { date: iso, time }];
+          next.sort((a, b) => {
+            if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+            return (a.time ?? '').localeCompare(b.time ?? '');
+          });
+          setPollDateOptions(next);
+          setPollDateInput("");
+        };
+
+        const formatDateChip = (o: { date: string; time: string | null }) => {
+          const d = new Date(o.date + 'T00:00:00');
+          const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+          return o.time ? `${dayLabel} · ${o.time}` : dayLabel;
+        };
+
+        const fmtDate = (d: Date) => `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+        const expandRange = (startIso: string, endIso: string): string[] => {
+          const out: string[] = [];
+          const cur = new Date(startIso + 'T00:00:00');
+          const end = new Date(endIso + 'T00:00:00');
+          while (cur.getTime() <= end.getTime()) {
+            out.push(fmtDate(cur));
+            cur.setDate(cur.getDate() + 1);
+          }
+          return out;
+        };
+        const computeGridDates = (): string[] | null => {
+          const today = new Date();
+          const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          if (gridRangePreset === 'next-7' || gridRangePreset === 'next-14') {
+            const days = gridRangePreset === 'next-7' ? 7 : 14;
+            const end = new Date(todayStart);
+            end.setDate(end.getDate() + days - 1);
+            return expandRange(fmtDate(todayStart), fmtDate(end));
+          }
+          if (gridRangePreset === 'weekend') {
+            // If today is Fri/Sat/Sun, start = today; else start = upcoming Friday.
+            const dow = todayStart.getDay(); // 0=Sun..6=Sat
+            const start = new Date(todayStart);
+            if (dow >= 1 && dow <= 4) start.setDate(start.getDate() + (5 - dow));
+            // End = the Sunday of that weekend (day 0 of the following week).
+            const end = new Date(start);
+            const startDow = end.getDay();
+            if (startDow !== 0) end.setDate(end.getDate() + (7 - startDow));
+            return expandRange(fmtDate(start), fmtDate(end));
+          }
+          // custom
+          if (gridCustomMode === 'specific') {
+            if (gridSpecificDates.length < 1 || gridSpecificDates.length > 21) return null;
+            return Array.from(new Set(gridSpecificDates)).sort();
+          }
+          if (!gridCustomStart || !gridCustomEnd) return null;
+          if (gridCustomEnd < gridCustomStart) return null;
+          const days = Math.round((new Date(gridCustomEnd + 'T00:00:00').getTime() - new Date(gridCustomStart + 'T00:00:00').getTime()) / 86400000) + 1;
+          if (days < 1 || days > 21) return null;
+          return expandRange(gridCustomStart, gridCustomEnd);
+        };
+
+        const addSpecificDate = () => {
+          const input = gridSpecificInput.trim();
+          if (!input) return;
+          const parsed = parseNaturalDate(input);
+          const iso = parsed?.iso ?? parseDateToISO(input);
+          if (!iso) return;
+          if (gridSpecificDates.includes(iso)) { setGridSpecificInput(""); return; }
+          const next = [...gridSpecificDates, iso].sort();
+          setGridSpecificDates(next);
+          setGridSpecificInput("");
+        };
+        const formatSpecificDateChip = (iso: string) => {
+          const d = new Date(iso + 'T00:00:00');
+          return d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+        };
+
+        // Server caps when-poll slots at 50; the grid emits one slot per cell.
+        const MAX_WHEN_SLOTS = 50;
+        const computeGridSlotCount = (): number => {
+          const dates = computeGridDates();
+          if (!dates) return 0;
+          const window =
+            gridWindow === 'evenings' ? { hourStart: 18, hourEnd: 23 }
+            : gridWindow === 'afternoons' ? { hourStart: 12, hourEnd: 17 }
+            : { hourStart: 10, hourEnd: 23 };
+          const slotsPerDay = Math.ceil(((window.hourEnd - window.hourStart) * 60) / gridSlotMinutes);
+          return dates.length * slotsPerDay;
+        };
+        const gridSlotCount = computeGridSlotCount();
+        const canCreateText = !!pollQuestion.trim() && pollOptions.filter((o) => o.trim()).length >= 2;
+        const canCreateDates = pollDateOptions.length >= 2;
+        const canCreateGrid = computeGridDates() !== null && gridSlotCount > 0 && gridSlotCount <= MAX_WHEN_SLOTS;
+        const canCreate = (
+          pollVariant === 'text' ? canCreateText
+          : pollVariant === 'dates' ? canCreateDates
+          : canCreateGrid
+        ) && !pollCreating;
+
+        const computeGridParams = () => {
+          const dates = computeGridDates();
+          if (!dates) return null;
+          const window =
+            gridWindow === 'evenings' ? { hourStart: 18, hourEnd: 23 }
+            : gridWindow === 'afternoons' ? { hourStart: 12, hourEnd: 17 }
+            : { hourStart: 10, hourEnd: 23 };
+          return {
+            dates,
+            hourStart: window.hourStart,
+            hourEnd: window.hourEnd,
+            slotMinutes: gridSlotMinutes,
+          } as const;
+        };
+
+        const handleCreate = async () => {
+          if (!localSquad?.id || !canCreate) return;
+          setPollCreating(true);
+          try {
+            if (pollVariant === 'dates') {
+              // Preference-style 'when' poll: each entered date becomes a slot
+              // with the time string carried as a label (no structured range).
+              const slots: WhenSlot[] = pollDateOptions.map((o) => ({
+                date: o.date,
+                startMin: null,
+                endMin: null,
+                label: o.time,
+              }));
+              await db.createWhenPoll(localSquad.id, slots, 'preference');
+            } else if (pollVariant === 'grid') {
+              // Availability-style 'when' poll: enumerate every (day, slot) cell
+              // as a slot with concrete startMin/endMin. Server caps at 50 slots.
+              const g = computeGridParams();
+              if (!g) return;
+              const slots: WhenSlot[] = [];
+              const slotsPerDay = Math.ceil(((g.hourEnd - g.hourStart) * 60) / g.slotMinutes);
+              for (const date of g.dates) {
+                for (let s = 0; s < slotsPerDay; s++) {
+                  const startMin = g.hourStart * 60 + s * g.slotMinutes;
+                  const endMin = Math.min(startMin + g.slotMinutes, g.hourEnd * 60);
+                  slots.push({ date, startMin, endMin, label: null });
+                }
+              }
+              await db.createWhenPoll(localSquad.id, slots, 'availability');
+            } else {
+              const valid = pollOptions.filter((o) => o.trim());
+              await onCreatePoll?.(localSquad.id, pollQuestion.trim(), valid, pollMultiSelect, 'text');
+            }
+            closeCreator();
+          } catch (err) {
+            logError('createPoll', err);
+          } finally {
+            setPollCreating(false);
+          }
+        };
+
+        return (
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-deep border border-border rounded-2xl px-5 py-6 w-[90%] max-w-[340px]"
+            onClick={closeCreator}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
           >
-            <h3 className="font-serif text-lg text-primary mb-4 text-center">
-              Create a poll
-            </h3>
-            <input
-              value={pollQuestion}
-              onChange={(e) => setPollQuestion(e.target.value)}
-              placeholder="What's the question?"
-              className="w-full bg-card border border-border-mid rounded-lg py-2.5 px-3 text-primary font-mono outline-none mb-3 box-border"
-              style={{ fontSize: 13 }}
-            />
-            <div className="flex flex-col gap-2 mb-3">
-              {pollOptions.map((opt, i) => (
-                <div key={i} className="flex gap-1.5 items-center">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-deep border border-border rounded-2xl px-5 py-6 w-[90%] max-w-[340px]"
+            >
+              <h3 className="font-serif text-lg text-primary mb-4 text-center">
+                Create a poll
+              </h3>
+
+              <div className="flex bg-card border border-border-mid rounded-lg p-0.5 mb-4">
+                {(['text', 'dates', 'grid'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setPollVariant(v)}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-md font-mono text-[10px] font-bold uppercase transition-colors",
+                      pollVariant === v ? "bg-dt text-on-accent" : "bg-transparent text-dim"
+                    )}
+                    style={{ letterSpacing: '0.08em' }}
+                  >
+                    {v === 'text' ? 'Question' : v === 'dates' ? 'Dates' : 'Grid'}
+                  </button>
+                ))}
+              </div>
+
+              {pollVariant === 'grid' ? (
+                <>
+                  <div className="mb-3">
+                    <div className="font-mono text-tiny text-faint mb-1.5" style={{ letterSpacing: '0.08em' }}>RANGE</div>
+                    <div className="flex bg-card border border-border-mid rounded-lg p-0.5">
+                      {([
+                        { k: 'weekend', label: 'weekend' },
+                        { k: 'next-7', label: '7 days' },
+                        { k: 'next-14', label: '14 days' },
+                        { k: 'custom', label: 'custom' },
+                      ] as const).map(({ k, label }) => (
+                        <button
+                          key={k}
+                          onClick={() => {
+                            setGridRangePreset(k);
+                            if (k === 'custom' && !gridCustomStart) {
+                              // Seed with today + 7 days as sensible defaults.
+                              const t = new Date();
+                              const s = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+                              const e = new Date(s); e.setDate(e.getDate() + 6);
+                              setGridCustomStart(fmtDate(s));
+                              setGridCustomEnd(fmtDate(e));
+                            }
+                          }}
+                          className={cn(
+                            "flex-1 py-1.5 rounded-md font-mono text-[10px] font-bold uppercase",
+                            gridRangePreset === k ? "bg-dt text-on-accent" : "bg-transparent text-dim"
+                          )}
+                          style={{ letterSpacing: '0.08em' }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {gridRangePreset === 'custom' && (
+                      <div className="mt-2">
+                        <div className="flex bg-card border border-border-mid rounded-lg p-0.5 mb-2">
+                          {([
+                            { k: 'range', label: 'continuous' },
+                            { k: 'specific', label: 'specific dates' },
+                          ] as const).map(({ k, label }) => (
+                            <button
+                              key={k}
+                              onClick={() => setGridCustomMode(k)}
+                              className={cn(
+                                "flex-1 py-1.5 rounded-md font-mono text-[10px] font-bold uppercase",
+                                gridCustomMode === k ? "bg-dt text-on-accent" : "bg-transparent text-dim"
+                              )}
+                              style={{ letterSpacing: '0.08em' }}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {gridCustomMode === 'range' ? (
+                          <>
+                            <div className="flex gap-1.5">
+                              <input
+                                type="date"
+                                value={gridCustomStart}
+                                onChange={(e) => setGridCustomStart(e.target.value)}
+                                className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                              />
+                              <input
+                                type="date"
+                                value={gridCustomEnd}
+                                onChange={(e) => setGridCustomEnd(e.target.value)}
+                                min={gridCustomStart || undefined}
+                                className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                              />
+                            </div>
+                            {!canCreateGrid && gridCustomStart && gridCustomEnd && (
+                              <p className="font-mono text-tiny text-faint mt-1.5">
+                                range must span 1–21 days
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex gap-1.5">
+                              <input
+                                value={gridSpecificInput}
+                                onChange={(e) => setGridSpecificInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSpecificDate(); } }}
+                                placeholder="sat"
+                                className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                                disabled={gridSpecificDates.length >= 21}
+                              />
+                              <button
+                                onClick={addSpecificDate}
+                                disabled={!gridSpecificInput.trim() || gridSpecificDates.length >= 21}
+                                className={cn(
+                                  "border-none rounded-lg px-3 font-mono text-xs font-bold uppercase",
+                                  (!gridSpecificInput.trim() || gridSpecificDates.length >= 21)
+                                    ? "bg-card text-faint cursor-default"
+                                    : "bg-dt text-on-accent cursor-pointer"
+                                )}
+                                style={{ letterSpacing: '0.08em' }}
+                              >
+                                Add
+                              </button>
+                            </div>
+                            {gridSpecificDates.length === 0 ? (
+                              <p className="font-mono text-tiny text-faint mt-1.5 text-center">
+                                add at least 1 date — try &quot;sat&quot; or &quot;4/26&quot;
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {gridSpecificDates.map((iso, i) => (
+                                  <div key={iso} className="flex items-center gap-1.5 bg-card border border-border-mid rounded-lg px-2.5 py-1">
+                                    <span className="font-mono text-tiny text-primary">{formatSpecificDateChip(iso)}</span>
+                                    <button
+                                      onClick={() => setGridSpecificDates(gridSpecificDates.filter((_, j) => j !== i))}
+                                      className="bg-transparent border-none text-faint font-mono text-base cursor-pointer leading-none"
+                                      aria-label="Remove"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mb-3">
+                    <div className="font-mono text-tiny text-faint mb-1.5" style={{ letterSpacing: '0.08em' }}>WINDOW</div>
+                    <div className="flex bg-card border border-border-mid rounded-lg p-0.5">
+                      {([
+                        { k: 'evenings', label: '6–11p' },
+                        { k: 'afternoons', label: '12–5p' },
+                        { k: 'all-day', label: 'all day' },
+                      ] as const).map(({ k, label }) => (
+                        <button
+                          key={k}
+                          onClick={() => setGridWindow(k)}
+                          className={cn(
+                            "flex-1 py-1.5 rounded-md font-mono text-tiny font-bold uppercase",
+                            gridWindow === k ? "bg-dt text-on-accent" : "bg-transparent text-dim"
+                          )}
+                          style={{ letterSpacing: '0.08em' }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="font-mono text-tiny text-faint mb-1.5" style={{ letterSpacing: '0.08em' }}>GRANULARITY</div>
+                    <div className="flex bg-card border border-border-mid rounded-lg p-0.5">
+                      {([60, 30] as const).map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => setGridSlotMinutes(n)}
+                          className={cn(
+                            "flex-1 py-1.5 rounded-md font-mono text-tiny font-bold uppercase",
+                            gridSlotMinutes === n ? "bg-dt text-on-accent" : "bg-transparent text-dim"
+                          )}
+                          style={{ letterSpacing: '0.08em' }}
+                        >
+                          {n === 60 ? '1 hour' : '30 min'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {gridSlotCount > MAX_WHEN_SLOTS ? (
+                    <p className="font-mono text-tiny text-[#ff4444] mb-4 text-center">
+                      too many slots ({gridSlotCount}) — narrow the range, window, or granularity. max {MAX_WHEN_SLOTS}.
+                    </p>
+                  ) : (
+                    <p className="font-mono text-tiny text-faint mb-4 text-center">
+                      tap every slot that works for you in the grid after creating.
+                    </p>
+                  )}
+                </>
+              ) : pollVariant === 'text' ? (
+                <>
                   <input
-                    value={opt}
-                    onChange={(e) => {
-                      const next = [...pollOptions];
-                      next[i] = e.target.value;
-                      setPollOptions(next);
-                    }}
-                    placeholder={`Option ${i + 1}`}
-                    className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                    value={pollQuestion}
+                    onChange={(e) => setPollQuestion(e.target.value)}
+                    placeholder="What's the question?"
+                    className="w-full bg-card border border-border-mid rounded-lg py-2.5 px-3 text-primary font-mono outline-none mb-3 box-border"
+                    style={{ fontSize: 13 }}
                   />
-                  {pollOptions.length > 2 && (
+                  <div className="flex flex-col gap-2 mb-3">
+                    {pollOptions.map((opt, i) => (
+                      <div key={i} className="flex gap-1.5 items-center">
+                        <input
+                          value={opt}
+                          onChange={(e) => {
+                            const next = [...pollOptions];
+                            next[i] = e.target.value;
+                            setPollOptions(next);
+                          }}
+                          placeholder={`Option ${i + 1}`}
+                          className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                        />
+                        {pollOptions.length > 2 && (
+                          <button
+                            onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
+                            className="bg-transparent border-none text-faint font-mono text-base cursor-pointer px-1"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {pollOptions.length < 10 && (
                     <button
-                      onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
-                      className="bg-transparent border-none text-faint font-mono text-base cursor-pointer px-1"
+                      onClick={() => setPollOptions([...pollOptions, ""])}
+                      className="bg-transparent border border-border-mid rounded-lg px-3 py-1.5 text-dim font-mono text-xs cursor-pointer w-full mb-4"
                     >
-                      ×
+                      + Add option
                     </button>
                   )}
-                </div>
-              ))}
-            </div>
-            {pollOptions.length < 10 && (
-              <button
-                onClick={() => setPollOptions([...pollOptions, ""])}
-                className="bg-transparent border border-border-mid rounded-lg px-3 py-1.5 text-dim font-mono text-xs cursor-pointer w-full mb-4"
-              >
-                + Add option
-              </button>
-            )}
-            <div
-              onClick={() => setPollMultiSelect(!pollMultiSelect)}
-              className="flex items-center justify-between py-2.5 mb-3 cursor-pointer"
-            >
-              <span className="font-mono text-xs text-dim">Allow multiple selections</span>
-              <div
-                className="w-9 h-5 rounded-lg relative transition-colors duration-200"
-                style={{ background: pollMultiSelect ? '#e8ff5a' : '#333' }}
-              >
-                <div
-                  className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-[left] duration-200"
-                  style={{ left: pollMultiSelect ? 18 : 2 }}
-                />
+                  <div
+                    onClick={() => setPollMultiSelect(!pollMultiSelect)}
+                    className="flex items-center justify-between py-2.5 mb-3 cursor-pointer"
+                  >
+                    <span className="font-mono text-xs text-dim">Allow multiple selections</span>
+                    <div
+                      className="w-9 h-5 rounded-lg relative transition-colors duration-200"
+                      style={{ background: pollMultiSelect ? '#e8ff5a' : '#333' }}
+                    >
+                      <div
+                        className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-[left] duration-200"
+                        style={{ left: pollMultiSelect ? 18 : 2 }}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex gap-1.5 mb-3">
+                    <input
+                      value={pollDateInput}
+                      onChange={(e) => setPollDateInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addDateOption(); } }}
+                      placeholder="fri 7pm"
+                      className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                      disabled={pollDateOptions.length >= 10}
+                    />
+                    <button
+                      onClick={addDateOption}
+                      disabled={!pollDateInput.trim() || pollDateOptions.length >= 10}
+                      className={cn(
+                        "border-none rounded-lg px-3 font-mono text-xs font-bold uppercase",
+                        (!pollDateInput.trim() || pollDateOptions.length >= 10)
+                          ? "bg-card text-faint cursor-default"
+                          : "bg-dt text-on-accent cursor-pointer"
+                      )}
+                      style={{ letterSpacing: '0.08em' }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {pollDateOptions.length === 0 ? (
+                    <p className="font-mono text-tiny text-faint mb-4 text-center">
+                      add at least 2 times — try &quot;sat 9pm&quot; or &quot;4/26 evening&quot;
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5 mb-4">
+                      {pollDateOptions.map((o, i) => (
+                        <div key={`${o.date}-${o.time ?? ''}`} className="flex items-center justify-between bg-card border border-border-mid rounded-lg px-3 py-2">
+                          <span className="font-mono text-xs text-primary">{formatDateChip(o)}</span>
+                          <button
+                            onClick={() => setPollDateOptions(pollDateOptions.filter((_, j) => j !== i))}
+                            className="bg-transparent border-none text-faint font-mono text-base cursor-pointer px-1"
+                            aria-label="Remove"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="flex gap-2.5">
+                <button
+                  onClick={closeCreator}
+                  className="flex-1 bg-transparent text-primary border border-border-mid rounded-xl p-3 font-mono text-xs font-bold cursor-pointer uppercase"
+                  style={{ letterSpacing: '0.08em' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={!canCreate}
+                  onClick={handleCreate}
+                  className={cn(
+                    "flex-1 border-none rounded-xl p-3 font-mono text-xs font-bold uppercase",
+                    !canCreate ? "bg-card text-faint cursor-default" : "bg-dt text-on-accent cursor-pointer"
+                  )}
+                  style={{ letterSpacing: '0.08em' }}
+                >
+                  {pollCreating ? '...' : 'Create'}
+                </button>
               </div>
             </div>
-            <div className="flex gap-2.5">
-              <button
-                onClick={() => { setShowPollCreator(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiSelect(true); }}
-                className="flex-1 bg-transparent text-primary border border-border-mid rounded-xl p-3 font-mono text-xs font-bold cursor-pointer uppercase"
-                style={{ letterSpacing: '0.08em' }}
-              >
-                Cancel
-              </button>
-              <button
-                disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2 || pollCreating}
-                onClick={async () => {
-                  if (!localSquad?.id || !pollQuestion.trim() || pollCreating) return;
-                  const validOptions = pollOptions.filter((o) => o.trim());
-                  if (validOptions.length < 2) return;
-                  setPollCreating(true);
-                  try {
-                    await onCreatePoll?.(localSquad.id, pollQuestion.trim(), validOptions, pollMultiSelect);
-                    setShowPollCreator(false);
-                    setPollQuestion("");
-                    setPollOptions(["", ""]);
-                    setPollMultiSelect(true);
-                  } catch (err) {
-                    logError('createPoll', err);
-                  } finally {
-                    setPollCreating(false);
-                  }
-                }}
-                className={cn(
-                  "flex-1 border-none rounded-xl p-3 font-mono text-xs font-bold uppercase",
-                  (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2)
-                    ? "bg-border-mid text-dim cursor-default"
-                    : "bg-dt text-on-accent cursor-pointer"
-                )}
-                style={{ letterSpacing: '0.08em' }}
-              >
-                {pollCreating ? '...' : 'Create'}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
     </>
   );

@@ -956,8 +956,8 @@ export default function Home() {
           onSetMemberRole={handleSetMemberRole}
           onKickMember={handleKickMember}
           onAddMember={handleAddMember}
-          onCreatePoll={async (squadId, question, options, multiSelect) => {
-            await db.createPoll(squadId, question, options, multiSelect);
+          onCreatePoll={async (squadId, question, options, multiSelect, pollType) => {
+            await db.createPoll(squadId, question, options, multiSelect, pollType);
           }}
           pendingJoinRequests={squadsHook.pendingJoinRequests}
           onRespondToJoinRequest={squadsHook.handleRespondToJoinRequest}
