@@ -9,6 +9,7 @@ import * as db from "@/lib/db";
 import { API_BASE } from "@/lib/db";
 import { color } from "@/lib/styles";
 import { sanitize, sanitizeVibes, parseDateToISO, toLocalISODate } from "@/lib/utils";
+import { setPushNavigationHandler, type NavigateAction } from "@/lib/pushNavigation";
 import type { Profile } from "@/lib/types";
 import type { Person, Event, Tab, ScrapedEvent, Squad } from "@/lib/ui-types";
 import { useOnboarding } from "@/features/auth/hooks/useOnboarding";
@@ -432,6 +433,38 @@ export default function Home() {
       setSquadChatOrigin(null);
     }
   }, [squadsHook.squads, selectedSquad]);
+
+  // Single source of truth for "user navigated from a notification" — used by
+  // both the in-app NotificationsPanel onNavigate prop AND the native push
+  // tap handler (see lib/pushNavigation.ts), so an OS push tap and an in-app
+  // bell tap end up at the same surface.
+  const handleNotificationNavigate = useCallback((action: NavigateAction) => {
+    if (action.type === "friends") {
+      friendsHook.setFriendsInitialTab(action.tab);
+      friendsHook.setFriendsOpen(true);
+    } else if (action.type === "groups") {
+      setSquadChatOrigin(tab);
+      // Always switch to squads tab so the user lands somewhere useful even
+      // if the target squad isn't loadable (e.g. membership dropped).
+      setTab("squads");
+      if (action.squadId) {
+        squadsHook.setAutoSelectSquadId(action.squadId);
+      }
+    } else if (action.type === "feed") {
+      setTab("feed");
+      if (action.checkId) {
+        checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: action.checkId });
+        setTimeout(() => checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 3000);
+      }
+    }
+  }, [tab, friendsHook, squadsHook, checksHook, setTab, setSquadChatOrigin]);
+
+  // Register the same handler for native-push taps. dispatchPushAction in
+  // lib/pushNotifications.ts will call this on `pushNotificationActionPerformed`.
+  useEffect(() => {
+    setPushNavigationHandler(handleNotificationNavigate);
+    return () => setPushNavigationHandler(null);
+  }, [handleNotificationNavigate]);
 
   // ─── Squad API handlers ──────────────────────────────────────────────────
 
@@ -1037,26 +1070,7 @@ export default function Home() {
         userId={userId}
         setUnreadCount={notificationsHook.setUnreadCount}
         friends={friendsHook.friends}
-        onNavigate={(action) => {
-          if (action.type === "friends") {
-            friendsHook.setFriendsInitialTab(action.tab);
-            friendsHook.setFriendsOpen(true);
-          } else if (action.type === "groups") {
-            setSquadChatOrigin(tab);
-            // Always switch to squads tab so the user lands somewhere useful
-            // even if the target squad isn't loadable (e.g. membership dropped).
-            setTab("squads");
-            if (action.squadId) {
-              squadsHook.setAutoSelectSquadId(action.squadId);
-            }
-          } else if (action.type === "feed") {
-            setTab("feed");
-            if (action.checkId) {
-              checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: action.checkId });
-              setTimeout(() => checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 3000);
-            }
-          }
-        }}
+        onNavigate={handleNotificationNavigate}
       />
 
       <EditEventModal

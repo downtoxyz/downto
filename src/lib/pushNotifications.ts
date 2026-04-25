@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { API_BASE } from '@/lib/db';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { dispatchPushAction } from '@/lib/pushNavigation';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
 
@@ -157,9 +158,11 @@ export async function registerNativePush(): Promise<void> {
       console.log('Push received in foreground:', notification);
     });
 
-    // User tapped on a notification
+    // User tapped on a notification — route to the right surface.
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('Push action performed:', action);
+      // payload comes in via .notification.data ({ type, relatedId, ... } —
+      // shape matches what lib/push.ts sends as note.payload).
+      dispatchPushAction(action.notification.data);
     });
   } catch (err) {
     console.warn('Native push registration failed:', err);
