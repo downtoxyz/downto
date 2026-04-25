@@ -392,7 +392,7 @@ export default function CheckCard({
           await loadRealData();
           if (showToastWithAction) {
             showToastWithAction("Check removed — undo?", async () => {
-              try { await db.unarchiveInterestCheck(check.id); } catch (err) { logError("unarchiveCheck", err, { checkId: check.id }); }
+              try { await db.reviveInterestCheck(check.id); } catch (err) { logError("reviveCheck", err, { checkId: check.id }); }
               await loadRealData();
             });
           } else {

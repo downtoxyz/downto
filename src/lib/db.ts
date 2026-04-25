@@ -815,14 +815,16 @@ export async function createInterestCheck(
   return data;
 }
 
-/** Returns true if the check still exists and is not archived. */
-export async function isInterestCheckActive(checkId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from('interest_checks')
-    .select('id, archived_at')
-    .eq('id', checkId)
-    .maybeSingle();
-  return !!data && !data.archived_at;
+/** Returns whether a check is currently active and whether the caller owns it
+ *  (author or accepted co-author). Goes through a SECURITY DEFINER RPC so the
+ *  caller can discover ownership of their own archived rows — the SELECT
+ *  policy hides those even from their author. */
+export async function getCheckState(checkId: string): Promise<{ active: boolean; isMine: boolean }> {
+  const { data, error } = await supabase
+    .rpc('get_check_state', { p_check_id: checkId })
+    .single<{ active: boolean; is_mine: boolean }>();
+  if (error) throw error;
+  return { active: !!data?.active, isMine: !!data?.is_mine };
 }
 
 /** Archive a check via SECURITY DEFINER RPC. The RPC also fires
@@ -835,12 +837,15 @@ export async function archiveInterestCheck(checkId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function unarchiveInterestCheck(checkId: string): Promise<void> {
-  const { error } = await supabase
-    .from('interest_checks')
-    .update({ archived_at: null })
-    .eq('id', checkId);
-
+/** Revive an archived check via SECURITY DEFINER RPC. If the archive happened
+ *  within the last ~5 min (toast-undo window), the RPC silently deletes the
+ *  prior `check_archived` notifications instead of fanning out new ones —
+ *  recipients see no notification at all for a quick undo. Older revives
+ *  send `check_revived` notifications to "down" responders. */
+export async function reviveInterestCheck(checkId: string): Promise<void> {
+  const { error } = await supabase.rpc('revive_interest_check', {
+    p_check_id: checkId,
+  });
   if (error) throw error;
 }
 
