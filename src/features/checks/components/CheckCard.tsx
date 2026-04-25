@@ -384,7 +384,6 @@ export default function CheckCard({
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         friends={friendsList}
-        hasSquad={!!check.squadId}
         onShare={(check.isYours || check.isCoAuthor) ? () => { setEditModalOpen(false); shareCheck(); } : undefined}
         onDelete={(check.isYours || check.isCoAuthor) ? async () => {
           setEditModalOpen(false);

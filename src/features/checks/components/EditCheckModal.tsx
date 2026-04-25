@@ -17,7 +17,6 @@ const EditCheckModal = ({
   onRemoveTag,
   onShare,
   onDelete,
-  hasSquad,
 }: {
   check: InterestCheck | null;
   open: boolean;
@@ -37,7 +36,6 @@ const EditCheckModal = ({
   onRemoveTag?: (checkId: string, userId: string) => Promise<void>;
   onShare?: () => void;
   onDelete?: () => void;
-  hasSquad?: boolean;
 }) => {
   const [text, setText] = useState("");
   const [whenInput, setWhenInput] = useState("");
@@ -294,7 +292,7 @@ const EditCheckModal = ({
                   Share link
                 </button>
               )}
-              {onDelete && !hasSquad && (
+              {onDelete && (
                 <button
                   onClick={onDelete}
                   className="flex items-center gap-3 w-full bg-transparent border-none py-3.5 font-mono text-sm cursor-pointer text-left"
