@@ -1,0 +1,26 @@
+-- Drop the redundant "Authors and co-authors can update interest checks"
+-- (plural) policy. It's superseded by "Author and co-authors can update
+-- interest checks" (singular, added in 20260416000001 and rewritten in
+-- 20260423000003 with the recursion-safe is_check_coauthor helper).
+--
+-- The plural policy is still on prod because 20260416000001 only DROPped
+-- the older "Users can update own interest checks" / "Viewers can update"
+-- names, not "Authors and co-authors..." (note the s on "Authors").
+--
+-- Why this matters: the plural policy uses public.is_check_author_or_coauthor,
+-- which does SELECT FROM interest_checks inside a SECURITY DEFINER body. As
+-- the comment in 20260423000003 spells out, SECURITY DEFINER doesn't reliably
+-- bypass RLS in this deployment, so that inner SELECT goes through the
+-- visibility policy. Visibility now requires check_is_active = true (added in
+-- 20260424000001). On archive, the post-update row has archived_at non-null,
+-- so the visibility predicate fails and the function returns false. With two
+-- permissive policies in play, the new row needs to satisfy at least one
+-- WITH CHECK — and Postgres has been observed rejecting the UPDATE with
+-- "new row violates row-level security policy" (Sentry DOWNTO-A) even though
+-- the newer policy's predicate would pass on its own.
+--
+-- The DELETE counterpart ("Authors and co-authors can delete interest checks")
+-- is left in place: DELETE has no WITH CHECK, only USING, and the row is
+-- still active when USING is evaluated. No need to churn it here.
+
+DROP POLICY IF EXISTS "Authors and co-authors can update interest checks" ON public.interest_checks;
