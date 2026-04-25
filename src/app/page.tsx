@@ -29,6 +29,7 @@ import BottomNav from "@/app/components/BottomNav";
 import FriendRequestBanner, { FRIEND_REQUEST_BANNER_HEIGHT_PX } from "@/app/components/FriendRequestBanner";
 import Toast from "@/app/components/Toast";
 import NotificationsPanel from "@/features/notifications/components/NotificationsPanel";
+import DeletedCheckScreen from "@/features/checks/components/DeletedCheckScreen";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useToast } from "@/app/hooks/useToast";
 import { usePushNotifications } from "@/features/auth/hooks/usePushNotifications";
@@ -74,6 +75,7 @@ export default function Home() {
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addModalDefaultMode, setAddModalDefaultMode] = useState<"paste" | "idea" | "manual" | null>(null);
+  const [deletedCheckScreenOpen, setDeletedCheckScreenOpen] = useState(false);
 
   // ─── Misc page-level state ──────────────────────────────────────────────
   const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
@@ -1070,7 +1072,13 @@ export default function Home() {
         userId={userId}
         setUnreadCount={notificationsHook.setUnreadCount}
         friends={friendsHook.friends}
+        onDeletedCheck={() => setDeletedCheckScreenOpen(true)}
         onNavigate={handleNotificationNavigate}
+      />
+
+      <DeletedCheckScreen
+        open={deletedCheckScreenOpen}
+        onClose={() => setDeletedCheckScreenOpen(false)}
       />
 
       <EditEventModal

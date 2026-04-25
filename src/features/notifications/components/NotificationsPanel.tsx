@@ -20,6 +20,26 @@ interface Notification {
   created_at: string;
 }
 
+/** Probe the check; if it's archived/deleted, surface the "gone" screen
+ *  instead of dumping the user into a feed where the check no longer appears. */
+function navigateToCheckIfActive(
+  checkId: string | null,
+  onNavigate: (action: { type: "feed"; checkId?: string }) => void,
+  onDeletedCheck: () => void,
+) {
+  if (!checkId) {
+    onNavigate({ type: "feed" });
+    return;
+  }
+  db.isInterestCheckActive(checkId).then((active) => {
+    if (active) onNavigate({ type: "feed", checkId });
+    else onDeletedCheck();
+  }).catch(() => {
+    // Network/DB hiccup — fall back to existing behavior so the user isn't stranded
+    onNavigate({ type: "feed", checkId });
+  });
+}
+
 const NotificationsPanel = ({
   open,
   onClose,
@@ -29,6 +49,7 @@ const NotificationsPanel = ({
   setUnreadCount,
   friends,
   onNavigate,
+  onDeletedCheck,
 }: {
   open: boolean;
   onClose: () => void;
@@ -38,6 +59,7 @@ const NotificationsPanel = ({
   setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
   friends: { id: string }[];
   onNavigate: (action: { type: "friends"; tab: "friends" | "add" } | { type: "groups"; squadId?: string } | { type: "feed"; checkId?: string }) => void;
+  onDeletedCheck: () => void;
 }) => {
   const { visible, entering, closing, close } = useModalTransition(open, onClose);
   const touchStartY = useRef(0);
@@ -245,7 +267,7 @@ const NotificationsPanel = ({
                       setUnreadCount((prev) => Math.max(0, prev - 1));
                     }
                     onClose();
-                    onNavigate({ type: "feed", checkId: n.related_check_id ?? undefined });
+                    navigateToCheckIfActive(n.related_check_id, onNavigate, onDeletedCheck);
                   } else if (n.type === "check_response" || n.type === "friend_check" || n.type === "check_tag" || n.type === "check_date_updated" || n.type === "check_text_updated") {
                     // Mark single notification as read (except check_tag — cleared on accept/decline)
                     if (!n.is_read && n.type !== "check_tag") {
@@ -256,7 +278,7 @@ const NotificationsPanel = ({
                       setUnreadCount((prev) => Math.max(0, prev - 1));
                     }
                     onClose();
-                    onNavigate({ type: "feed", checkId: n.related_check_id ?? undefined });
+                    navigateToCheckIfActive(n.related_check_id, onNavigate, onDeletedCheck);
                   }
                 }}
                 className={cn(
