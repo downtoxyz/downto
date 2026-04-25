@@ -75,7 +75,7 @@ export default function Home() {
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addModalDefaultMode, setAddModalDefaultMode] = useState<"paste" | "idea" | "manual" | null>(null);
-  const [deletedCheckScreenOpen, setDeletedCheckScreenOpen] = useState(false);
+  const [deletedCheckInfo, setDeletedCheckInfo] = useState<{ checkId: string; isMine: boolean } | null>(null);
 
   // ─── Misc page-level state ──────────────────────────────────────────────
   const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
@@ -939,10 +939,10 @@ export default function Home() {
             onRestoreCheck={async (checkId) => {
               setArchivedChecks((prev) => prev.filter((c) => c.id !== checkId));
               try {
-                await db.unarchiveInterestCheck(checkId);
+                await db.reviveInterestCheck(checkId);
                 loadRealDataRef.current();
               } catch (err) {
-                logError("unarchiveCheck", err, { checkId });
+                logError("reviveCheck", err, { checkId });
               }
               showToast("Check restored");
             }}
@@ -1072,13 +1072,28 @@ export default function Home() {
         userId={userId}
         setUnreadCount={notificationsHook.setUnreadCount}
         friends={friendsHook.friends}
-        onDeletedCheck={() => setDeletedCheckScreenOpen(true)}
+        onDeletedCheck={(info) => setDeletedCheckInfo(info)}
         onNavigate={handleNotificationNavigate}
       />
 
       <DeletedCheckScreen
-        open={deletedCheckScreenOpen}
-        onClose={() => setDeletedCheckScreenOpen(false)}
+        open={!!deletedCheckInfo}
+        onClose={() => setDeletedCheckInfo(null)}
+        isMine={deletedCheckInfo?.isMine ?? false}
+        onRevive={async () => {
+          const checkId = deletedCheckInfo?.checkId;
+          if (!checkId) return;
+          try {
+            await db.reviveInterestCheck(checkId);
+            await loadRealDataRef.current();
+            setTab("feed");
+            checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId });
+            setTimeout(() => checksHook.dispatch({ type: CheckActionType.SET_NEWLY_ADDED, checkId: null }), 3000);
+          } catch (err) {
+            logError("reviveCheck", err, { checkId });
+            showToast("Couldn't revive — try again");
+          }
+        }}
       />
 
       <EditEventModal

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useModalTransition } from "@/shared/hooks/useModalTransition";
 
 const EULOGIES = [
@@ -43,11 +43,19 @@ const DISMISSALS = [
 const DeletedCheckScreen = ({
   open,
   onClose,
+  isMine,
+  onRevive,
 }: {
   open: boolean;
   onClose: () => void;
+  /** Author/co-author of the deleted check — when true, shows a "revive" CTA. */
+  isMine: boolean;
+  /** Called when the author taps "revive it". Should re-activate the check
+   *  via the SECURITY DEFINER RPC and refresh data. The screen closes after. */
+  onRevive: () => Promise<void>;
 }) => {
   const { visible, entering, closing, close } = useModalTransition(open, onClose);
+  const [reviving, setReviving] = useState(false);
 
   const eulogy = useMemo(
     () => EULOGIES[Math.floor(Math.random() * EULOGIES.length)],
@@ -100,17 +108,53 @@ const DeletedCheckScreen = ({
         <p className="font-mono text-sm text-dim mb-8" style={{ lineHeight: 1.5 }}>
           {eulogy}
         </p>
-        <button
-          onClick={close}
-          className="font-mono text-xs uppercase bg-dt text-on-accent border-none rounded-xl cursor-pointer w-full"
-          style={{
-            padding: "12px 16px",
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-          }}
-        >
-          {dismissal}
-        </button>
+        {isMine ? (
+          <>
+            <button
+              disabled={reviving}
+              onClick={async () => {
+                setReviving(true);
+                try {
+                  await onRevive();
+                  close();
+                } finally {
+                  setReviving(false);
+                }
+              }}
+              className="font-mono text-xs uppercase bg-dt text-on-accent border-none rounded-xl cursor-pointer w-full disabled:opacity-60"
+              style={{
+                padding: "12px 16px",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+              }}
+            >
+              {reviving ? "reviving…" : "revive it"}
+            </button>
+            <button
+              onClick={close}
+              disabled={reviving}
+              className="font-mono text-xs uppercase bg-transparent border-none cursor-pointer text-dim mt-3 disabled:opacity-60"
+              style={{
+                padding: "8px 16px",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {dismissal}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={close}
+            className="font-mono text-xs uppercase bg-dt text-on-accent border-none rounded-xl cursor-pointer w-full"
+            style={{
+              padding: "12px 16px",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+            }}
+          >
+            {dismissal}
+          </button>
+        )}
       </div>
     </div>
   );

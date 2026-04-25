@@ -21,19 +21,20 @@ interface Notification {
 }
 
 /** Probe the check; if it's archived/deleted, surface the "gone" screen
- *  instead of dumping the user into a feed where the check no longer appears. */
+ *  with isMine so we know whether to show the revive CTA. Active checks
+ *  fall through to the existing feed nav. */
 function navigateToCheckIfActive(
   checkId: string | null,
   onNavigate: (action: { type: "feed"; checkId?: string }) => void,
-  onDeletedCheck: () => void,
+  onDeletedCheck: (info: { checkId: string; isMine: boolean }) => void,
 ) {
   if (!checkId) {
     onNavigate({ type: "feed" });
     return;
   }
-  db.isInterestCheckActive(checkId).then((active) => {
+  db.getCheckState(checkId).then(({ active, isMine }) => {
     if (active) onNavigate({ type: "feed", checkId });
-    else onDeletedCheck();
+    else onDeletedCheck({ checkId, isMine });
   }).catch(() => {
     // Network/DB hiccup — fall back to existing behavior so the user isn't stranded
     onNavigate({ type: "feed", checkId });
@@ -59,7 +60,7 @@ const NotificationsPanel = ({
   setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
   friends: { id: string }[];
   onNavigate: (action: { type: "friends"; tab: "friends" | "add" } | { type: "groups"; squadId?: string } | { type: "feed"; checkId?: string }) => void;
-  onDeletedCheck: () => void;
+  onDeletedCheck: (info: { checkId: string; isMine: boolean }) => void;
 }) => {
   const { visible, entering, closing, close } = useModalTransition(open, onClose);
   const touchStartY = useRef(0);
@@ -268,7 +269,7 @@ const NotificationsPanel = ({
                     }
                     onClose();
                     navigateToCheckIfActive(n.related_check_id, onNavigate, onDeletedCheck);
-                  } else if (n.type === "check_response" || n.type === "friend_check" || n.type === "check_tag" || n.type === "check_date_updated" || n.type === "check_text_updated" || n.type === "check_archived") {
+                  } else if (n.type === "check_response" || n.type === "friend_check" || n.type === "check_tag" || n.type === "check_date_updated" || n.type === "check_text_updated" || n.type === "check_archived" || n.type === "check_revived") {
                     // Mark single notification as read (except check_tag — cleared on accept/decline)
                     if (!n.is_read && n.type !== "check_tag") {
                       if (userId) db.markNotificationRead(n.id);
@@ -304,6 +305,7 @@ const NotificationsPanel = ({
                       : n.type === "event_date_updated" ? "#E8FF5A22"
                       : n.type === "event_comment" ? "#5AC8FA22"
                       : n.type === "check_archived" ? "#FF444422"
+                      : n.type === "check_revived" ? "#34C75922"
                       : "#5856D622",
                   }}
                 >
@@ -347,6 +349,9 @@ const NotificationsPanel = ({
                       case "check_archived":
                         // Trash
                         return <svg {...iconProps}><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/></svg>;
+                      case "check_revived":
+                        // Sparkle
+                        return <svg {...iconProps}><path d="M208,144a15.78,15.78,0,0,1-10.42,14.94L146,178l-19,51.62a15.92,15.92,0,0,1-29.88,0L78,178l-51.62-19a15.92,15.92,0,0,1,0-29.88L78,110l19-51.62a15.92,15.92,0,0,1,29.88,0L146,110l51.62,19A15.78,15.78,0,0,1,208,144ZM152,48h16V64a8,8,0,0,0,16,0V48h16a8,8,0,0,0,0-16H184V16a8,8,0,0,0-16,0V32H152a8,8,0,0,0,0,16Zm88,32h-8V72a8,8,0,0,0-16,0v8h-8a8,8,0,0,0,0,16h8v8a8,8,0,0,0,16,0V96h8a8,8,0,0,0,0-16Z"/></svg>;
                       default:
                         // ChatTeardrop
                         return <svg {...iconProps}><path d="M132,24A100.11,100.11,0,0,0,32,124v84a16,16,0,0,0,16,16h84a100,100,0,0,0,0-200Zm0,184H48V124a84,84,0,1,1,84,84Z"/></svg>;
