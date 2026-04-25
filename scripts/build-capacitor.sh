@@ -31,8 +31,13 @@ restore() {
 }
 trap restore EXIT
 
-# Run static export build
-CAPACITOR_BUILD=true npx next build
+# Run static export build.
+# NEXT_PUBLIC_API_BASE points fetch('/api/...') calls at the Vercel deploy —
+# the WebView serves only the static bundle, there's no localhost API server.
+# Override at call time if you want to test against staging/preview.
+CAPACITOR_BUILD=true \
+NEXT_PUBLIC_API_BASE="${NEXT_PUBLIC_API_BASE:-https://downto.xyz}" \
+npx next build
 
 echo ""
 echo "Static export ready in ./out"
