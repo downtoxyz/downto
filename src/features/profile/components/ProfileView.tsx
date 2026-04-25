@@ -74,6 +74,9 @@ const ProfileView = ({
   const [activeTheme, setActiveTheme] = useState<ThemeName | null>(null);
   const [blockedUsers, setBlockedUsers] = useState<(Profile & { blocked_at: string })[]>([]);
   const [showBlocked, setShowBlocked] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     db.listBlockedUsers()
@@ -88,6 +91,22 @@ const ProfileView = ({
       showToast?.(`Unblocked ${displayName}`);
     } catch {
       showToast?.("Couldn't unblock — try again");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await db.deleteMyAccount();
+      // onLogout clears local auth state; the auth.users row is already gone
+      // server-side, so any future request would 401 anyway.
+      onLogout();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Couldn't delete account";
+      showToast?.(msg);
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -654,7 +673,67 @@ const ProfileView = ({
         <span>Log out</span>
         <span className="text-danger">→</span>
       </div>
+      <div
+        onClick={() => { setDeleteConfirmText(""); setShowDeleteConfirm(true); }}
+        className="py-3.5 font-mono text-xs text-danger flex justify-between cursor-pointer border-t border-border"
+      >
+        <span>Delete account</span>
+        <span className="text-danger">→</span>
+      </div>
     </div>
+    {showDeleteConfirm && profile?.username && (
+      <div
+        onClick={() => !deleting && setShowDeleteConfirm(false)}
+        className="fixed inset-0 bg-[rgba(0,0,0,0.7)] z-[9999] flex items-center justify-center"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="bg-deep border border-border rounded-2xl max-w-[340px] w-[calc(100%-40px)] py-6 px-5"
+        >
+          <div className="font-serif text-lg text-primary mb-2">
+            Delete your downto account?
+          </div>
+          <div className="font-mono text-tiny text-dim leading-relaxed mb-4">
+            This wipes your profile, friendships, interest checks, responses, comments, squad memberships, and any messages you&apos;ve sent. It cannot be undone.
+          </div>
+          <div className="font-mono text-tiny text-dim mb-1.5">
+            Type <span className="text-primary font-bold">{profile.username}</span> to confirm:
+          </div>
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            disabled={deleting}
+            autoFocus
+            className="w-full bg-card border border-border-mid rounded-lg py-2 px-3 font-mono text-xs text-primary outline-none mb-4 box-border"
+            placeholder={profile.username}
+          />
+          <div className="flex gap-2.5">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={deleting}
+              className="flex-1 bg-transparent border border-border-mid rounded-xl py-2.5 font-mono text-xs font-bold uppercase text-primary cursor-pointer disabled:opacity-50"
+              style={{ letterSpacing: "0.08em" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleting || deleteConfirmText.trim() !== profile.username}
+              className={cn(
+                "flex-1 border-none rounded-xl py-2.5 font-mono text-xs font-bold uppercase text-white",
+                deleteConfirmText.trim() === profile.username && !deleting
+                  ? "bg-danger cursor-pointer"
+                  : "bg-border-mid text-dim cursor-not-allowed"
+              )}
+              style={{ letterSpacing: "0.08em" }}
+            >
+              {deleting ? "Deleting..." : "Delete forever"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     {showEditModal && (
       <div
         onClick={() => setShowEditModal(false)}
