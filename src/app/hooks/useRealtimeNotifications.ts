@@ -117,6 +117,14 @@ export function useRealtimeNotifications({
       } else if (newNotif.type === "check_tag") {
         if (newNotif.body) showToastRef.current(newNotif.title + ": " + newNotif.body);
         loadRealDataRef.current();
+      } else if (newNotif.type === "check_archived" || newNotif.type === "check_revived") {
+        // Realtime on `interest_checks` is RLS-gated: once a check is
+        // archived, the recipient loses SELECT visibility and so the
+        // UPDATE event never reaches them — their cached checks list
+        // would otherwise still show the row. Same in reverse on revive
+        // when the row was previously hidden. Fall through to a full
+        // refresh so the feed converges to the new state.
+        loadRealDataRef.current();
       } else if (newNotif.type === "friend_accepted" && newNotif.related_user_id) {
         if (newNotif.body) showToastRef.current(newNotif.body);
         loadRealDataRef.current();

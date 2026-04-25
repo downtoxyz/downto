@@ -199,7 +199,7 @@ export interface SquadJoinRequest {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'friend_request' | 'friend_accepted' | 'check_response' | 'squad_message' | 'squad_invite' | 'friend_check' | 'date_confirm' | 'check_tag' | 'check_comment' | 'poll_created' | 'squad_join_request' | 'squad_mention' | 'comment_mention' | 'friend_event' | 'event_reminder' | 'event_down' | 'check_date_updated' | 'event_date_updated' | 'event_comment';
+  type: 'friend_request' | 'friend_accepted' | 'check_response' | 'squad_message' | 'squad_invite' | 'friend_check' | 'date_confirm' | 'check_tag' | 'check_comment' | 'poll_created' | 'squad_join_request' | 'squad_mention' | 'comment_mention' | 'friend_event' | 'event_reminder' | 'event_down' | 'check_date_updated' | 'check_text_updated' | 'event_date_updated' | 'event_comment' | 'check_archived' | 'check_revived';
   title: string;
   body: string | null;
   related_user_id: string | null;
