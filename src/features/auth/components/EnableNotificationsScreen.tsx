@@ -5,8 +5,10 @@ import { color } from "@/lib/styles";
 import {
   isPushSupported,
   isIOSNotStandalone,
+  isNativePlatform,
   registerServiceWorker,
   subscribeToPush,
+  registerNativePush,
 } from "@/lib/pushNotifications";
 import Grain from "@/app/components/Grain";
 
@@ -64,6 +66,11 @@ const NotificationsScreen = ({ onComplete }: { onComplete: (enabled: boolean) =>
   const handleEnable = async () => {
     setLoading(true);
     try {
+      if (isNativePlatform()) {
+        const ok = await registerNativePush();
+        onComplete(ok);
+        return;
+      }
       const reg = await registerServiceWorker();
       if (!reg) {
         onComplete(false);

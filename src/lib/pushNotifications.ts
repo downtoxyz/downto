@@ -133,17 +133,15 @@ export async function unsubscribeFromPush(
 // Native push (Capacitor — iOS / Android)
 // ---------------------------------------------------------------------------
 
-export async function registerNativePush(): Promise<void> {
+export async function registerNativePush(): Promise<boolean> {
   try {
     const permResult = await PushNotifications.requestPermissions();
     if (permResult.receive !== 'granted') {
       console.warn('Native push permission not granted');
-      return;
+      return false;
     }
 
-    await PushNotifications.register();
-
-    // Listen for the registration token
+    // Attach listeners BEFORE register() so we don't race the OS callback.
     PushNotifications.addListener('registration', async (token) => {
       console.log('Native push token:', token.value);
       await saveNativeTokenToServer(token.value);
@@ -153,7 +151,6 @@ export async function registerNativePush(): Promise<void> {
       console.error('Native push registration error:', err.error);
     });
 
-    // Foreground notification received
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       console.log('Push received in foreground:', notification);
     });
@@ -164,8 +161,12 @@ export async function registerNativePush(): Promise<void> {
       // shape matches what lib/push.ts sends as note.payload).
       dispatchPushAction(action.notification.data);
     });
+
+    await PushNotifications.register();
+    return true;
   } catch (err) {
     console.warn('Native push registration failed:', err);
+    return false;
   }
 }
 
