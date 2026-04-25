@@ -1629,14 +1629,14 @@ const SquadChat = ({
                       onChange={(e) => setPollDateInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addDateOption(); } }}
                       placeholder="fri 7pm"
-                      className="flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
+                      className="min-w-0 flex-1 bg-card border border-border-mid rounded-lg py-2 px-3 text-primary font-mono text-xs outline-none"
                       disabled={pollDateOptions.length >= 10}
                     />
                     <button
                       onClick={addDateOption}
                       disabled={!pollDateInput.trim() || pollDateOptions.length >= 10}
                       className={cn(
-                        "border-none rounded-lg px-3 font-mono text-xs font-bold uppercase",
+                        "shrink-0 border-none rounded-lg px-3 font-mono text-xs font-bold uppercase",
                         (!pollDateInput.trim() || pollDateOptions.length >= 10)
                           ? "bg-card text-faint cursor-default"
                           : "bg-dt text-on-accent cursor-pointer"
