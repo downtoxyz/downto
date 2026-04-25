@@ -17,6 +17,12 @@ export function formatDateLabel(date: string): string {
  * Pass `proposerUserId: null` when the proposal is system-initiated (e.g. a
  * dates-poll winner). In that case no auto-yes is recorded and confirm rows
  * are created for every member.
+ *
+ * Pass `preConfirmedUserIds` to skip the "are you still down?" prompt for
+ * members who already implicitly confirmed (e.g. they voted in the poll
+ * whose winning slot is now being proposed). Those members get
+ * `response: 'yes'` confirm rows and no notification — the only people
+ * pinged are squad members who didn't weigh in.
  */
 export async function proposeSquadDate(params: {
   adminClient: SupabaseClient;
@@ -25,8 +31,9 @@ export async function proposeSquadDate(params: {
   time: string | null;
   proposerUserId: string | null;
   proposerDisplayName: string;
+  preConfirmedUserIds?: string[];
 }): Promise<{ expiresAt: string; messageId: string }> {
-  const { adminClient, squadId, date, time, proposerUserId, proposerDisplayName } = params;
+  const { adminClient, squadId, date, time, proposerUserId, proposerDisplayName, preConfirmedUserIds } = params;
 
   const { data: squad } = await adminClient
     .from('squads')
@@ -92,16 +99,35 @@ export async function proposeSquadDate(params: {
     : await memberFilter;
   const otherMembers = allMembers ?? [];
 
+  // Split "other members" into two buckets:
+  //   - pre-confirmed (auto-yes, no notification) — they already weighed in
+  //     via the source-of-truth signal (poll vote, etc.)
+  //   - needs-prompt (response=null + notification) — the standard flow
+  const preConfirmedSet = new Set(preConfirmedUserIds ?? []);
+  const needsPrompt = otherMembers.filter((m) => !preConfirmedSet.has(m.user_id));
+  const autoYesOthers = otherMembers.filter((m) => preConfirmedSet.has(m.user_id));
+
   if (proposerUserId) {
     await adminClient
       .from('squad_date_confirms')
       .insert({ squad_id: squadId, message_id: messageId, user_id: proposerUserId, response: 'yes' });
   }
 
-  if (otherMembers.length > 0) {
+  if (autoYesOthers.length > 0) {
     await adminClient
       .from('squad_date_confirms')
-      .insert(otherMembers.map((m) => ({
+      .insert(autoYesOthers.map((m) => ({
+        squad_id: squadId,
+        message_id: messageId,
+        user_id: m.user_id,
+        response: 'yes',
+      })));
+  }
+
+  if (needsPrompt.length > 0) {
+    await adminClient
+      .from('squad_date_confirms')
+      .insert(needsPrompt.map((m) => ({
         squad_id: squadId,
         message_id: messageId,
         user_id: m.user_id,
@@ -109,7 +135,7 @@ export async function proposeSquadDate(params: {
 
     await adminClient
       .from('notifications')
-      .insert(otherMembers.map((m) => ({
+      .insert(needsPrompt.map((m) => ({
         user_id: m.user_id,
         type: 'date_confirm',
         title: squad?.name ?? 'Squad',

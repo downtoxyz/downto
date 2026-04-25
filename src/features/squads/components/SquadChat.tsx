@@ -943,6 +943,11 @@ const SquadChat = ({
       >
         {(() => {
           const lastConfirmIdx = messages.reduce((acc, m, idx) => m.messageType === 'date_confirm' ? idx : acc, -1);
+          // Active members (excludes waitlist) — used by closed-poll results
+          // to compute "didn't respond" relative to who could have voted.
+          const activeMembers = (localSquad.members ?? [])
+            .filter((m) => !!m.userId)
+            .map((m) => ({ userId: m.userId as string, displayName: m.name }));
           return messages.map((msg, i) => {
             const prev = i > 0 ? messages[i - 1] : null;
             const next = i < messages.length - 1 ? messages[i + 1] : null;
@@ -975,6 +980,13 @@ const SquadChat = ({
                   }
                   return next;
                 })}
+                squadMembers={activeMembers}
+                onProposeDateFromPoll={async (pollId, date, time) => {
+                  // Realtime subscription on `messages` will pick up the new
+                  // date_confirm row inserted server-side, so no manual
+                  // refresh needed here.
+                  await db.proposeDateFromPoll(pollId, date, time);
+                }}
               />
             );
           });
