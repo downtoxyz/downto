@@ -22,6 +22,11 @@ export function isIOS(): boolean {
 
 export function isIOSNotStandalone(): boolean {
   if (!isIOS()) return false;
+  // Capacitor's WKWebView reports an iOS UA but neither navigator.standalone
+  // nor display-mode:standalone — without this guard we'd flag the native
+  // app as "iOS Safari, not yet installed" and shove the user at the
+  // "Add to Home Screen" screen.
+  if (isNativePlatform()) return false;
   const isStandalone =
     (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
     window.matchMedia('(display-mode: standalone)').matches;
