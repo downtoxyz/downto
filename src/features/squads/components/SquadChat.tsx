@@ -1550,7 +1550,9 @@ const SquadChat = ({
                   </div>
                   {gridSlotsOverMax ? (
                     <p className="font-mono text-tiny text-[#ff4444] mb-4 text-center">
-                      {gridSlotCount} / {MAX_WHEN_SLOTS} slots — narrow the range, window, or granularity
+                      {gridSlotCount} / {MAX_WHEN_SLOTS} slots — {gridSlotMinutes === 30
+                        ? 'shorten the range, pick a smaller window, or switch to 1H slots'
+                        : 'shorten the range or pick a smaller window'}
                     </p>
                   ) : gridRangeValid ? (
                     <p className="font-mono text-tiny text-faint mb-4 text-center">
