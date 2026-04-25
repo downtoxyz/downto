@@ -2,16 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTD/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!--
-	  aps-environment is required for the Push Notifications capability.
-	  Value notes:
-	    "development" — works for Xcode debug builds + TestFlight via dev profile.
-	    "production"  — required only for App Store distribution. Xcode swaps
-	                    this automatically when archiving with a distribution
-	                    provisioning profile (default behavior with automatic
-	                    code signing), so leaving "development" here is fine
-	                    for both local builds and App Store releases.
-	-->
 	<key>aps-environment</key>
 	<string>development</string>
 </dict>
