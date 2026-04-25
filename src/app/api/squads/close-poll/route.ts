@@ -67,11 +67,14 @@ export async function POST(req: NextRequest) {
   if (poll.poll_type === 'dates') {
     const { data: votes } = await adminClient
       .from('squad_poll_votes')
-      .select('option_index')
+      .select('option_index, user_id')
       .eq('poll_id', pollId);
 
     const counts = new Map<number, number>();
     for (const v of votes ?? []) counts.set(v.option_index, (counts.get(v.option_index) ?? 0) + 1);
+    // Anyone who voted at least once is treated as already-confirmed for the
+    // proposed date — they implicitly weighed in by voting in the poll.
+    const responderIds = Array.from(new Set((votes ?? []).map((v) => v.user_id))) as string[];
 
     let topIdx: number | null = null;
     let topCount = 0;
@@ -102,6 +105,7 @@ export async function POST(req: NextRequest) {
             time: winner.time,
             proposerUserId: null,
             proposerDisplayName: 'The poll',
+            preConfirmedUserIds: responderIds,
           });
         } catch (err) {
           // Non-fatal: poll is already closed and the winner message is in
@@ -119,6 +123,8 @@ export async function POST(req: NextRequest) {
       .from('squad_poll_availability')
       .select('user_id, day_offset, slot_index')
       .eq('poll_id', pollId);
+
+    const responderIds = Array.from(new Set((cells ?? []).map((c) => c.user_id))) as string[];
 
     const counts = new Map<string, { count: number; dayOffset: number; slotIndex: number }>();
     for (const c of cells ?? []) {
@@ -161,6 +167,7 @@ export async function POST(req: NextRequest) {
           time: timeStr,
           proposerUserId: null,
           proposerDisplayName: 'The poll',
+          preConfirmedUserIds: responderIds,
         });
       } catch (err) {
         console.error('proposeSquadDate from availability winner failed', err);
@@ -174,11 +181,12 @@ export async function POST(req: NextRequest) {
   if (poll.poll_type === 'when') {
     const { data: votes } = await adminClient
       .from('squad_poll_votes')
-      .select('option_index')
+      .select('option_index, user_id')
       .eq('poll_id', pollId);
 
     const counts = new Map<number, number>();
     for (const v of votes ?? []) counts.set(v.option_index, (counts.get(v.option_index) ?? 0) + 1);
+    const responderIds = Array.from(new Set((votes ?? []).map((v) => v.user_id))) as string[];
 
     let topIdx: number | null = null;
     let topCount = 0;
@@ -218,6 +226,7 @@ export async function POST(req: NextRequest) {
             time: timeStr,
             proposerUserId: null,
             proposerDisplayName: 'The poll',
+            preConfirmedUserIds: responderIds,
           });
         } catch (err) {
           console.error('proposeSquadDate from when winner failed', err);

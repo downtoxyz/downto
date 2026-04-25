@@ -1783,6 +1783,36 @@ export async function closePoll(pollId: string) {
   return res.json();
 }
 
+export async function reopenPoll(pollId: string) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/squads/reopen-poll`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ pollId }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to reopen poll');
+  }
+  return res.json();
+}
+
+export async function proposeDateFromPoll(pollId: string, date: string, time: string | null) {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/squads/propose-from-poll`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ pollId, date, time }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to propose date');
+  }
+  return res.json();
+}
+
 export function subscribeToPollVotes(
   pollId: string,
   callback: (payload: { user_id: string; option_index: number; poll_id: string }) => void

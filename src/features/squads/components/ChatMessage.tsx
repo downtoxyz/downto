@@ -115,6 +115,8 @@ interface ChatMessageProps {
   isWaitlisted: boolean;
   pollMessageRef: React.RefObject<HTMLDivElement | null>;
   onPollClosed?: (pollId: string) => void;
+  squadMembers?: { userId: string; displayName: string }[];
+  onProposeDateFromPoll?: (pollId: string, date: string, time: string) => Promise<void>;
 }
 
 export default function ChatMessage({
@@ -133,6 +135,8 @@ export default function ChatMessage({
   isWaitlisted,
   pollMessageRef,
   onPollClosed,
+  squadMembers,
+  onProposeDateFromPoll,
 }: ChatMessageProps) {
   if (msg.sender === "system") {
     if (msg.messageType === 'date_confirm' && isLastConfirm) {
@@ -184,8 +188,12 @@ export default function ChatMessage({
               isWaitlisted={isWaitlisted}
               pollMessageRef={pollMessageRef}
               onPollClosed={onPollClosed}
+              squadMembers={squadMembers}
               onToggleCell={async (d, s) => { await db.toggleAvailabilityCell(poll.id, d, s); }}
               onClearMine={async () => { await db.clearMyAvailability(poll.id); }}
+              onProposeDate={onProposeDateFromPoll
+                ? async (date, time) => { await onProposeDateFromPoll(poll.id, date, time); }
+                : undefined}
             />
           </div>
         );
@@ -219,12 +227,16 @@ export default function ChatMessage({
                 isWaitlisted={isWaitlisted}
                 pollMessageRef={pollMessageRef}
                 onPollClosed={onPollClosed}
+                squadMembers={squadMembers}
                 onToggleCell={async (d, s) => {
                   const idx = grid.cellToSlotIndex.get(`${d}|${s}`);
                   if (idx === undefined) return;
                   await db.votePoll(poll.id, idx);
                 }}
                 onClearMine={async () => { await db.clearMyWhenVotes(poll.id); }}
+                onProposeDate={onProposeDateFromPoll
+                  ? async (date, time) => { await onProposeDateFromPoll(poll.id, date, time); }
+                  : undefined}
               />
             </div>
           );
