@@ -127,11 +127,32 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
           if (via) c.viaFriendName = via;
         }
       }
-      dispatch({ type: CheckActionType.SYNC_CHECKS, checks: transformedChecks, userId });
+
+      // Rebuild myCheckResponses from server data — same shape as
+      // hydrateChecks. Without this, a check that re-appears via the
+      // realtime sub (e.g. after a revive) leaves the local responses
+      // map stale, so the "DOWN" button indicator doesn't switch back to
+      // "✓ DOWN" until the next full hydrate. patchYouResponses inside
+      // SYNC_CHECKS still re-applies any optimistic in-flight responses.
+      const restoredResponses: Record<string, "down" | "waitlist"> = {};
+      for (const c of transformedChecks) {
+        const myResponse = c.responses.find((r) => r.odbc === userId);
+        if (myResponse && (myResponse.status === "down" || myResponse.status === "waitlist")) {
+          restoredResponses[c.id] = myResponse.status;
+        }
+      }
+
+      dispatch({
+        type: CheckActionType.SYNC_CHECKS,
+        checks: transformedChecks,
+        responses: restoredResponses,
+        avatarLetter: profile?.avatar_letter,
+        userId,
+      });
     } catch (err) {
       logWarn("loadChecks", "Failed to load checks", { error: err });
     }
-  }, [userId]);
+  }, [userId, profile?.display_name, profile?.avatar_letter]);
 
   const hydrateChecks = useCallback((
     activeChecks: Awaited<ReturnType<typeof db.getActiveChecks>>,
