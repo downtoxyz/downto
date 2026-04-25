@@ -825,6 +825,16 @@ export async function deleteInterestCheck(checkId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Returns true if the check still exists and is not archived. */
+export async function isInterestCheckActive(checkId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('interest_checks')
+    .select('id, archived_at')
+    .eq('id', checkId)
+    .maybeSingle();
+  return !!data && !data.archived_at;
+}
+
 export async function archiveInterestCheck(checkId: string): Promise<void> {
   const { error } = await supabase
     .from('interest_checks')
@@ -2183,4 +2193,31 @@ export async function reportContent(
       details,
     });
   if (error) throw error;
+}
+
+
+// =============================================================================
+// Account deletion (App Store 5.1.1(v))
+// =============================================================================
+
+/**
+ * Hard-delete the current user's account + all their content.
+ *
+ * Routes through /api/account/delete (service-role) because the auth.users
+ * row can only be removed via the admin API, not from the browser. After
+ * the call resolves, sign the user out — the session token is now stale.
+ */
+export async function deleteMyAccount(): Promise<void> {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(`${API_BASE}/api/account/delete`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `Account deletion failed (${res.status})`);
+  }
 }
