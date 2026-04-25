@@ -36,8 +36,8 @@ export async function POST(req: NextRequest) {
 
   if (pollType === 'when') {
     const { slots, collectionStyle: cs } = body as { slots?: unknown; collectionStyle?: unknown };
-    if (!Array.isArray(slots) || slots.length < 1 || slots.length > 50) {
-      return NextResponse.json({ error: 'slots must be 1–50 entries' }, { status: 400 });
+    if (!Array.isArray(slots) || slots.length < 1 || slots.length > 200) {
+      return NextResponse.json({ error: 'slots must be 1–200 entries' }, { status: 400 });
     }
     if (cs !== 'preference' && cs !== 'availability') {
       return NextResponse.json({ error: "collectionStyle must be 'preference' or 'availability'" }, { status: 400 });

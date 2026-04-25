@@ -1270,8 +1270,8 @@ const SquadChat = ({
           return d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
         };
 
-        // Server caps when-poll slots at 50; the grid emits one slot per cell.
-        const MAX_WHEN_SLOTS = 50;
+        // Server caps when-poll slots at 200; the grid emits one slot per cell.
+        const MAX_WHEN_SLOTS = 200;
         const computeGridSlotCount = (): number => {
           const dates = computeGridDates();
           if (!dates) return 0;
@@ -1325,7 +1325,7 @@ const SquadChat = ({
               await db.createWhenPoll(localSquad.id, slots, 'preference');
             } else if (pollVariant === 'grid') {
               // Availability-style 'when' poll: enumerate every (day, slot) cell
-              // as a slot with concrete startMin/endMin. Server caps at 50 slots.
+              // as a slot with concrete startMin/endMin. Server caps at 200 slots.
               const g = computeGridParams();
               if (!g) return;
               const slots: WhenSlot[] = [];
