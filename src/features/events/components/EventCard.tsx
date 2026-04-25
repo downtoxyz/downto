@@ -270,7 +270,7 @@ const EventCard = ({
 
           {/* Inline comments — only render when at least one comment exists; empty state lives in the sheet */}
           {evComments.length > 0 && (
-            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+            <div className="mt-5" onClick={(e) => e.stopPropagation()}>
               <InlineCommentsBox
                 comments={evComments}
                 userId={userId ?? null}
