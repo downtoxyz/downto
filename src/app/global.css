@@ -78,11 +78,13 @@
   }
 }
 
-/* Mono font spacing */
+/* Mono font spacing. Weight 400 is the lightest weight Space Mono ships
+   with (the dragonfruit theme's mono); requesting 300 here forces a
+   synthetic faux-light, which renders as fuzzy / squashed at small sizes.
+   Stay at 400 and let the native glyphs do the work. */
 .font-mono {
   letter-spacing: -0.04em;
-  font-weight: 300;
-  -webkit-text-stroke: 0.15px;
+  font-weight: 400;
 }
 
 .font-serif {
