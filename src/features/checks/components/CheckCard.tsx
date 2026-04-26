@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck, Friend } from "@/lib/ui-types";
@@ -133,7 +133,13 @@ export default function CheckCard({
     } catch { /* user cancelled */ }
   };
 
-  const friendsList = friends.filter(f => f.status === 'friend').map(f => ({ id: f.id, name: f.name, avatar: f.avatar }));
+  // Memoized so the array identity is stable across renders — InlineCommentsBox,
+  // CheckDetailSheet, and EditCheckModal all receive this and would otherwise
+  // see a fresh reference on every parent render.
+  const friendsList = useMemo(
+    () => friends.filter((f) => f.status === "friend").map((f) => ({ id: f.id, name: f.name, avatar: f.avatar })),
+    [friends],
+  );
 
   return (
     <>
