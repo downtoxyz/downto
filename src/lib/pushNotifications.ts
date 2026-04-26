@@ -105,6 +105,9 @@ async function saveSubscriptionToServer(subscription: PushSubscription): Promise
       endpoint: subscription.endpoint,
       p256dh: subJson.keys?.p256dh,
       auth: subJson.keys?.auth,
+      // UA so the server can later identify iOS-Safari rows to evict
+      // when the same user installs the native app.
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
     }),
   });
 }
