@@ -30,7 +30,13 @@ function ensureApns(): boolean {
   const bundleId = process.env.APNS_BUNDLE_ID ?? 'xyz.downto.app';
   const keyBase64 = process.env.APNS_KEY_BASE64;
   const keyPath = process.env.APNS_KEY_PATH;
-  const sandbox = process.env.APNS_SANDBOX === 'true';
+  // Tolerate trailing whitespace / newlines that crept in via
+  // `echo "true" | vercel env add` style invocations (echo appends a newline,
+  // and Vercel preserves it in the stored value as a literal "true\n"). Without
+  // .trim() the comparison silently fails and we ship to production APNs even
+  // on Preview/Development — which then rejects every dev-built sandbox token
+  // with BadDeviceToken.
+  const sandbox = process.env.APNS_SANDBOX?.trim() === 'true';
 
   if (!keyId || !teamId || (!keyBase64 && !keyPath)) return false;
 
