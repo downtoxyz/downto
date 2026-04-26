@@ -721,20 +721,14 @@ export default function Home() {
     }
   };
 
-  // ─── Render ─────────────────────────────────────────────────────────────
-
-  if (onboarding.onboardingScreen) return onboarding.onboardingScreen;
-
-  // Count incoming (pending inbound) friend requests — drives the sticky
-  // banner + the profile-tab dot.
-  const pendingFriendRequestCount = friendsHook.suggestions.filter(
-    (s) => s.status === "incoming",
-  ).length;
-
   // Accepted-friends list, projected to {id,name,avatar} — used by AddModal,
   // CheckCard's mention pickers, and other consumers. Memoized to keep
   // identity stable across renders; otherwise a fresh array fires on every
   // Home re-render and downstream memoization is defeated.
+  //
+  // Declared above the onboarding early-return so the hook order stays the
+  // same on every render (Rules of Hooks). Same goes for the FeedContext
+  // memo below — moving these *after* the return crashed prod hydration.
   const acceptedFriendsList = useMemo(
     () => friendsHook.friends
       .filter((f) => f.status === "friend")
@@ -779,6 +773,16 @@ export default function Home() {
     eventsHook.newlyAddedId,
     eventsHook.toggleDown,
   ]);
+
+  // ─── Render ─────────────────────────────────────────────────────────────
+
+  if (onboarding.onboardingScreen) return onboarding.onboardingScreen;
+
+  // Count incoming (pending inbound) friend requests — drives the sticky
+  // banner + the profile-tab dot.
+  const pendingFriendRequestCount = friendsHook.suggestions.filter(
+    (s) => s.status === "incoming",
+  ).length;
 
   return (
     <FeedContext.Provider value={feedContextValue}>
