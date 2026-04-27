@@ -310,9 +310,12 @@ async function fetchEventUsersBatch(
   const { data: { user } } = await supabase.auth.getUser();
   const currentUserId = user?.id;
 
+  // Only the three rendered fields — was `user:profiles(*)`, which pulled
+  // ~15 profile columns per "down" user × N events on every social-signal
+  // hydration.
   let query = supabase
     .from(table)
-    .select('event_id, user:profiles(*)')
+    .select('event_id, user:profiles(id, display_name, avatar_letter)')
     .in('event_id', eventIds);
 
   if (table === 'saved_events') {
@@ -371,12 +374,15 @@ export async function getFriends(): Promise<{ profile: Profile; friendshipId: st
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // useFriends.hydrateFriends consumes id/display_name/username/
+  // avatar_letter/availability/ig_handle. Was `(*)` per side — wasted
+  // bandwidth on every friends-list refresh.
   const { data, error } = await supabase
     .from('friendships')
     .select(`
       id,
-      requester:profiles!requester_id(*),
-      addressee:profiles!addressee_id(*)
+      requester:profiles!requester_id(id, display_name, username, avatar_letter, availability, ig_handle),
+      addressee:profiles!addressee_id(id, display_name, username, avatar_letter, availability, ig_handle)
     `)
     .eq('status', 'accepted')
     .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
@@ -396,7 +402,7 @@ export async function getPendingRequests(): Promise<(Friendship & { requester: P
 
   const { data, error } = await supabase
     .from('friendships')
-    .select('*, requester:profiles!requester_id(*)')
+    .select('*, requester:profiles!requester_id(id, display_name, username, avatar_letter, availability, ig_handle)')
     .eq('addressee_id', user.id)
     .eq('status', 'pending');
 
@@ -1451,9 +1457,14 @@ export async function getNotifications(): Promise<Notification[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Skipping the related_user profile join entirely — verified that no
+  // consumer reads notification.related_user (only the related_user_id
+  // column itself, e.g. NotificationsPanel checks `friends.some(f =>
+  // f.id === n.related_user_id)`). Was pulling a full Profile per
+  // notification × 50 notifications per fetch.
   const { data, error } = await supabase
     .from('notifications')
-    .select('*, related_user:profiles!related_user_id(*)')
+    .select('*')
     .eq('user_id', user.id)
     .not('type', 'in', '("squad_message","squad_mention")')
     .order('created_at', { ascending: false })
