@@ -12,6 +12,7 @@
     "cap:sync": "npx cap sync ios",
     "start": "next start",
     "test": "echo 'Unit tests disabled'",
+    "test:e2e": "bash scripts/test-e2e.sh",
     "ios:fresh": "bash scripts/ios-fresh.sh"
   },
   "keywords": [],

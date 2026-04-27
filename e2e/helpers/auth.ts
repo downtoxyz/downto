@@ -5,6 +5,14 @@ const SUPABASE_URL =
 const SERVICE_ROLE =
   process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
+// Where the magic-link redirect should land. Defaults to the playwright
+// config's baseURL — overridable via PLAYWRIGHT_TEST_BASE_URL when
+// test-e2e.sh routes the dev server to a non-default port. The chosen port
+// must be present in supabase/config.toml's `additional_redirect_urls` or
+// Supabase will reject the redirect.
+const APP_BASE_URL =
+  process.env.PLAYWRIGHT_TEST_BASE_URL || "http://127.0.0.1:3000";
+
 /**
  * Log in a test user via Supabase magic link (admin API).
  * Navigates the page to the magic link URL, which authenticates the session.
@@ -27,7 +35,13 @@ export async function loginAsTestUser(
       Authorization: `Bearer ${SERVICE_ROLE}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ type: "magiclink", email }),
+    body: JSON.stringify({
+      type: "magiclink",
+      email,
+      // Pin the redirect explicitly. Without this Supabase falls back to the
+      // site_url from config.toml, which is wrong when tests run on 3101.
+      redirect_to: APP_BASE_URL,
+    }),
   });
 
   if (!res.ok) {
@@ -41,6 +55,7 @@ export async function loginAsTestUser(
   }
 
   await page.goto(actionLink);
-  // Wait for auth redirect to complete and app to render
-  await page.waitForURL(/127\.0\.0\.1:3000/, { timeout: 15_000 });
+  // Wait for auth redirect to complete and app to render at the expected origin.
+  const expectedHost = new URL(APP_BASE_URL).host;
+  await page.waitForURL(new RegExp(expectedHost.replace(/\./g, "\\.")), { timeout: 15_000 });
 }

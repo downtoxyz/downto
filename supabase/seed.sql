@@ -160,7 +160,33 @@ VALUES (
   NULL
 ) ON CONFLICT (id) DO NOTHING;
 
+-- ─── Drinks Crew squad (must come BEFORE check_responses for c1) ──────────
+-- The auto_create_squad_on_first_other_down trigger fires on each "down"
+-- response and short-circuits if a squad already exists for the check.
+-- Pre-seeding the squad here keeps its hard-coded id (d1111111…) intact
+-- so other tests / fixtures can reference it.
+
+INSERT INTO public.squads (id, name, check_id, created_by)
+VALUES (
+  'd1111111-1111-1111-1111-111111111111',
+  'Drinks Crew',
+  'c1111111-1111-1111-1111-111111111111',
+  'b2222222-2222-2222-2222-222222222222'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.squad_members (squad_id, user_id) VALUES
+  ('d1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111'),
+  ('d1111111-1111-1111-1111-111111111111', 'b2222222-2222-2222-2222-222222222222')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.messages (squad_id, sender_id, text, created_at) VALUES
+  ('d1111111-1111-1111-1111-111111111111', 'b2222222-2222-2222-2222-222222222222', 'hey! where should we meet?', now() - interval '10 minutes'),
+  ('d1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111', 'how about the lobby at 9?', now() - interval '5 minutes')
+ON CONFLICT DO NOTHING;
+
 -- ─── Responses: 17 down on Sara's drinks check ──────────────────────────────
+-- The auto_join_squad_on_down_response trigger will add each responder to
+-- the existing Drinks Crew squad (capped at max_squad_size, default 5).
 
 INSERT INTO public.check_responses (check_id, user_id, response) VALUES
   ('c1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111', 'down'),
@@ -210,33 +236,10 @@ VALUES (
   false
 ) ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.check_responses (check_id, user_id, response) VALUES
-  ('c4444444-4444-4444-4444-444444444444', 'a1111111-1111-1111-1111-111111111111', 'down'),
-  ('c4444444-4444-4444-4444-444444444444', 'b2222222-2222-2222-2222-222222222222', 'down'),
-  ('c4444444-4444-4444-4444-444444444444', 'cc000001-0000-0000-0000-000000000000', 'down')
-ON CONFLICT DO NOTHING;
-
--- ─── Squad with messages ─────────────────────────────────────────────────────
-
-INSERT INTO public.squads (id, name, check_id, created_by)
-VALUES (
-  'd1111111-1111-1111-1111-111111111111',
-  'Drinks Crew',
-  'c1111111-1111-1111-1111-111111111111',
-  'b2222222-2222-2222-2222-222222222222'
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.squad_members (squad_id, user_id) VALUES
-  ('d1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111'),
-  ('d1111111-1111-1111-1111-111111111111', 'b2222222-2222-2222-2222-222222222222')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO public.messages (squad_id, sender_id, text, created_at) VALUES
-  ('d1111111-1111-1111-1111-111111111111', 'b2222222-2222-2222-2222-222222222222', 'hey! where should we meet?', now() - interval '10 minutes'),
-  ('d1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111', 'how about the lobby at 9?', now() - interval '5 minutes')
-ON CONFLICT DO NOTHING;
-
 -- ─── Puzzle Pints squad (locked date) ──────────────────────────────────────
+-- Same ordering rule as Drinks Crew above: squad must exist before
+-- check_responses so the auto-create trigger short-circuits and our
+-- hard-coded id (d2222222…) survives.
 
 INSERT INTO public.squads (id, name, check_id, created_by, locked_date, date_status, expires_at)
 VALUES (
@@ -257,6 +260,12 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO public.messages (squad_id, sender_id, text, is_system, created_at) VALUES
   ('d2222222-2222-2222-2222-222222222222', NULL, 'Kat locked in ' || to_char(CURRENT_DATE + 2, 'Dy, Mon DD') || ' at 6pm', true, now() - interval '2 minutes')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.check_responses (check_id, user_id, response) VALUES
+  ('c4444444-4444-4444-4444-444444444444', 'a1111111-1111-1111-1111-111111111111', 'down'),
+  ('c4444444-4444-4444-4444-444444444444', 'b2222222-2222-2222-2222-222222222222', 'down'),
+  ('c4444444-4444-4444-4444-444444444444', 'cc000001-0000-0000-0000-000000000000', 'down')
 ON CONFLICT DO NOTHING;
 
 -- ─── Date/time/location matrix checks (all 7 non-empty combos) ──────────────
