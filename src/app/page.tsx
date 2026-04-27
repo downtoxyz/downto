@@ -206,7 +206,12 @@ export default function Home() {
     isLoadingRef.current = true;
 
     try {
-      // Phase 1: Fetch all independent data in parallel
+      // Phase A — feed-essential queries. Whatever lands here is what the
+      // user is actually staring at: events on the feed, checks on the
+      // feed, friend list (drives onboarding + the FoF annotations), and
+      // squads (drives the "💬 Squad →" / "Squad →" button state on each
+      // check card). Anything not visibly required to render the feed
+      // correctly belongs in Phase B below.
       const [
         savedEvents,
         publicEvents,
@@ -219,8 +224,6 @@ export default function Home() {
         squadsList,
         hiddenIds,
         fofAnnotations,
-        archivedChecksList,
-        leftChecksList,
         unreadSquadIds,
       ] = await Promise.all([
         db.getSavedEvents(),
@@ -234,38 +237,50 @@ export default function Home() {
         db.getSquads().catch((err) => { logWarn("loadSquads", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getSquads>>; }),
         db.getHiddenCheckIds().catch((err) => { logWarn("loadHiddenChecks", "Failed", { error: err }); return [] as string[]; }),
         db.getFofAnnotations().catch((err) => { logWarn("loadFofAnnotations", "Failed", { error: err }); return [] as { check_id: string; via_friend_name: string }[]; }),
-        db.getArchivedChecks().catch((err) => { logWarn("loadArchivedChecks", "Failed", { error: err }); return [] as { id: string; text: string; archived_at: string }[]; }),
-        db.getLeftChecks().catch((err) => { logWarn("loadLeftChecks", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getLeftChecks>>; }),
         db.getUnreadSquadIds().catch(() => [] as string[]),
       ]);
 
-      // Phase 2: Transform events via useEvents hook
       hydrateEvents(savedEvents, publicEvents, friendsEvents);
-
-      // Phase 3: Hydrate domain hooks
       friendsHook.hydrateFriends(friendsList, pendingRequests, suggestedUsers, outgoingRequests);
       checksHook.hydrateChecks(activeChecks, hiddenIds, fofAnnotations);
       squadsHook.hydrateSquads(squadsList, unreadSquadIds);
-      setArchivedChecks(archivedChecksList);
-      checksHook.hydrateLeftChecks(leftChecksList);
 
-      // Phase 4: Fetch social data before showing feed so it doesn't pop in
-      const savedEventIds = savedEvents.map((se) => se.event!.id);
-      const allEventIds = [...new Set([...savedEventIds, ...publicEvents.map((e) => e.id), ...friendsEvents.map((e) => e.id)])];
-      if (allEventIds.length > 0) {
-        try {
-          const [peopleDownMap, crewPoolMap, userPoolEventIds] = await Promise.all([
-            db.getPeopleDownBatch(allEventIds),
-            db.getCrewPoolBatch(allEventIds),
-            db.getUserPoolEventIds(allEventIds),
-          ]);
-          hydrateSocialData(peopleDownMap, crewPoolMap, userPoolEventIds);
-        } catch (err) {
-          logWarn("loadPeopleDown", "Failed to load social data", { error: err });
-        }
-      }
-
+      // Feed is interactable now — flip the gate before Phase B kicks off
+      // so the user isn't waiting on social pills + profile-only data.
       setFeedLoaded(true);
+
+      // Phase B — background hydration. Don't await; let these populate
+      // when ready so we don't block first paint:
+      //   • Social pills on event cards (peopleDown / crewPool / userPool)
+      //     — events render with "0 down" briefly, then update. Used to
+      //     be Phase 4 ("so it doesn't pop in" — trade-off accepted).
+      //   • Profile-only state (archivedChecks / leftChecks) — only
+      //     consumed inside ProfileView, can hydrate any time before the
+      //     user navigates there.
+      // Wrapped in an IIFE so any failure is contained.
+      void (async () => {
+        try {
+          const savedEventIds = savedEvents.map((se) => se.event!.id);
+          const allEventIds = [...new Set([...savedEventIds, ...publicEvents.map((e) => e.id), ...friendsEvents.map((e) => e.id)])];
+          if (allEventIds.length > 0) {
+            const [peopleDownMap, crewPoolMap, userPoolEventIds] = await Promise.all([
+              db.getPeopleDownBatch(allEventIds),
+              db.getCrewPoolBatch(allEventIds),
+              db.getUserPoolEventIds(allEventIds),
+            ]);
+            hydrateSocialData(peopleDownMap, crewPoolMap, userPoolEventIds);
+          }
+
+          const [archivedChecksList, leftChecksList] = await Promise.all([
+            db.getArchivedChecks().catch((err) => { logWarn("loadArchivedChecks", "Failed", { error: err }); return [] as { id: string; text: string; archived_at: string }[]; }),
+            db.getLeftChecks().catch((err) => { logWarn("loadLeftChecks", "Failed", { error: err }); return [] as Awaited<ReturnType<typeof db.getLeftChecks>>; }),
+          ]);
+          setArchivedChecks(archivedChecksList);
+          checksHook.hydrateLeftChecks(leftChecksList);
+        } catch (err) {
+          logWarn("loadRealData/background", "Failed", { error: err });
+        }
+      })();
 
       // Reload notifications AFTER squads are hydrated to avoid race condition
       // where onUnreadSquadIds sets hasUnread on stale squad state
@@ -282,7 +297,7 @@ export default function Home() {
       isLoadingRef.current = false;
       setFeedLoaded(true);
     }
-  }, [userId, checksHook.hydrateChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends, hydrateEvents, hydrateSocialData, notificationsHook.loadNotifications]);
+  }, [userId, checksHook.hydrateChecks, checksHook.hydrateLeftChecks, squadsHook.hydrateSquads, friendsHook.hydrateFriends, hydrateEvents, hydrateSocialData, setArchivedChecks, notificationsHook.loadNotifications]);
 
   loadRealDataRef.current = loadRealData;
 
