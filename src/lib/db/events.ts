@@ -340,32 +340,42 @@ export async function getEventSocialSignal(eventId: string): Promise<{ totalDown
   const { data: { user } } = await supabase.auth.getUser();
   const currentUserId = user?.id;
 
-  const { data, error } = await supabase
+  // Run the two scans in parallel — was sequential (down-list, then
+  // friendships only once we knew there was anyone to check). Cutting the
+  // wait roughly in half on the common path; the trade-off is one wasted
+  // friendships query in the no-one-is-down case, which is cheap.
+  const downQuery = supabase
     .from('saved_events')
     .select('user_id')
     .eq('event_id', eventId)
     .eq('is_down', true);
 
+  const friendsQuery = currentUserId
+    ? supabase
+        .from('friendships')
+        .select('requester_id, addressee_id')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`)
+    : Promise.resolve({ data: null });
+
+  const [{ data, error }, { data: friendships }] = await Promise.all([
+    downQuery,
+    friendsQuery,
+  ]);
+
   if (error) throw error;
 
-  const allDown = (data ?? []).filter(d => d.user_id !== currentUserId);
+  const allDown = (data ?? []).filter((d) => d.user_id !== currentUserId);
   const totalDown = allDown.length;
 
   if (!currentUserId || totalDown === 0) return { totalDown, friendsDown: 0 };
 
-  // Get friend IDs
-  const { data: friendships } = await supabase
-    .from('friendships')
-    .select('requester_id, addressee_id')
-    .eq('status', 'accepted')
-    .or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
-
   const friendIds = new Set(
-    (friendships ?? []).map(f =>
-      f.requester_id === currentUserId ? f.addressee_id : f.requester_id
-    )
+    (friendships ?? []).map((f) =>
+      f.requester_id === currentUserId ? f.addressee_id : f.requester_id,
+    ),
   );
 
-  const friendsDown = allDown.filter(d => friendIds.has(d.user_id)).length;
+  const friendsDown = allDown.filter((d) => friendIds.has(d.user_id)).length;
   return { totalDown, friendsDown };
 }
