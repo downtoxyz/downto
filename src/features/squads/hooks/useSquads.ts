@@ -253,7 +253,7 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
     setEventToSquad(newEventToSquad);
   }, [userId, checksRef, dispatch]);
 
-  const startSquadFromCheck = async (check: InterestCheck) => {
+  const startSquadFromCheck = useCallback(async (check: InterestCheck) => {
     if (creatingSquad || check.squadId) return;
     setCreatingSquad(true);
     const maxSize = check.maxSquadSize ?? 5;
@@ -318,9 +318,9 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
 
     setCreatingSquad(false);
     onSquadCreated?.(newSquad.id);
-  };
+  }, [creatingSquad, userId, profile?.avatar_letter, onSquadCreated, dispatch]);
 
-  const startSquadFromEvent = async (event: Event, selectedUserIds: string[]) => {
+  const startSquadFromEvent = useCallback(async (event: Event, selectedUserIds: string[]) => {
     if (creatingSquad) return;
     if (event.id && eventToSquad.has(event.id)) {
       showToast("You're already in a squad for this event");
@@ -388,9 +388,9 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
     setSocialEvent(null);
     setCreatingSquad(false);
     onSquadCreated?.(newSquad.id);
-  };
+  }, [creatingSquad, eventToSquad, profile?.avatar_letter, userId, squadPoolMembers, inSquadPool, showToast, onSquadCreated]);
 
-  const handleJoinSquadPool = async (event: Event) => {
+  const handleJoinSquadPool = useCallback(async (event: Event) => {
     if (!event.id) return;
 
     try {
@@ -441,7 +441,7 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
       logError("joinSquadPool", err, { eventId: event.id });
       showToast("Something went wrong");
     }
-  };
+  }, [inSquadPool, userId, showToast, onAutoDown]);
 
   // Load squad pool members when EventLobby opens and enrich peopleDown with inPool + inSquad flags
   useEffect(() => {

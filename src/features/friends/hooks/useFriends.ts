@@ -68,7 +68,7 @@ export function useFriends({ userId, showToast, loadRealDataRef }: UseFriendsPar
     setSuggestions([...incomingFriends, ...outgoingFriends, ...suggestedFriends]);
   }, []);
 
-  const addFriend = async (id: string) => {
+  const addFriend = useCallback(async (id: string) => {
     try {
       const friendship = await db.sendFriendRequest(id);
       setSuggestions((prev) =>
@@ -79,9 +79,9 @@ export function useFriends({ userId, showToast, loadRealDataRef }: UseFriendsPar
       logError("sendFriendRequest", err, { friendId: id });
       showToast("Failed to send request");
     }
-  };
+  }, [showToast]);
 
-  const acceptRequest = async (id: string) => {
+  const acceptRequest = useCallback(async (id: string) => {
     const person = suggestions.find((s) => s.id === id);
     if (!person) return;
 
@@ -103,9 +103,9 @@ export function useFriends({ userId, showToast, loadRealDataRef }: UseFriendsPar
       logError("acceptFriendRequest", err, { friendId: person.id });
       showToast("Failed to accept request");
     }
-  };
+  }, [suggestions, showToast, loadRealDataRef]);
 
-  const removeFriend = async (id: string) => {
+  const removeFriend = useCallback(async (id: string) => {
     const person = friends.find((f) => f.id === id);
     if (!person) return;
 
@@ -124,9 +124,9 @@ export function useFriends({ userId, showToast, loadRealDataRef }: UseFriendsPar
       logError("removeFriend", err, { friendId: person.id });
       showToast("Failed to remove friend");
     }
-  };
+  }, [friends, showToast]);
 
-  const cancelRequest = async (id: string) => {
+  const cancelRequest = useCallback(async (id: string) => {
     const person = suggestions.find((f) => f.id === id && f.status === "pending");
     if (!person?.friendshipId) return;
 
@@ -138,9 +138,14 @@ export function useFriends({ userId, showToast, loadRealDataRef }: UseFriendsPar
       logError("cancelRequest", err, { friendId: person.id });
       showToast("Failed to cancel request");
     }
-  };
+  }, [suggestions, showToast]);
 
-  const searchUsers = userId ? async (query: string) => {
+  // Always return a function (was conditionally undefined when userId null,
+  // which made the prop identity flip and broke React.memo down-tree). When
+  // userId is null we just resolve with an empty list — consumers always
+  // mount the search UI inside an authed-only flow anyway.
+  const searchUsers = useCallback(async (query: string): Promise<Friend[]> => {
+    if (!userId) return [];
     // Fetch search results + outgoing pending requests in parallel
     const [results, outgoing] = await Promise.all([
       db.searchUsers(query),
@@ -167,7 +172,7 @@ export function useFriends({ userId, showToast, loadRealDataRef }: UseFriendsPar
         availability: p.availability,
         igHandle: p.ig_handle ?? undefined,
       }));
-  } : undefined;
+  }, [userId, friends, suggestions]);
 
   // Subscribe to realtime friendship changes
   useEffect(() => {

@@ -188,7 +188,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
     });
   }, [userId]);
 
-  const respondToCheck = (checkId: string) => {
+  const respondToCheck = useCallback((checkId: string) => {
     const check = checks.find((c) => c.id === checkId);
     dispatch({ type: CheckActionType.SET_RESPONSE, checkId, status: "down", avatarLetter: profile?.avatar_letter ?? "?", userId });
     showToast("You're down! ✦");
@@ -209,9 +209,9 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
           logError("respondToCheck", err, { checkId: check?.id });
         });
     }
-  };
+  }, [checks, profile?.avatar_letter, userId, showToast, onDownResponse, loadChecks]);
 
-  const handleCreateCheck = async (
+  const handleCreateCheck = useCallback(async (
     idea: string,
     expiresInHours: number | null,
     eventDate: string | null,
@@ -268,9 +268,9 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
         showToast("Failed to send - try again");
       }
     }
-  };
+  }, [userId, profile?.display_name, profile?.username, friendCount, showToast, onCheckCreated]);
 
-  const acceptCoAuthorTag = async (checkId: string) => {
+  const acceptCoAuthorTag = useCallback(async (checkId: string) => {
     try {
       await db.respondToCoAuthorTag(checkId, true);
       dispatch({ type: CheckActionType.SET_CO_AUTHOR, checkId, userId: userId!, accepted: true, avatarLetter: profile?.avatar_letter ?? "?" });
@@ -281,9 +281,9 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
       logError('acceptCoAuthorTag', err, { checkId });
       showToast('Failed to accept tag');
     }
-  };
+  }, [userId, profile?.avatar_letter, showToast, onCoAuthorRespond, loadChecks]);
 
-  const declineCoAuthorTag = async (checkId: string) => {
+  const declineCoAuthorTag = useCallback(async (checkId: string) => {
     try {
       await db.respondToCoAuthorTag(checkId, false);
       dispatch({ type: CheckActionType.SET_CO_AUTHOR, checkId, userId: userId!, accepted: false });
@@ -291,7 +291,7 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
     } catch (err) {
       logError('declineCoAuthorTag', err, { checkId });
     }
-  };
+  }, [userId, onCoAuthorRespond]);
 
   const hydrateLeftChecks = useCallback((raw: Awaited<ReturnType<typeof db.getLeftChecks>>) => {
     const now = new Date();
@@ -329,19 +329,19 @@ export function useChecks({ userId, profile, friendCount, showToast, onCheckCrea
     db.removeLeftCheck(checkId).catch((err) => logError('removeLeftCheck', err, { checkId }));
   }, [respondToCheck]);
 
-  const clearResponse = (checkId: string) => {
+  const clearResponse = useCallback((checkId: string) => {
     dispatch({ type: CheckActionType.CLEAR_RESPONSE, checkId, userId });
-  };
+  }, [userId]);
 
-  const hideCheck = async (checkId: string) => {
+  const hideCheck = useCallback(async (checkId: string) => {
     dispatch({ type: CheckActionType.SET_HIDDEN, checkId, hidden: true });
     db.hideCheck(checkId).catch((err) => logError("hideCheck", err, { checkId }));
-  };
+  }, []);
 
-  const unhideCheck = async (checkId: string) => {
+  const unhideCheck = useCallback(async (checkId: string) => {
     dispatch({ type: CheckActionType.SET_HIDDEN, checkId, hidden: false });
     db.unhideCheck(checkId).catch((err) => logError("unhideCheck", err, { checkId }));
-  };
+  }, []);
 
   // Recalculate expiry every 30s so stale checks auto-hide
   useEffect(() => {

@@ -162,7 +162,7 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
     setEvents((prev) => prev.map(enrichEvent));
   }, []);
 
-  const toggleDown = async (id: string) => {
+  const toggleDown = useCallback(async (id: string) => {
     const event = events.find((e) => e.id === id);
     if (!event) return;
     const newDown = !event.isDown;
@@ -190,9 +190,9 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
         }
       }
     }
-  };
+  }, [events, showToast, loadRealDataRef]);
 
-  const handleEditEvent = async (updated: { title: string; venue: string; date: string; time: string; vibe: string[]; note: string }) => {
+  const handleEditEvent = useCallback(async (updated: { title: string; venue: string; date: string; time: string; vibe: string[]; note: string }) => {
     if (!editingEvent) return;
 
     const dateISO = parseDateToISO(updated.date);
@@ -234,7 +234,7 @@ export function useEvents({ userId, showToast, loadRealDataRef }: UseEventsParam
     setEvents(updateList);
     setEditingEvent(null);
     showToast("Event updated!");
-  };
+  }, [editingEvent, userId, showToast]);
 
   return {
     events,

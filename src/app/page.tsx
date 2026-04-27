@@ -87,37 +87,89 @@ export default function Home() {
   const clearAddGlowRef = useRef(() => {});
 
   // ─── Domain hooks ───────────────────────────────────────────────────────
+  // Order matters: hooks whose input lambdas reference *other* hooks need
+  // those other hooks declared first so the deps arrays of the useCallbacks
+  // below resolve. notificationsHook is up here because checksHook's
+  // onCoAuthorRespond touches it.
   const friendsHook = useFriends({
     userId,
     showToast,
     loadRealDataRef,
   });
 
+  const notificationsHook = useNotifications({ userId });
+
+  // ─── Stable input lambdas for the domain hooks ─────────────────────────
+  // Each domain hook captures these via closure. If they're inline, every
+  // Home render gives the hook a fresh callback identity, which cascades
+  // into every useCallback'd handler the hook returns and ultimately into
+  // the FeedContext value. Stabilizing them here is the prerequisite for
+  // React.memo on CheckCard / EventCard.
+
+  const onCheckCreated = useCallback(() => {
+    setTab("feed");
+    clearAddGlowRef.current();
+  }, [setTab]);
+
+  const onDownResponse = useCallback(() => {
+    loadRealDataRef.current();
+  }, []);
+
+  const onCoAuthorRespond = useCallback((checkId: string) => {
+    // Mark check_tag notification as read when user accepts/declines
+    const tagNotif = notificationsHook.notifications.find(
+      (n) => n.type === "check_tag" && n.related_check_id === checkId && !n.is_read
+    );
+    if (tagNotif) {
+      if (userId) db.markNotificationRead(tagNotif.id);
+      notificationsHook.setNotifications((prev) =>
+        prev.map((n) => n.id === tagNotif.id ? { ...n, is_read: true } : n)
+      );
+      notificationsHook.setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+  }, [
+    notificationsHook.notifications,
+    notificationsHook.setNotifications,
+    notificationsHook.setUnreadCount,
+    userId,
+  ]);
+
   const checksHook = useChecks({
     userId,
     profile,
     friendCount: friendsHook.friends.length,
     showToast,
-    onCheckCreated: () => { setTab("feed"); clearAddGlowRef.current(); },
-    onDownResponse: () => { loadRealDataRef.current(); },
-    onCoAuthorRespond: (checkId: string) => {
-      // Mark check_tag notification as read when user accepts/declines
-      const tagNotif = notificationsHook.notifications.find(
-        (n) => n.type === "check_tag" && n.related_check_id === checkId && !n.is_read
-      );
-      if (tagNotif) {
-        if (userId) db.markNotificationRead(tagNotif.id);
-        notificationsHook.setNotifications((prev) =>
-          prev.map((n) => n.id === tagNotif.id ? { ...n, is_read: true } : n)
-        );
-        notificationsHook.setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
-    },
+    onCheckCreated,
+    onDownResponse,
+    onCoAuthorRespond,
   });
 
   // Keep a ref to the latest checks so useSquads can read current state without a stale closure
   const checksRef = useRef(checksHook.checks);
   checksRef.current = checksHook.checks;
+
+  // onSquadCreated forward-refs squadsHook.setAutoSelectSquadId (we're
+  // about to define squadsHook). The setter is a stable useState reference
+  // even though the wrapping object is reborn each render, so closure
+  // semantics give us the right setter at call time. tab goes in the deps
+  // array because we want the originating tab captured at squad-form
+  // moment (so the back-from-squad nav lands the user where they were).
+  const onSquadCreated = useCallback((squadId: string) => {
+    showToastWithAction("squad formed!", () => {
+      setSquadChatOrigin(tab);
+      squadsHook.setAutoSelectSquadId(squadId);
+    }, true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, showToastWithAction, setSquadChatOrigin]);
+
+  const onAutoDown = useCallback(async (eventId: string) => {
+    await db.saveEvent(eventId).catch(() => {});
+    await db.toggleDown(eventId, true);
+    setEvents((prev) =>
+      prev.map((e) => e.id === eventId ? { ...e, isDown: true, saved: true } : e)
+    );
+    showToast("You're down! ✦");
+  }, [setEvents, showToast]);
 
   const squadsHook = useSquads({
     userId,
@@ -126,23 +178,9 @@ export default function Home() {
     dispatch: checksHook.dispatch,
     showToast,
     openSquadIdRef: selectedSquadIdRef,
-    onSquadCreated: (squadId: string) => {
-      showToastWithAction("squad formed!", () => {
-        setSquadChatOrigin(tab);
-        squadsHook.setAutoSelectSquadId(squadId);
-      }, true);
-    },
-    onAutoDown: async (eventId: string) => {
-      await db.saveEvent(eventId).catch(() => {});
-      await db.toggleDown(eventId, true);
-      setEvents((prev) =>
-        prev.map((e) => e.id === eventId ? { ...e, isDown: true, saved: true } : e)
-      );
-      showToast("You're down! ✦");
-    },
+    onSquadCreated,
+    onAutoDown,
   });
-
-  const notificationsHook = useNotifications({ userId });
 
   // ─── Onboarding hook ───────────────────────────────────────────────────
   const onboarding = useOnboarding({

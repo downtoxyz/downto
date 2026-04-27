@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import * as db from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import type { InterestCheck, Friend } from "@/lib/ui-types";
@@ -74,7 +74,7 @@ export interface CheckCardProps {
   isNew?: boolean;
 }
 
-export default function CheckCard({
+function CheckCard({
   check,
   userId,
   profile,
@@ -447,3 +447,10 @@ export default function CheckCard({
     </>
   );
 }
+
+// Memoized so a re-render in Home that doesn't change this check's props
+// (tab switches, modal toggles, viewing-user changes, etc.) skips the card
+// entirely. Default shallow compare works now that the upstream callbacks
+// are stable: showToast/showToastWithAction (#463), loadRealData (already
+// useCallback), and the in-FeedContext handlers from useChecks (this PR).
+export default memo(CheckCard);

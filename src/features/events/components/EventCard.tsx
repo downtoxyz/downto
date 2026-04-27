@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import type { Event } from "@/lib/ui-types";
 import type { Profile } from "@/lib/types";
 import cn from "@/lib/tailwindMerge";
@@ -659,4 +659,10 @@ function SheetHero(props: SheetProps) {
   );
 }
 
-export default EventCard;
+// Memoized so a re-render in Home that doesn't change this event's props
+// (tab switches, modal toggles, viewing-user changes, etc.) skips the card
+// entirely. Default shallow compare is fine — all callback props
+// (onToggleDown, onOpenSocial, onEdit, onViewProfile) come through Home's
+// useCallback'd handlers (#463) and useEvents' useCallback'd toggleDown,
+// so identities are stable.
+export default memo(EventCard);
