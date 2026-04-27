@@ -1223,7 +1223,20 @@ export async function getSquads(): Promise<Squad[]> {
 
   const squadIds = memberOf.map(m => m.squad_id);
 
-  // Then fetch those squads with their data (exclude expired)
+  // Then fetch those squads with their data (exclude expired).
+  //
+  // Two perf trims here on the hot squad-list path:
+  //   1. Cap nested messages at the most recent 50. Was unlimited — a
+  //      busy squad pulled hundreds of messages on every list load.
+  //      No pagination yet, so older messages aren't visible until that
+  //      lands; acceptable trade-off given typical squad chat lengths.
+  //   2. Trim the embedded sender profile to just display_name (only field
+  //      actually rendered). Was `sender:profiles(*)` — ~15 columns × N
+  //      messages × M squads of waste.
+  //
+  // Messages are fetched DESC + limit so we get the newest 50, then
+  // reversed in JS so consumers (SquadChat / GroupsView) keep their
+  // existing oldest→newest expectation.
   const { data, error } = await supabase
     .from('squads')
     .select(`
@@ -1231,15 +1244,21 @@ export async function getSquads(): Promise<Squad[]> {
       event:events(*),
       check:interest_checks(author_id, event_time, event_date, location, text, date_flexible, time_flexible, max_squad_size, responses:check_responses(user_id, response, user:profiles!user_id(display_name, avatar_letter))),
       members:squad_members(*, user:profiles!user_id(*)),
-      messages(*, sender:profiles!sender_id(*))
+      messages(*, sender:profiles!sender_id(display_name))
     `)
     .in('id', squadIds)
     .is('archived_at', null)
     .or(`expires_at.gt.${new Date().toISOString()},expires_at.is.null`)
     .order('created_at', { ascending: false })
-    .order('created_at', { ascending: true, referencedTable: 'messages' });
+    .order('created_at', { ascending: false, referencedTable: 'messages' })
+    .limit(50, { referencedTable: 'messages' });
 
   if (error) throw error;
+  if (data) {
+    for (const squad of data) {
+      if (Array.isArray(squad.messages)) squad.messages.reverse();
+    }
+  }
   return data ?? [];
 }
 
