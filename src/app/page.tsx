@@ -721,14 +721,49 @@ export default function Home() {
     }
   };
 
+  // ─── Stable callback identities ─────────────────────────────────────────
+  // Inline arrow handlers passed as props (especially to FeedView, which
+  // hands them to memoized children) cascade fresh function identities on
+  // every Home re-render and prevent downstream memoization from skipping
+  // work. The setters / refs these capture are all stable, so empty deps
+  // are safe.
+  //
+  // All useCallback / useMemo declarations in this section sit above the
+  // onboarding early-return below so the hook order is identical every
+  // render (Rules of Hooks). Moving them after the return crashed prod
+  // hydration before — keep them up here.
+
+  const handleOpenSocial = useCallback((e: Event) => squadsHook.setSocialEvent(e), [squadsHook.setSocialEvent]);
+  const handleEditEventClick = useCallback((e: Event) => setEditingEvent(e), [setEditingEvent]);
+  const handleOpenAdd = useCallback(() => {
+    setAddModalOpen(true);
+    clearAddGlowRef.current();
+  }, []);
+  const handleOpenFriends = useCallback((tabName?: 'friends' | 'add') => {
+    if (tabName) friendsHook.setFriendsInitialTab(tabName);
+    friendsHook.setFriendsOpen(true);
+  }, [friendsHook.setFriendsInitialTab, friendsHook.setFriendsOpen]);
+  const handleViewProfile = useCallback((uid: string) => setViewingUserId(uid), []);
+  const handleSortChange = useCallback((s: 'recent' | 'upcoming') => {
+    setSortBy(s);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [scrollRef]);
+  // Captures the current `tab` so users land back on the originating tab
+  // when they exit the squad; that means a new identity per tab change
+  // (still much better than per-render).
+  const handleNavigateToGroups = useCallback((squadId?: string) => {
+    setSquadChatOrigin(tab);
+    if (squadId) {
+      squadsHook.setAutoSelectSquadId(squadId);
+    } else {
+      setTab("squads");
+    }
+  }, [tab, setSquadChatOrigin, squadsHook.setAutoSelectSquadId, setTab]);
+
   // Accepted-friends list, projected to {id,name,avatar} — used by AddModal,
   // CheckCard's mention pickers, and other consumers. Memoized to keep
   // identity stable across renders; otherwise a fresh array fires on every
   // Home re-render and downstream memoization is defeated.
-  //
-  // Declared above the onboarding early-return so the hook order stays the
-  // same on every render (Rules of Hooks). Same goes for the FeedContext
-  // memo below — moving these *after* the return crashed prod hydration.
   const acceptedFriendsList = useMemo(
     () => friendsHook.friends
       .filter((f) => f.status === "friend")
@@ -799,10 +834,10 @@ export default function Home() {
             notificationsHook.setUnreadCount(0);
           }
         }}
-        onOpenAdd={() => { setAddModalOpen(true); clearAddGlowRef.current(); }}
+        onOpenAdd={handleOpenAdd}
         glowAdd={onboarding.showAddGlow}
         sortBy={sortBy}
-        onSortChange={(s) => { setSortBy(s); scrollRef.current?.scrollTo({ top: 0 }); }}
+        onSortChange={handleSortChange}
         showSort={tab === 'feed'}
         scrolled={scrolledDown}
       />
@@ -885,22 +920,12 @@ export default function Home() {
             loadRealData={loadRealData}
             showToast={showToast}
             showToastWithAction={showToastWithAction}
-            onOpenSocial={(e) => squadsHook.setSocialEvent(e)}
-            onEditEvent={(e) => setEditingEvent(e)}
-            onOpenAdd={() => setAddModalOpen(true)}
-            onOpenFriends={(tab) => {
-              if (tab) friendsHook.setFriendsInitialTab(tab);
-              friendsHook.setFriendsOpen(true);
-            }}
-            onNavigateToGroups={(squadId) => {
-              setSquadChatOrigin(tab);
-              if (squadId) {
-                squadsHook.setAutoSelectSquadId(squadId);
-              } else {
-                setTab("squads");
-              }
-            }}
-            onViewProfile={(uid) => setViewingUserId(uid)}
+            onOpenSocial={handleOpenSocial}
+            onEditEvent={handleEditEventClick}
+            onOpenAdd={handleOpenAdd}
+            onOpenFriends={handleOpenFriends}
+            onNavigateToGroups={handleNavigateToGroups}
+            onViewProfile={handleViewProfile}
             showInstallBanner={
               !onboarding.installDismissed
               || (onboarding.installDismissed && pushSupported && !pushEnabled && !onboarding.notifBannerDismissed)
@@ -909,7 +934,7 @@ export default function Home() {
             onDismissInstallBanner={!onboarding.installDismissed ? onboarding.dismissInstall : onboarding.dismissNotifBanner}
             onEnableNotifications={handleTogglePush}
             sortBy={sortBy}
-            onSortChange={(s) => { setSortBy(s); scrollRef.current?.scrollTo({ top: 0 }); }}
+            onSortChange={handleSortChange}
           />
         )}
         {feedLoaded && tab === "squads" && (
@@ -1001,7 +1026,7 @@ export default function Home() {
           }}
           onSquadUpdate={squadsHook.setSquads}
           onChatOpen={setChatOpen}
-          onViewProfile={(uid) => setViewingUserId(uid)}
+          onViewProfile={handleViewProfile}
           onSendMessage={async (squadDbId, text, mentions, image) => {
             let imageMeta: { path: string; width: number; height: number } | undefined;
             if (image) {
@@ -1081,7 +1106,7 @@ export default function Home() {
         onJoinSquadPool={squadsHook.handleJoinSquadPool}
         squadPoolMembers={squadsHook.squadPoolMembers}
         inSquadPool={squadsHook.inSquadPool}
-        onViewProfile={(uid) => setViewingUserId(uid)}
+        onViewProfile={handleViewProfile}
         existingSquadId={squadsHook.socialEvent?.id ? squadsHook.eventToSquad.get(squadsHook.socialEvent.id) : undefined}
         onGoToSquad={(squadId) => {
           squadsHook.setSocialEvent(null);
@@ -1176,7 +1201,7 @@ export default function Home() {
         onRemoveFriend={friendsHook.removeFriend}
         onCancelRequest={friendsHook.cancelRequest}
         onSearchUsers={friendsHook.searchUsers}
-        onViewProfile={(uid) => setViewingUserId(uid)}
+        onViewProfile={handleViewProfile}
       />
       {viewingUserId && (
         <UserProfileOverlay
