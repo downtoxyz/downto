@@ -63,8 +63,15 @@ const DevUserSwitcher = () => {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-[300] font-mono text-xs select-none"
-      style={{ pointerEvents: "auto" }}
+      // Sit above the BottomNav so its hit area never overlaps the "You" tab
+      // (it used to be `bottom-4`, which lands directly on top of the nav and
+      // intercepts pointer events — both annoying in dev and a real blocker
+      // for Playwright tests trying to tap the nav).
+      className="fixed right-4 z-[300] font-mono text-xs select-none"
+      style={{
+        pointerEvents: "auto",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+      }}
     >
       {open && (
         <div
