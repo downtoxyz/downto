@@ -11,53 +11,8 @@ import CheckDetailSheet from "./CheckDetailSheet";
 import EditCheckModal from "./EditCheckModal";
 import ReportSheet from "@/shared/components/ReportSheet";
 import CheckActionsSheet from "@/shared/components/CheckActionsSheet";
+import { Linkify } from "@/shared/components/Linkify";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
-
-function Linkify({ children, dimmed, coAuthors, onViewProfile }: { children: string; dimmed?: boolean; coAuthors?: { name: string; userId?: string }[]; onViewProfile?: (userId: string) => void }) {
-  const tokenRe = /(https?:\/\/[^\s),]+|@\S+)/g;
-  const parts = children.split(tokenRe);
-  if (parts.length === 1) return <>{children}</>;
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (/^https?:\/\//.test(part)) {
-          const display = (() => {
-            try {
-              const u = new URL(part);
-              let d = u.host.replace(/^www\./, "") + u.pathname.replace(/\/$/, "");
-              if (d.length > 40) d = d.slice(0, 37) + "…";
-              return d;
-            } catch { return part; }
-          })();
-          return (
-            <a key={i} href={part} target="_blank" rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className={`underline underline-offset-2 break-all ${dimmed ? "text-muted" : "text-dt"}`}
-            >
-              {display}
-            </a>
-          );
-        }
-        if (/^@\S+/.test(part)) {
-          const mention = part.slice(1).toLowerCase();
-          const matched = coAuthors?.find(ca => ca.name.toLowerCase() === mention || ca.name.split(" ")[0]?.toLowerCase() === mention);
-          const canTap = matched?.userId && onViewProfile;
-          return (
-            <span
-              key={i}
-              className="text-dt font-semibold"
-              style={canTap ? { cursor: "pointer" } : undefined}
-              onClick={canTap ? (e) => { e.stopPropagation(); onViewProfile!(matched!.userId!); } : undefined}
-            >
-              @{matched ? matched.name : part.slice(1)}
-            </span>
-          );
-        }
-        return <React.Fragment key={i}>{part}</React.Fragment>;
-      })}
-    </>
-  );
-}
 
 export interface CheckCardProps {
   check: InterestCheck;
