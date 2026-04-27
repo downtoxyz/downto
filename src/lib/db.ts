@@ -414,15 +414,22 @@ export async function sendFriendRequest(userId: string): Promise<Friendship> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // Check if the other user already sent us a pending request — if so, accept it
-  const { data: incoming } = await supabase
+  // Single query for both directions — was three sequential round-trips
+  // (incoming-pending probe → outgoing probe → insert). Postgres still
+  // hits the same indexes, but we save 1–2 round-trips per "send request"
+  // tap.
+  const { data: existing } = await supabase
     .from('friendships')
     .select('*')
-    .eq('requester_id', userId)
-    .eq('addressee_id', user.id)
-    .eq('status', 'pending')
-    .maybeSingle();
+    .or(
+      `and(requester_id.eq.${userId},addressee_id.eq.${user.id}),` +
+      `and(requester_id.eq.${user.id},addressee_id.eq.${userId})`
+    );
 
+  // Inbound pending request from this user → upgrade to accepted (mutual).
+  const incoming = existing?.find(
+    (f) => f.requester_id === userId && f.addressee_id === user.id && f.status === 'pending'
+  );
   if (incoming) {
     const { data: accepted, error: acceptError } = await supabase
       .from('friendships')
@@ -434,15 +441,11 @@ export async function sendFriendRequest(userId: string): Promise<Friendship> {
     return accepted;
   }
 
-  // Check if we already sent an outgoing request — return it as-is (idempotent)
-  const { data: outgoing } = await supabase
-    .from('friendships')
-    .select('*')
-    .eq('requester_id', user.id)
-    .eq('addressee_id', userId)
-    .in('status', ['pending', 'accepted'])
-    .maybeSingle();
-
+  // Outbound row already exists (pending or accepted) → idempotent return.
+  const outgoing = existing?.find(
+    (f) => f.requester_id === user.id && f.addressee_id === userId &&
+      (f.status === 'pending' || f.status === 'accepted')
+  );
   if (outgoing) return outgoing;
 
   const { data, error } = await supabase
@@ -455,13 +458,13 @@ export async function sendFriendRequest(userId: string): Promise<Friendship> {
     // Race with a concurrent sendFriendRequest (double-tap) or a pre-existing
     // row we didn't match above (e.g. blocked). Treat as idempotent.
     if ((error as { code?: string }).code === '23505') {
-      const { data: existing } = await supabase
+      const { data: raceRow } = await supabase
         .from('friendships')
         .select('*')
         .eq('requester_id', user.id)
         .eq('addressee_id', userId)
         .maybeSingle();
-      if (existing) return existing;
+      if (raceRow) return raceRow;
     }
     throw error;
   }
@@ -744,14 +747,18 @@ export async function getActiveChecks(): Promise<(InterestCheck & { author: Prof
   const now = new Date();
   const nowIso = now.toISOString();
   const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // Embedded profiles trimmed to the three columns transformCheck reads
+  // (id, display_name, avatar_letter). Was `(*)` per author + per responder
+  // + per co-author — ~15 profile columns × N rows × 30 checks of waste on
+  // every feed load. Same pattern as #466.
   const { data, error } = await supabase
     .from('interest_checks')
     .select(`
       *,
-      author:profiles!author_id(*),
-      responses:check_responses(*, user:profiles!user_id(*)),
+      author:profiles!author_id(id, display_name, avatar_letter),
+      responses:check_responses(*, user:profiles!user_id(id, display_name, avatar_letter)),
       squads(id, archived_at, members:squad_members(id, user_id, role)),
-      co_authors:check_co_authors(*, user:profiles!user_id(*))
+      co_authors:check_co_authors(*, user:profiles!user_id(id, display_name, avatar_letter))
     `)
     .or(`expires_at.gt.${nowIso},expires_at.is.null,event_date.gte.${todayLocal}`)
     .or(`event_date.gte.${todayLocal},event_date.is.null`)
@@ -1084,10 +1091,14 @@ export async function getCheckCommentCounts(checkIds: string[]): Promise<Record<
   return counts;
 }
 
+// Comments only render the commenter's display_name + avatar_letter, so
+// trim the embedded profile join to those columns instead of `(*)`.
+const COMMENT_USER_COLS = 'id, display_name, avatar_letter';
+
 export async function getCheckComments(checkId: string): Promise<CheckComment[]> {
   const { data, error } = await supabase
     .from('check_comments')
-    .select('*, user:profiles!user_id(*)')
+    .select(`*, user:profiles!user_id(${COMMENT_USER_COLS})`)
     .eq('check_id', checkId)
     .order('created_at', { ascending: true });
 
@@ -1101,7 +1112,7 @@ export async function getCheckComments(checkId: string): Promise<CheckComment[]>
 export async function getEventComments(eventId: string): Promise<CheckComment[]> {
   const { data, error } = await supabase
     .from('check_comments')
-    .select('*, user:profiles!user_id(*)')
+    .select(`*, user:profiles!user_id(${COMMENT_USER_COLS})`)
     .eq('event_id', eventId)
     .order('created_at', { ascending: true });
 
@@ -1116,7 +1127,7 @@ export async function postEventComment(eventId: string, text: string): Promise<C
   const { data, error } = await supabase
     .from('check_comments')
     .insert({ event_id: eventId, user_id: user.id, text })
-    .select('*, user:profiles!user_id(*)')
+    .select(`*, user:profiles!user_id(${COMMENT_USER_COLS})`)
     .single();
 
   if (error) throw error;
@@ -1157,7 +1168,7 @@ export async function postCheckComment(checkId: string, text: string, mentions: 
   const { data, error } = await supabase
     .from('check_comments')
     .insert({ check_id: checkId, user_id: user.id, text, mentions })
-    .select('*, user:profiles!user_id(*)')
+    .select(`*, user:profiles!user_id(${COMMENT_USER_COLS})`)
     .single();
 
   if (error) throw error;
@@ -1190,12 +1201,15 @@ export function subscribeToCheckComments(
       async (payload) => {
         const comment = payload.new as CheckComment;
         if (comment.user_id && !comment.user) {
+          // Realtime payloads don't include the join, so we hydrate the
+          // commenter profile here. Only display_name + avatar_letter are
+          // rendered, so don't pull `(*)`.
           const { data: user } = await supabase
             .from('profiles')
-            .select('*')
+            .select(COMMENT_USER_COLS)
             .eq('id', comment.user_id)
             .single();
-          if (user) comment.user = user;
+          if (user) comment.user = user as CheckComment['user'];
         }
         callback(comment);
       }
@@ -1373,7 +1387,7 @@ export async function sendMessage(
   const { data, error } = await supabase
     .from('messages')
     .insert(row)
-    .select('*, sender:profiles(*)')
+    .select('*, sender:profiles(display_name)')
     .single();
 
   if (error) throw error;
@@ -1419,14 +1433,17 @@ export function subscribeToMessages(
       },
       async (payload) => {
         const msg = payload.new as Message;
-        // Realtime payloads don't include joined data, so fetch sender profile
+        // Realtime payloads don't include joined data. Hydrate just the
+        // sender's display_name (the only field msgs render — see
+        // SquadChat.tsx). Was `select('*')` which pulled a full Profile
+        // per realtime arrival.
         if (msg.sender_id && !msg.sender) {
           const { data: sender } = await supabase
             .from('profiles')
-            .select('*')
+            .select('display_name')
             .eq('id', msg.sender_id)
             .single();
-          if (sender) msg.sender = sender;
+          if (sender) msg.sender = sender as Message['sender'];
         }
         callback(msg);
       }
@@ -1437,7 +1454,7 @@ export function subscribeToMessages(
 export async function getSquadMessages(squadId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages')
-    .select('*, sender:profiles!sender_id(*)')
+    .select('*, sender:profiles!sender_id(display_name)')
     .eq('squad_id', squadId)
     .order('created_at', { ascending: true });
 
