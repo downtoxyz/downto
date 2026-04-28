@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "bash scripts/test-e2e.sh",
-    "ios:fresh": "bash scripts/ios-fresh.sh"
+    "ios:fresh": "bash scripts/ios-fresh.sh",
+    "ios:fresh:staging": "bash scripts/ios-fresh-staging.sh"
   },
   "keywords": [],
   "author": "",
