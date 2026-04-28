@@ -7,15 +7,11 @@ import type { InterestCheck } from "@/lib/ui-types";
 import { logError, logWarn } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
 import { checksReducer, initialChecksState, CheckActionType } from "@/features/checks/reducers/checksReducer";
+import { isMysteryUnrevealed } from "@/features/checks/lib/mystery";
 
 // ─── Shared transform helpers ──────────────────────────────────────────────
 
 type ActiveCheck = Awaited<ReturnType<typeof db.getActiveChecks>>[number];
-
-/** YYYY-MM-DD in the viewer's local tz; matches how event_date is stored. */
-function localTodayISO(now: Date): string {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
 
 function transformCheck(c: ActiveCheck, userId: string | null, displayName?: string): InterestCheck {
   const now = new Date();
@@ -28,8 +24,10 @@ function transformCheck(c: ActiveCheck, userId: string | null, displayName?: str
   // someone else's account.
   const isMystery = !!(c as unknown as { mystery?: boolean }).mystery;
   const isAuthor = c.author_id === userId;
-  const isUnrevealed = isMystery && !isAuthor && (
-    !c.event_date || c.event_date > localTodayISO(now)
+  const isUnrevealed = isMysteryUnrevealed(
+    { mystery: isMystery, authorId: c.author_id, eventDate: c.event_date },
+    userId,
+    now,
   );
 
   let expiresIn: string;

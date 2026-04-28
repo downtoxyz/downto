@@ -935,7 +935,11 @@ const AddModal = ({
                 <p className="font-mono text-tiny text-dim mt-1.5 leading-relaxed">
                   date + location required so guests know where + when to show up.
                   who you are, and who else is in, reveals on{' '}
-                  {parsedDate?.label?.toLowerCase() ?? 'the day of the event'}.
+                  {parsedDateISO
+                    ? new Date(parsedDateISO + 'T00:00:00')
+                        .toLocaleDateString('en-US', { weekday: 'long' })
+                        .toLowerCase()
+                    : 'the day of the event'}.
                 </p>
               )}
             </div>
@@ -982,10 +986,10 @@ const AddModal = ({
                   close();
                 }
               }}
-              disabled={!idea.trim() || (mystery && (!parsedDate || !whereInput.trim()))}
+              disabled={!idea.trim() || (mystery && (!parsedDateISO || !whereInput.trim()))}
               className={cn(
                 'w-full border-none rounded-xl py-3.5 font-mono text-sm font-bold uppercase',
-                idea.trim() && (!mystery || (parsedDate && whereInput.trim()))
+                idea.trim() && (!mystery || (parsedDateISO && whereInput.trim()))
                   ? 'bg-dt text-on-accent cursor-pointer'
                   : 'bg-border-mid text-dim cursor-not-allowed'
               )}
