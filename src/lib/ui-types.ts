@@ -78,8 +78,13 @@ export interface InterestCheck {
   /** True iff this check was posted as `mystery=true`. */
   mystery?: boolean;
   /** True for non-authors viewing a mystery check before event_date arrives.
-   *  Card render path uses this to redact author + responders. Author always sees their own check normally. */
+   *  Used to redact the author identity (name + avatar). Author sees their own
+   *  identity unredacted (it's their own check). */
   mysteryUnrevealed?: boolean;
+  /** True for ANYONE — including the author — viewing a mystery check pre-reveal.
+   *  Used to hide the responder list, count, and squad data. The host doesn't
+   *  know if the room filled until the reveal. */
+  mysteryGuestsHidden?: boolean;
 }
 
 export interface ScrapedEvent {

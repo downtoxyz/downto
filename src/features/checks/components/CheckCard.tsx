@@ -13,6 +13,7 @@ import ReportSheet from "@/shared/components/ReportSheet";
 import CheckActionsSheet from "@/shared/components/CheckActionsSheet";
 import { Linkify } from "@/shared/components/Linkify";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
+import { censorWingdings, censorGlyph } from "@/lib/censor";
 
 export interface CheckCardProps {
   check: InterestCheck;
@@ -169,10 +170,16 @@ function CheckCard({
             </div>
           )}
 
-          {/* Author header — redacted black bar for unrevealed mystery checks */}
+          {/* Author header — symbol scramble for unrevealed mystery checks */}
           <div className="flex items-center gap-1.5 mb-2">
             {check.mysteryUnrevealed ? (
-              <div className="w-5 h-5 shrink-0 bg-text" title="Mystery host — revealed on the day of the event" />
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 leading-none text-[10px]"
+                style={{ background: "#C2FF8A", color: "#ff00d4" }}
+                title="Mystery host — revealed on the day of the event"
+              >
+                {censorGlyph(check.id)}
+              </div>
             ) : (
               <div className="w-5 h-5 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-[9px] font-bold shrink-0">
                 {check.author[0]?.toUpperCase()}
@@ -180,7 +187,13 @@ function CheckCard({
             )}
             <span className="font-mono text-tiny text-muted min-w-0 truncate flex-1">
               {check.mysteryUnrevealed ? (
-                <span className="font-semibold tracking-[0.15em]" style={{ background: "var(--color-primary)", color: "var(--color-primary)" }}>███████</span>
+                <span
+                  className="font-semibold tracking-[0.18em]"
+                  style={{ color: "#ff00d4" }}
+                  title="Mystery host — revealed on the day of the event"
+                >
+                  {censorWingdings(check.id)}
+                </span>
               ) : (
                 <>
                   <span className="text-dt font-semibold">{check.author}</span>
@@ -263,9 +276,11 @@ function CheckCard({
           {/* Responses + comment toggle + down button */}
           <div className="mt-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              {check.mysteryUnrevealed ? (
+              {check.mysteryGuestsHidden ? (
                 <span className="font-mono text-tiny text-faint italic">
-                  guests revealed on the day
+                  {check.isYours
+                    ? "you'll find out who's in on the day"
+                    : "guests revealed on the day"}
                 </span>
               ) : check.responses.filter(r => r.status === "down").length > 0 ? (() => {
                 const downResponders = check.responses.filter(r => r.status === "down");

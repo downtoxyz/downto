@@ -7,7 +7,7 @@ import type { InterestCheck } from "@/lib/ui-types";
 import { logError, logWarn } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
 import { checksReducer, initialChecksState, CheckActionType } from "@/features/checks/reducers/checksReducer";
-import { isMysteryUnrevealed } from "@/features/checks/lib/mystery";
+import { isMysteryUnrevealed, isMysteryGuestsHidden } from "@/features/checks/lib/mystery";
 
 // ─── Shared transform helpers ──────────────────────────────────────────────
 
@@ -18,15 +18,21 @@ function transformCheck(c: ActiveCheck, userId: string | null, displayName?: str
   const created = new Date(c.created_at);
   const msElapsed = now.getTime() - created.getTime();
 
-  // Mystery checks hide the author + responders from non-authors until the
-  // event date arrives. Author always sees their own check normally, so they
-  // can preview what the redacted form looks like to others by checking on
-  // someone else's account.
+  // Mystery checks. Two redactions in play, both lifted at reveal time
+  // (event_date crossing into the viewer's local today):
+  //   • author identity — hidden from non-authors only (author sees their own
+  //     name; non-authors see "???")
+  //   • guest list      — hidden from EVERYONE pre-reveal, including the author.
+  //     Total ritual; the host doesn't know if the room filled until the reveal.
+  //     The viewer's own response is preserved so the "you're down" UI still works.
   const isMystery = !!(c as unknown as { mystery?: boolean }).mystery;
-  const isAuthor = c.author_id === userId;
   const isUnrevealed = isMysteryUnrevealed(
     { mystery: isMystery, authorId: c.author_id, eventDate: c.event_date },
     userId,
+    now,
+  );
+  const guestsHidden = isMysteryGuestsHidden(
+    { mystery: isMystery, eventDate: c.event_date },
     now,
   );
 
@@ -69,9 +75,10 @@ function transformCheck(c: ActiveCheck, userId: string | null, displayName?: str
     timeAgo: formatTimeAgo(created),
     expiresIn,
     expiryPercent,
-    // For unrevealed mystery checks: hide every other responder, but
-    // preserve the viewer's own response so the "you're down" UI still works.
-    responses: isUnrevealed
+    // Pre-reveal mystery checks: hide every other responder for everyone
+    // (author included). Preserve the viewer's own response so the
+    // "you're down" UI still works.
+    responses: guestsHidden
       ? c.responses.filter((r) => r.user_id === userId).map((r) => ({
           name: displayName ?? r.user?.display_name ?? "You",
           avatar: r.user?.avatar_letter ?? "?",
@@ -86,8 +93,8 @@ function transformCheck(c: ActiveCheck, userId: string | null, displayName?: str
         })),
     isYours: c.author_id === userId,
     maxSquadSize: c.max_squad_size,
-    squadId: isUnrevealed ? undefined : c.squads?.find((s) => !s.archived_at)?.id,
-    squadMemberCount: isUnrevealed ? 0 : (() => {
+    squadId: guestsHidden ? undefined : c.squads?.find((s) => !s.archived_at)?.id,
+    squadMemberCount: guestsHidden ? 0 : (() => {
       const squad = c.squads?.find((s) => !s.archived_at);
       const fromMembers = squad?.members?.filter((m) => (m as { role?: string }).role !== 'waitlist')?.length;
       // Fall back to check_responses count when squad_members is empty due to RLS
@@ -114,6 +121,7 @@ function transformCheck(c: ActiveCheck, userId: string | null, displayName?: str
     pendingTagForYou,
     mystery: isMystery,
     mysteryUnrevealed: isUnrevealed,
+    mysteryGuestsHidden: guestsHidden,
   };
 }
 

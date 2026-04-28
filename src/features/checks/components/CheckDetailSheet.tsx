@@ -4,6 +4,7 @@ import type { InterestCheck } from "@/lib/ui-types";
 import DetailSheet from "@/shared/components/DetailSheet";
 import InlineCommentsBox from "@/shared/components/InlineCommentsBox";
 import { Linkify } from "@/shared/components/Linkify";
+import { censorWingdings } from "@/lib/censor";
 import type { CommentUI } from "@/features/checks/hooks/useCheckComments";
 
 export default function CheckDetailSheet({
@@ -96,13 +97,25 @@ export default function CheckDetailSheet({
       {/* Author */}
       <div className="flex items-center gap-1.5 mb-3">
         <span className="font-mono text-xs text-muted">by </span>
-        <span className="font-mono text-xs text-dt font-semibold">{check.author}</span>
-        {check.coAuthors && check.coAuthors.filter(c => c.status === "accepted").length > 0 && (
+        {check.mysteryUnrevealed ? (
+          <span
+            className="font-mono text-xs font-semibold tracking-[0.18em]"
+            style={{ color: "#ff00d4" }}
+            title="Mystery host — revealed on the day of the event"
+          >
+            {censorWingdings(check.id)}
+          </span>
+        ) : (
           <>
-            <span className="font-mono text-xs text-muted"> · with </span>
-            <span className="font-mono text-xs text-dt font-semibold">
-              {check.coAuthors.filter(c => c.status === "accepted").map(c => c.name).join(", ")}
-            </span>
+            <span className="font-mono text-xs text-dt font-semibold">{check.author}</span>
+            {check.coAuthors && check.coAuthors.filter(c => c.status === "accepted").length > 0 && (
+              <>
+                <span className="font-mono text-xs text-muted"> · with </span>
+                <span className="font-mono text-xs text-dt font-semibold">
+                  {check.coAuthors.filter(c => c.status === "accepted").map(c => c.name).join(", ")}
+                </span>
+              </>
+            )}
           </>
         )}
       </div>
