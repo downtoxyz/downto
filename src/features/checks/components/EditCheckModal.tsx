@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { color } from "@/lib/styles";
-import { parseDateToISO } from "@/lib/utils";
 import type { InterestCheck } from "@/lib/ui-types";
 import { useBottomSheet } from "@/shared/hooks/useBottomSheet";
 import { useDateTimeInput } from "@/shared/hooks/useDateTimeInput";
@@ -39,7 +38,7 @@ const EditCheckModal = ({
   onDelete?: () => void;
 }) => {
   const [text, setText] = useState("");
-  const { whenInput, setWhenInput, parsedDate, parsedTime, whenPreview } = useDateTimeInput();
+  const { whenInput, setWhenInput, parsedDateISO, parsedTime, whenPreview } = useDateTimeInput();
   const [whereInput, setWhereInput] = useState("");
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIdx, setMentionIdx] = useState(-1);
@@ -82,15 +81,13 @@ const EditCheckModal = ({
     );
     const newTagIds = taggedIds.filter(id => !activeIds.has(id));
 
-    // Resolve date: parsed > existing
-    const resolvedDateISO = parsedDate?.iso
-      ?? (parseDateToISO(whenInput) || null)
-      ?? check.eventDate
-      ?? null;
-    const resolvedDateLabel = parsedDate?.label
-      ?? (parseDateToISO(whenInput) ? whenInput.trim() : null)
-      ?? check.eventDateLabel
-      ?? null;
+    // Resolve date: parsed > existing. parseWhen inside useDateTimeInput
+    // already covers the "Sat, Feb 15"/M-D fallback, so no separate
+    // parseDateToISO chain here.
+    const resolvedDateISO = parsedDateISO ?? check.eventDate ?? null;
+    const resolvedDateLabel = parsedDateISO
+      ? whenInput.trim()
+      : (check.eventDateLabel ?? null);
     const resolvedTime = parsedTime ?? check.eventTime ?? null;
 
     onSave({

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, type MutableRefObject } from "react";
 import * as db from "@/lib/db";
-import { toLocalISODate, parseDateToISO } from "@/lib/utils";
+import { toLocalISODate, parseDateToISO } from "@/lib/dateParse";
 import type { Event } from "@/lib/ui-types";
 import { logError, logWarn } from "@/lib/logger";
 

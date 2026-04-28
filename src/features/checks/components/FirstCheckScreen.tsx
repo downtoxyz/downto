@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { parseNaturalDate, parseNaturalTime, sanitize } from "@/lib/utils";
+import { sanitize } from "@/lib/utils";
+import { parseWhen } from "@/lib/dateParse";
 import Grain from "@/app/components/Grain";
 import cn from "@/lib/tailwindMerge";
 
@@ -19,13 +20,17 @@ const FirstCheckScreen = ({
   const [whereInput, setWhereInput] = useState("");
   const ideaRef = useRef<HTMLTextAreaElement>(null);
 
-  const parsedDate = whenInput ? parseNaturalDate(whenInput) : null;
-  const parsedTime = whenInput ? parseNaturalTime(whenInput) : null;
+  // parseWhen returns every date the user implied — we keep the first since
+  // the check schema is single-date for now. The user's full original input
+  // becomes the preview label (covers "or" inputs naturally).
+  const parsed = whenInput ? parseWhen(whenInput) : null;
+  const parsedDate = parsed?.dates[0] ?? null;
+  const parsedTime = parsed?.time ?? null;
   const whenPreview = (() => {
     if (!parsedDate && !parsedTime) return null;
     const parts: string[] = [];
-    if (parsedDate) parts.push(parsedDate.label);
-    if (parsedTime) parts.push(parsedTime);
+    if (parsed?.label) parts.push(parsed.label);
+    else if (parsedTime) parts.push(parsedTime);
     return parts.join(" ");
   })();
 
@@ -154,8 +159,8 @@ const FirstCheckScreen = ({
       <button
         onClick={() => {
           if (idea.trim()) {
-            const eventDate = parsedDate?.iso ?? null;
-            const eventTime = parsedTime ?? null;
+            const eventDate = parsedDate;
+            const eventTime = parsedTime;
             const location = whereInput.trim() || null;
             const title = sanitize(idea, 280);
             onComplete(title, checkTimer, eventDate, squadSize === 0 ? null : squadSize, eventTime, true, true, location);

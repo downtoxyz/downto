@@ -5,7 +5,8 @@ import * as db from "@/lib/db";
 import cn from "@/lib/tailwindMerge";
 import type { Squad } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
-import { parseNaturalDate, parseNaturalTime, parseDateToISO, formatTimeAgo } from "@/lib/utils";
+import { formatTimeAgo } from "@/lib/utils";
+import { parseWhen } from "@/lib/dateParse";
 import ChatHeader from "./ChatHeader";
 import MessageComposer from "./MessageComposer";
 import ChatMessage from "./ChatMessage";
@@ -820,11 +821,12 @@ const SquadChat = ({
               onSquadUpdate((prev) => prev.map((s) => s.id === localSquad.id ? { ...s, meetingSpot: trimmedLocation ?? undefined } : s));
             }
 
-            // Parse when input for date/time
+            // Parse when input for date/time. Squad locked_date is single-date,
+            // so we take dates[0] even if the user typed "thurs or fri".
             const whenVal = editWhenInput.trim();
-            const parsedDate = whenVal ? parseNaturalDate(whenVal) : null;
-            const dateISO = parsedDate?.iso ?? (whenVal ? parseDateToISO(whenVal) : null) ?? null;
-            const parsedTime = whenVal ? parseNaturalTime(whenVal) : null;
+            const parsed = whenVal ? parseWhen(whenVal) : null;
+            const dateISO = parsed?.dates[0] ?? null;
+            const parsedTime = parsed?.time ?? null;
             if (dateISO && onSetSquadDate) {
               await onSetSquadDate(localSquad.id, dateISO, parsedTime, false);
               setLocalSquad((prev) => ({
@@ -1196,16 +1198,23 @@ const SquadChat = ({
         const addDateOption = () => {
           const input = pollDateInput.trim();
           if (!input) return;
-          const parsedDate = parseNaturalDate(input);
-          const iso = parsedDate?.iso ?? parseDateToISO(input);
-          if (!iso) return;
-          const time = parseNaturalTime(input);
-          const key = `${iso}|${time ?? ''}`;
-          if (pollDateOptions.some((o) => `${o.date}|${o.time ?? ''}` === key)) {
+          // parseWhen handles "thurs or fri at 7pm" — every parsed date
+          // becomes a separate poll option, all sharing the parsed time.
+          const { dates, time } = parseWhen(input);
+          if (dates.length === 0) return;
+          const seen = new Set(pollDateOptions.map((o) => `${o.date}|${o.time ?? ''}`));
+          const additions: { date: string; time: string | null }[] = [];
+          for (const iso of dates) {
+            const key = `${iso}|${time ?? ''}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            additions.push({ date: iso, time });
+          }
+          if (additions.length === 0) {
             setPollDateInput("");
             return;
           }
-          const next = [...pollDateOptions, { date: iso, time }];
+          const next = [...pollDateOptions, ...additions];
           next.sort((a, b) => {
             if (a.date !== b.date) return a.date < b.date ? -1 : 1;
             return (a.time ?? '').localeCompare(b.time ?? '');
@@ -1266,11 +1275,15 @@ const SquadChat = ({
         const addSpecificDate = () => {
           const input = gridSpecificInput.trim();
           if (!input) return;
-          const parsed = parseNaturalDate(input);
-          const iso = parsed?.iso ?? parseDateToISO(input);
-          if (!iso) return;
-          if (gridSpecificDates.includes(iso)) { setGridSpecificInput(""); return; }
-          const next = [...gridSpecificDates, iso].sort();
+          // parseWhen handles "thurs or fri" — every parsed date becomes a
+          // separate grid entry. Existing entries are deduped, then the
+          // combined list is sorted.
+          const { dates } = parseWhen(input);
+          if (dates.length === 0) return;
+          const have = new Set(gridSpecificDates);
+          const fresh = dates.filter((iso) => !have.has(iso));
+          if (fresh.length === 0) { setGridSpecificInput(""); return; }
+          const next = [...gridSpecificDates, ...fresh].sort();
           setGridSpecificDates(next);
           setGridSpecificInput("");
         };

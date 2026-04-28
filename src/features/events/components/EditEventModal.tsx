@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { color } from "@/lib/styles";
-import { parseDateToISO } from "@/lib/utils";
 import { useBottomSheet } from "@/shared/hooks/useBottomSheet";
 import { useDateTimeInput } from "@/shared/hooks/useDateTimeInput";
 import cn from "@/lib/tailwindMerge";
@@ -29,7 +28,7 @@ const EditEventModal = ({
 }) => {
   const [title, setTitle] = useState("");
   const [venue, setVenue] = useState("");
-  const { whenInput, setWhenInput, parsedDate, parsedTime, whenPreview } = useDateTimeInput();
+  const { whenInput, setWhenInput, parsedDateISO, parsedTime, whenPreview } = useDateTimeInput();
   const [vibeText, setVibeText] = useState("");
   const [note, setNote] = useState("");
   const sheet = useBottomSheet({ open, onClose });
@@ -50,14 +49,10 @@ const EditEventModal = ({
 
   if (!sheet.visible || !event) return null;
 
-  // Resolve date/time for save. Only overwrite the existing date when we can
-  // actually parse the input as a date — otherwise the user is editing something
-  // else (e.g. typed only a time) and we should leave event.date alone.
-  const resolvedDate = (() => {
-    if (parsedDate?.label) return parsedDate.label;
-    if (parseDateToISO(whenInput)) return whenInput;
-    return event.date;
-  })();
+  // Resolve date/time for save. Only overwrite event.date when parseWhen
+  // actually got a date out of the input — otherwise the user is editing
+  // something else (e.g. typed only a time) and we should leave it alone.
+  const resolvedDate = parsedDateISO ? whenInput.trim() : event.date;
   const resolvedTime = parsedTime ?? event.time;
 
   return (

@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '../supabase';
-import { toLocalISODate } from '../utils';
+import { toLocalISODate } from '../dateParse';
 
 import type {
   Profile,

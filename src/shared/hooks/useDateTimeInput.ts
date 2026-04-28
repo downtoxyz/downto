@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { parseNaturalDate, parseNaturalTime } from "@/lib/utils";
+import { parseWhen } from "@/lib/dateParse";
 
 /**
  * "When" input for natural-language date+time entry. Three modals
@@ -9,23 +9,36 @@ import { parseNaturalDate, parseNaturalTime } from "@/lib/utils";
  * exact same parse-as-you-type + preview logic verbatim — now they all
  * share this.
  *
- * Returns the controlled input value, the setter, the parsed pieces (or
- * null if unparseable), and a "preview" string ("Sat Apr 27 · 7pm") that
- * the modals show under the input as live feedback.
+ * Routes through parseWhen so compound inputs like "next thurs or next fri"
+ * are accepted everywhere; the hook surfaces both the first ISO date (for
+ * single-date schemas like interest_checks.event_date) and the full array
+ * (for multi-date consumers like the squad poll inputs). Preview text uses
+ * the user's original label so "next thurs or next fri at 7pm" echoes back
+ * verbatim under the input rather than collapsing to one resolved date.
  */
 export function useDateTimeInput(initial = "") {
   const [whenInput, setWhenInput] = useState(initial);
 
-  const parsedDate = whenInput ? parseNaturalDate(whenInput) : null;
-  const parsedTime = whenInput ? parseNaturalTime(whenInput) : null;
+  const parsed = whenInput ? parseWhen(whenInput) : null;
+  const parsedDateISO = parsed?.dates[0] ?? null;
+  const parsedDates = parsed?.dates ?? [];
+  const parsedTime = parsed?.time ?? null;
 
   const whenPreview = (() => {
-    if (!parsedDate && !parsedTime) return null;
-    const parts: string[] = [];
-    if (parsedDate) parts.push(parsedDate.label);
-    if (parsedTime) parts.push(parsedTime);
-    return parts.join(" ");
+    if (!parsedDateISO && !parsedTime) return null;
+    // For compound inputs ("thurs or fri"), echo the user's full input back.
+    // For single dates, the user's input is itself a fine label.
+    return parsed?.label ?? null;
   })();
 
-  return { whenInput, setWhenInput, parsedDate, parsedTime, whenPreview };
+  return {
+    whenInput,
+    setWhenInput,
+    /** First ISO date — single-date schemas use this. */
+    parsedDateISO,
+    /** Every date the user implied. Multi-date consumers use this. */
+    parsedDates,
+    parsedTime,
+    whenPreview,
+  };
 }
