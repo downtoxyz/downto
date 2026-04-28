@@ -29,7 +29,14 @@ export function usePushNotifications(
         // On native, the OS owns permission state. Mirror it into the toggle.
         const perm = await PushNotifications.checkPermissions();
         if (perm.receive === "granted") {
-          setPushEnabled(true);
+          // iOS preserves the permission grant across uninstall/reinstall, so
+          // a fresh build on an already-allowed device hits this branch on
+          // first sign-in. We still need to call register() so APNs hands us
+          // a fresh device token and we save it to push_subscriptions.
+          // registerNativePush is idempotent — re-calling on an already-
+          // granted device just refreshes the token.
+          const ok = await registerNativePush();
+          if (ok) setPushEnabled(true);
         } else if (
           perm.receive === "prompt" &&
           !localStorage.getItem("pushAutoPrompted")
@@ -61,9 +68,8 @@ export function usePushNotifications(
   const handleTogglePush = async () => {
     if (isNativePlatform()) {
       if (pushEnabled) {
-        // iOS doesn't let an app revoke its own push permission. Tell the user
-        // where to flip it, since the toggle in our UI can't do it directly.
-        showToast("Disable in iOS Settings → downto → Notifications");
+        // iOS doesn't let an app revoke its own push permission.
+        showToast("Disable in iOS Settings → downto");
         return;
       }
       const ok = await registerNativePush();
@@ -71,7 +77,7 @@ export function usePushNotifications(
         setPushEnabled(true);
         showToast("Push notifications enabled!");
       } else {
-        showToast("Push permission denied — enable in iOS Settings → downto");
+        showToast("Enable in iOS Settings → downto");
       }
       return;
     }
