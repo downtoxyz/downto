@@ -18,9 +18,11 @@ export default function InlineCommentsBox({
   friends,
   onPost,
   emptyText = "no comments yet",
-  /** When true, render commenter names + avatars as kaomoji and strip @-mentions
-   *  from comment text. Pass through from a mystery check that's pre-reveal. */
-  mysteryUnrevealed = false,
+  /** When true, render every commenter EXCEPT the viewer themselves as kaomoji
+   *  and strip @-mentions from comment text. The host (= the check's author)
+   *  passes this `true` for their own mystery check so they don't peek at who
+   *  responded; non-author viewers pass it `true` until the reveal moment. */
+  anonymizeCommenters = false,
   /** The check's author_id — when a comment's userId matches, we tag it `host`. */
   hostUserId,
   /** Stable seed for kaomoji-per-user. Use the check.id (or squad.id) so each
@@ -32,7 +34,7 @@ export default function InlineCommentsBox({
   friends?: { id: string; name: string; avatar: string }[];
   onPost: (text: string, mentions?: string[]) => void;
   emptyText?: string;
-  mysteryUnrevealed?: boolean;
+  anonymizeCommenters?: boolean;
   hostUserId?: string;
   threadSeed?: string;
 }) {
@@ -76,7 +78,7 @@ export default function InlineCommentsBox({
           {(showAll ? comments : comments.slice(-3)).map((c) => {
             // For mystery+pre-reveal: redact every commenter except the viewer
             // themselves. The viewer always sees their own messages as "You".
-            const redact = mysteryUnrevealed && !c.isYours;
+            const redact = anonymizeCommenters && !c.isYours;
             const isHost = !!hostUserId && c.userId === hostUserId;
             const displayName = redact && threadSeed
               ? kaomojiForUser(threadSeed, c.userId)
@@ -84,19 +86,19 @@ export default function InlineCommentsBox({
             const displayAvatar = redact && threadSeed
               ? kaomojiForUser(threadSeed, c.userId)
               : c.userAvatar;
-            const displayText = mysteryUnrevealed ? stripAtMentions(c.text) : c.text;
+            const displayText = anonymizeCommenters ? stripAtMentions(c.text) : c.text;
             return (
             <div key={c.id} className="flex items-center gap-2 min-w-0">
-              <div
-                className={`shrink-0 flex items-center justify-center font-mono leading-none ${
-                  redact
-                    ? "text-[10px]"
-                    : `w-5 h-5 rounded-full text-[9px] font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`
-                }`}
-                style={redact ? { color: "#ff00d4" } : undefined}
-              >
-                {displayAvatar}
-              </div>
+              {/* Avatar slot — skipped entirely when redacted, since the kaomoji
+                  in the name slot already carries identity. Two kaomoji per
+                  comment reads as noise. */}
+              {!redact && (
+                <div
+                  className={`shrink-0 flex items-center justify-center font-mono leading-none w-5 h-5 rounded-full text-[9px] font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}
+                >
+                  {displayAvatar}
+                </div>
+              )}
               <span className="font-mono text-tiny text-muted shrink-0 leading-snug">
                 {displayName}
                 {isHost && !c.isYours && (
@@ -180,7 +182,7 @@ export default function InlineCommentsBox({
           Post
         </button>
       </div>}
-      {showInput && !mysteryUnrevealed && mentionQuery !== null && mentionCandidates.length > 0 && (() => {
+      {showInput && !anonymizeCommenters && mentionQuery !== null && mentionCandidates.length > 0 && (() => {
         const filtered = mentionCandidates.filter(c => c.name.toLowerCase().includes(mentionQuery));
         if (filtered.length === 0) return null;
         return (

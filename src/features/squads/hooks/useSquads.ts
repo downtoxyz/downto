@@ -7,6 +7,8 @@ import type { Person, Event, InterestCheck, Squad } from "@/lib/ui-types";
 import { type ChecksAction, CheckActionType } from "@/features/checks/reducers/checksReducer";
 import { logError, logWarn } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
+import { isMysteryGuestsHidden } from "@/features/checks/lib/mystery";
+import { kaomojiForUser } from "@/lib/censor";
 
 const SQUAD_FORMED_MESSAGES = [
   '"{title}" squad just dropped',
@@ -129,22 +131,48 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
   });
 
   const hydrateSquads = useCallback((squadsList: Awaited<ReturnType<typeof db.getSquads>>, unreadSquadIds?: string[]) => {
+    const now = new Date();
     const transformedSquads: Squad[] = squadsList.map((s) => {
+      // Mystery state derives from the squad's underlying check. When mystery
+      // is on AND we're pre-reveal, every member name + chat sender renders
+      // as a kaomoji deterministic by (squad.id, user.id). Polls + date
+      // confirms are filtered out entirely (they leak proposers/voters).
+      const checkMystery = !!(s.check as unknown as { mystery?: boolean })?.mystery;
+      const guestsHidden = isMysteryGuestsHidden(
+        { mystery: checkMystery, eventDate: s.check?.event_date ?? null },
+        now,
+      );
       const myMembership = (s.members ?? []).find((m) => m.user_id === userId);
       const isWaitlisted = myMembership?.role === 'waitlist';
-      const members = (s.members ?? []).filter((m) => m.role !== 'waitlist').map((m) => ({
-        name: m.user_id === userId ? "You" : (m.user?.display_name ?? "Unknown"),
-        avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
-        userId: m.user_id,
-      }));
-      const waitlistedMembers = (s.members ?? []).filter((m) => m.role === 'waitlist' && m.user_id !== userId).map((m) => ({
-        name: m.user?.display_name ?? "Unknown",
-        avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
-        userId: m.user_id,
-      }));
+      const members = (s.members ?? []).filter((m) => m.role !== 'waitlist').map((m) => {
+        const isYou = m.user_id === userId;
+        if (guestsHidden && !isYou) {
+          const k = kaomojiForUser(s.id, m.user_id);
+          return { name: k, avatar: k, userId: m.user_id };
+        }
+        return {
+          name: isYou ? "You" : (m.user?.display_name ?? "Unknown"),
+          avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
+          userId: m.user_id,
+        };
+      });
+      const waitlistedMembers = (s.members ?? []).filter((m) => m.role === 'waitlist' && m.user_id !== userId).map((m) => {
+        if (guestsHidden) {
+          const k = kaomojiForUser(s.id, m.user_id);
+          return { name: k, avatar: k, userId: m.user_id };
+        }
+        return {
+          name: m.user?.display_name ?? "Unknown",
+          avatar: m.user?.avatar_letter ?? m.user?.display_name?.charAt(0)?.toUpperCase() ?? "?",
+          userId: m.user_id,
+        };
+      });
       const memberIds = new Set(members.map((m) => m.userId));
       const waitlistedIds = new Set(waitlistedMembers.map((m) => m.userId));
-      const downResponders = ((s.check as unknown as Record<string, unknown>)?.responses as Array<{ user_id: string; response: string; user?: { display_name?: string; avatar_letter?: string } }> ?? [])
+      // Hide downResponders entirely pre-reveal — they're the not-yet-joined
+      // people who said "down," and their names would leak via this list even
+      // though we kaomoji-fy actual squad members.
+      const downResponders = guestsHidden ? [] : ((s.check as unknown as Record<string, unknown>)?.responses as Array<{ user_id: string; response: string; user?: { display_name?: string; avatar_letter?: string } }> ?? [])
         .filter((r) => r.response === 'down' && !memberIds.has(r.user_id) && !waitlistedIds.has(r.user_id))
         .map((r) => ({
           name: r.user?.display_name ?? 'Unknown',
@@ -152,14 +180,27 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
           userId: r.user_id,
         }));
       const sortedRawMessages = (s.messages ?? [])
+        // Pre-reveal: drop poll + date_confirm messages entirely. They leak
+        // proposers (and date_confirm replies leak who confirmed). Plain text
+        // chat survives but with sender names anonymized.
+        .filter((msg) => !guestsHidden || (msg.message_type !== 'poll' && msg.message_type !== 'date_confirm'))
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       const lastRawMessage = sortedRawMessages.length > 0 ? sortedRawMessages[sortedRawMessages.length - 1] : null;
-      const messages = sortedRawMessages.map((msg) => ({
+      const messages = sortedRawMessages.map((msg) => {
+        const isYou = msg.sender_id === userId;
+        const senderDisplay = msg.is_system
+          ? "system"
+          : isYou
+            ? "You"
+            : guestsHidden && msg.sender_id
+              ? kaomojiForUser(s.id, msg.sender_id)
+              : (msg.sender?.display_name ?? "Unknown");
+        return {
           id: msg.id,
-          sender: msg.is_system ? "system" : (msg.sender_id === userId ? "You" : (msg.sender?.display_name ?? "Unknown")),
+          sender: senderDisplay,
           text: msg.text ?? "",
           time: formatTimeAgo(new Date(msg.created_at)),
-          isYou: msg.sender_id === userId,
+          isYou,
           ...(msg.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: msg.id } : {}),
           ...(msg.message_type === 'poll' ? { messageType: 'poll' as const, messageId: msg.id } : {}),
           ...(msg.image_path ? {
@@ -167,7 +208,8 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
             imageWidth: msg.image_width ?? undefined,
             imageHeight: msg.image_height ?? undefined,
           } : {}),
-        }));
+        };
+      });
       const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
       return {
         id: s.id,
@@ -197,6 +239,8 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
         graceStartedAt: s.grace_started_at ?? undefined,
         isWaitlisted,
         lastActivityAt: lastRawMessage?.created_at ?? s.created_at,
+        mystery: checkMystery,
+        mysteryGuestsHidden: guestsHidden,
       };
     });
     transformedSquads.sort((a, b) =>

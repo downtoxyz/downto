@@ -136,6 +136,12 @@ export interface Squad {
   hasUnread?: boolean;
   isWaitlisted?: boolean;
   lastActivityAt?: string;
+  /** True iff the underlying check was posted as `mystery=true`. */
+  mystery?: boolean;
+  /** True for ANYONE viewing this squad while the check is pre-reveal —
+   *  including the squad's host / check author. Drives kaomoji-name renders
+   *  on members + chat senders, and hides poll + date-confirm UI. */
+  mysteryGuestsHidden?: boolean;
 }
 
 export interface Friend {

@@ -117,23 +117,39 @@ function CheckCard({
         style={check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : undefined}
       >
         {/* Mystery border — only the author sees it. Reminds them this check was
-            posted as a mystery, since their card otherwise looks normal-ish to them
-            (only redaction visible to them is the responder hide). */}
-        {check.mystery && check.isYours && (
+            posted as a mystery. Visible to everyone — hosts and guests alike —
+            because it's the most visible "this card is different" cue and
+            communicates the vibe without leaking identity. Full rectangle:
+            top + bottom horizontal strips, plus left + right vertical strips. */}
+        {check.mystery && (
           <>
             <div
               aria-hidden
-              className="absolute top-0 left-0 right-0 font-mono pointer-events-none overflow-hidden whitespace-nowrap leading-none select-none"
-              style={{ color: "#ff00d4", fontSize: "10px", letterSpacing: "0.4em", padding: "3px 6px 0" }}
+              className="absolute top-0 left-0 right-0 z-[1] font-mono pointer-events-none overflow-hidden whitespace-nowrap leading-none select-none"
+              style={{ color: "#ff00d4", fontSize: "10px", letterSpacing: "0.4em", padding: "3px 14px 0" }}
             >
               {"? ".repeat(60)}
             </div>
             <div
               aria-hidden
-              className="absolute bottom-0 left-0 right-0 font-mono pointer-events-none overflow-hidden whitespace-nowrap leading-none select-none"
-              style={{ color: "#ff00d4", fontSize: "10px", letterSpacing: "0.4em", padding: "0 6px 3px" }}
+              className="absolute bottom-0 left-0 right-0 z-[1] font-mono pointer-events-none overflow-hidden whitespace-nowrap leading-none select-none"
+              style={{ color: "#ff00d4", fontSize: "10px", letterSpacing: "0.4em", padding: "0 14px 3px" }}
             >
               {"? ".repeat(60)}
+            </div>
+            <div
+              aria-hidden
+              className="absolute top-0 bottom-0 left-0 z-[1] font-mono pointer-events-none overflow-hidden leading-[1.6] select-none flex flex-col items-center"
+              style={{ color: "#ff00d4", fontSize: "10px", width: "10px", padding: "14px 0", whiteSpace: "pre" }}
+            >
+              {"?\n".repeat(60)}
+            </div>
+            <div
+              aria-hidden
+              className="absolute top-0 bottom-0 right-0 z-[1] font-mono pointer-events-none overflow-hidden leading-[1.6] select-none flex flex-col items-center"
+              style={{ color: "#ff00d4", fontSize: "10px", width: "10px", padding: "14px 0", whiteSpace: "pre" }}
+            >
+              {"?\n".repeat(60)}
             </div>
           </>
         )}
@@ -368,7 +384,11 @@ function CheckCard({
             userId={userId}
             friends={friendsList}
             onPost={postComment}
-            mysteryUnrevealed={check.mysteryUnrevealed}
+            // Use mysteryGuestsHidden, NOT mysteryUnrevealed — the host of a
+            // mystery check needs to see commenters as kaomoji too. The whole
+            // point of mystery mode is that nobody (host included) knows who
+            // responded until reveal day.
+            anonymizeCommenters={check.mysteryGuestsHidden}
             hostUserId={check.authorId}
             threadSeed={check.id}
           />
