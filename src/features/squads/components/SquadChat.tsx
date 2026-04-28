@@ -138,7 +138,6 @@ const SquadChat = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [entering, setEntering] = useState(true);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  // showImOutConfirm removed — "can't make it" is now a soft inline action
   const [kickTarget, setKickTarget] = useState<{ name: string; userId: string } | null>(null);
   const [showSquadPopup, setShowSquadPopup] = useState(false);
   const [showEditEvent, setShowEditEvent] = useState(false);
@@ -742,8 +741,6 @@ const SquadChat = ({
           </div>
         </div>
       )}
-
-      {/* I'm out confirmation removed — "can't make it" is now a soft action */}
 
       {/* Kick member confirmation */}
       {kickTarget && localSquad && (

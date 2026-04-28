@@ -917,7 +917,6 @@ export default function Home() {
             opacity: scrolledDown ? 1 : 0,
           }}
         />
-        {/* Bottom fade — removed for cleaner look */}
         {/* Scroll container */}
         <div
           ref={scrollRef}
