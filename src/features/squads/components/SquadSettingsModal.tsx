@@ -49,9 +49,15 @@ export default function SquadSettingsModal({
   const location = squad.meetingSpot ?? squad.eventLocation ?? null;
   const metaParts = [dateLabel, timeLabel, location].filter(Boolean);
 
-  const currentSize = squad.maxSquadSize ?? 5;
-  const canShrink = currentSize > squad.members.length;
-  const canGrow = currentSize < 20;
+  // null max_squad_size means unlimited ("∞" at create time). Don't paper
+  // over it with a fake "5" — that misleads the host into thinking they
+  // capped their squad when they explicitly chose unlimited. Display ∞ and
+  // disable both stepper buttons; users who want a real cap have to set it
+  // through some future "switch to capped" affordance (TODO if asked).
+  const isUnlimited = squad.maxSquadSize == null;
+  const currentSize = squad.maxSquadSize;
+  const canShrink = !isUnlimited && currentSize! > squad.members.length;
+  const canGrow = !isUnlimited && currentSize! < 20;
 
   return (
     <DetailSheet onClose={onClose}>
@@ -133,7 +139,8 @@ export default function SquadSettingsModal({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      const newSize = currentSize - 1;
+                      if (isUnlimited) return;
+                      const newSize = currentSize! - 1;
                       if (newSize >= squad.members.length) {
                         onUpdateSquadSize(squad.checkId!, newSize);
                         onLocalSquadUpdate((prev) => ({ ...prev, maxSquadSize: newSize }));
@@ -151,11 +158,12 @@ export default function SquadSettingsModal({
                     −
                   </button>
                   <span className="font-mono text-sm text-dt font-bold min-w-5 text-center">
-                    {currentSize}
+                    {isUnlimited ? "∞" : currentSize}
                   </span>
                   <button
                     onClick={() => {
-                      const newSize = currentSize + 1;
+                      if (isUnlimited) return;
+                      const newSize = currentSize! + 1;
                       if (newSize <= 20) {
                         onUpdateSquadSize(squad.checkId!, newSize);
                         onLocalSquadUpdate((prev) => ({ ...prev, maxSquadSize: newSize }));
