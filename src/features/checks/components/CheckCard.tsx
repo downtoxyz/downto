@@ -13,6 +13,7 @@ import ReportSheet from "@/shared/components/ReportSheet";
 import CheckActionsSheet from "@/shared/components/CheckActionsSheet";
 import { Linkify } from "@/shared/components/Linkify";
 import { useFeedContext } from "@/features/checks/context/FeedContext";
+import { censorWingdings, censorKaomoji } from "@/lib/censor";
 
 export interface CheckCardProps {
   check: InterestCheck;
@@ -115,6 +116,27 @@ function CheckCard({
         }`}
         style={check.id === sharedCheckId ? { animation: "rainbowGlow 3s linear infinite" } : check.id === newlyAddedCheckId ? { animation: "checkGlow 2s ease-in-out infinite" } : undefined}
       >
+        {/* Mystery border — only the author sees it. Reminds them this check was
+            posted as a mystery, since their card otherwise looks normal-ish to them
+            (only redaction visible to them is the responder hide). */}
+        {check.mystery && check.isYours && (
+          <>
+            <div
+              aria-hidden
+              className="absolute top-0 left-0 right-0 font-mono pointer-events-none overflow-hidden whitespace-nowrap leading-none select-none"
+              style={{ color: "#ff00d4", fontSize: "10px", letterSpacing: "0.4em", padding: "3px 6px 0" }}
+            >
+              {"? ".repeat(60)}
+            </div>
+            <div
+              aria-hidden
+              className="absolute bottom-0 left-0 right-0 font-mono pointer-events-none overflow-hidden whitespace-nowrap leading-none select-none"
+              style={{ color: "#ff00d4", fontSize: "10px", letterSpacing: "0.4em", padding: "0 6px 3px" }}
+            >
+              {"? ".repeat(60)}
+            </div>
+          </>
+        )}
         {check.expiresIn !== "open" && (
           <div className="h-1 bg-border relative overflow-hidden">
             <div
@@ -169,10 +191,16 @@ function CheckCard({
             </div>
           )}
 
-          {/* Author header — redacted black bar for unrevealed mystery checks */}
+          {/* Author header — symbol scramble for unrevealed mystery checks */}
           <div className="flex items-center gap-1.5 mb-2">
             {check.mysteryUnrevealed ? (
-              <div className="w-5 h-5 shrink-0 bg-text" title="Mystery host — revealed on the day of the event" />
+              <span
+                className="font-mono text-[10px] shrink-0 leading-none whitespace-nowrap"
+                style={{ color: "#ff00d4" }}
+                title="Mystery host — revealed on the day of the event"
+              >
+                {censorKaomoji(check.id)}
+              </span>
             ) : (
               <div className="w-5 h-5 rounded-full bg-border-light text-dim flex items-center justify-center font-mono text-[9px] font-bold shrink-0">
                 {check.author[0]?.toUpperCase()}
@@ -180,7 +208,13 @@ function CheckCard({
             )}
             <span className="font-mono text-tiny text-muted min-w-0 truncate flex-1">
               {check.mysteryUnrevealed ? (
-                <span className="font-semibold tracking-[0.15em]" style={{ background: "var(--color-primary)", color: "var(--color-primary)" }}>███████</span>
+                <span
+                  className="font-semibold tracking-[0.18em]"
+                  style={{ color: "#ff00d4" }}
+                  title="Mystery host — revealed on the day of the event"
+                >
+                  {censorWingdings(check.id)}
+                </span>
               ) : (
                 <>
                   <span className="text-dt font-semibold">{check.author}</span>
@@ -263,9 +297,11 @@ function CheckCard({
           {/* Responses + comment toggle + down button */}
           <div className="mt-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              {check.mysteryUnrevealed ? (
+              {check.mysteryGuestsHidden ? (
                 <span className="font-mono text-tiny text-faint italic">
-                  guests revealed on the day
+                  {check.isYours
+                    ? "you'll find out who's in on the day"
+                    : "guests revealed on the day"}
                 </span>
               ) : check.responses.filter(r => r.status === "down").length > 0 ? (() => {
                 const downResponders = check.responses.filter(r => r.status === "down");
@@ -332,6 +368,9 @@ function CheckCard({
             userId={userId}
             friends={friendsList}
             onPost={postComment}
+            mysteryUnrevealed={check.mysteryUnrevealed}
+            hostUserId={check.authorId}
+            threadSeed={check.id}
           />
         </div>
       )}
