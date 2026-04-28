@@ -117,6 +117,17 @@ export function useRealtimeNotifications({
       } else if (newNotif.type === "check_tag") {
         if (newNotif.body) showToastRef.current(newNotif.title + ": " + newNotif.body);
         loadRealDataRef.current();
+      } else if (newNotif.type === "check_response") {
+        // Author received a "down" response on their check. The squad may
+        // have just formed (auto_create_squad_on_first_other_down) or grown
+        // (auto_join_squad_on_down_response). Realtime on check_responses
+        // refreshes the *checks* list via useChecks's own sub, but it
+        // doesn't re-fetch squads — squad_members has no client-side
+        // realtime sub. Without this branch, the author's squad UI stays
+        // stuck on whatever member count was loaded at page open and never
+        // sees later joiners. Surfaced as "I see only 2 members in a 4-
+        // person squad" on prod.
+        loadRealDataRef.current();
       } else if (newNotif.type === "check_archived" || newNotif.type === "check_revived") {
         // Realtime on `interest_checks` is RLS-gated: once a check is
         // archived, the recipient loses SELECT visibility and so the
