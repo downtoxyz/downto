@@ -69,15 +69,29 @@ export default function ChatHeader({
       <div className="flex items-center justify-between cursor-pointer">
         <button
           onClick={(e) => { e.stopPropagation(); onBack(); }}
-          className={`bg-transparent border-none text-dt text-lg cursor-pointer p-0 mr-2 shrink-0 ${hasDetails ? "self-start" : "self-center"}`}
+          aria-label="Back"
+          // self-center puts the chevron's center at the header's vertical
+          // midline; mt-2.5 then shifts it down by half the SVG (20px / 2)
+          // so the chevron's top edge — not its middle — sits on the midline.
+          className="bg-transparent border-none text-dt cursor-pointer py-0 pl-1 pr-2 shrink-0 leading-none flex items-center self-center mt-2.5"
         >
-          ‹
+          <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+            <path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z" />
+          </svg>
         </button>
         <div
           onClick={onOpenSettings}
           className="flex items-center justify-between flex-1 min-w-0"
         >
           <div className="min-w-0 flex-1">
+            {squad.mystery && (
+              <span
+                className="inline-block font-mono text-[9px] uppercase tracking-widest border rounded px-[5px] py-px mb-1"
+                style={{ color: "#ff00d4", borderColor: "#ff00d4" }}
+              >
+                ✦ mystery
+              </span>
+            )}
             <h2 className="font-serif text-lg text-primary font-normal m-0 line-clamp-2 leading-snug tracking-[-0.01em]">
               {squad.name}
             </h2>

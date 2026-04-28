@@ -76,34 +76,38 @@ export default function InlineCommentsBox({
       ) : (
         <>
           {(showAll ? comments : comments.slice(-3)).map((c) => {
-            // For mystery+pre-reveal: redact every commenter except the viewer
-            // themselves. The viewer always sees their own messages as "You".
-            const redact = anonymizeCommenters && !c.isYours;
+            // Mystery+pre-reveal: every commenter (including the viewer) renders
+            // as a kaomoji so writing-style is the only identity tell. The viewer's
+            // own kaomoji is colored with the accent so they can still pick out
+            // their own messages at a glance.
+            const redact = anonymizeCommenters;
             const isHost = !!hostUserId && c.userId === hostUserId;
             const displayName = redact && threadSeed
               ? kaomojiForUser(threadSeed, c.userId)
               : c.userName;
-            const displayAvatar = redact && threadSeed
-              ? kaomojiForUser(threadSeed, c.userId)
-              : c.userAvatar;
             const displayText = anonymizeCommenters ? stripAtMentions(c.text) : c.text;
             return (
             <div key={c.id} className="flex items-center gap-2 min-w-0">
-              {/* Avatar slot — skipped entirely when redacted, since the kaomoji
-                  in the name slot already carries identity. Two kaomoji per
-                  comment reads as noise. */}
+              {/* Non-mystery: avatar pill. Mystery: avatar is dropped — the
+                  kaomoji in the name column carries identity, so a second
+                  glyph would just be noise. */}
               {!redact && (
                 <div
                   className={`shrink-0 flex items-center justify-center font-mono leading-none w-5 h-5 rounded-full text-[9px] font-bold ${c.isYours ? "bg-dt text-on-accent" : "bg-border-light text-dim"}`}
                 >
-                  {displayAvatar}
+                  {c.userAvatar}
                 </div>
               )}
-              <span className="font-mono text-tiny text-muted shrink-0 leading-snug">
-                {displayName}
+              {/* Fixed-width right-aligned name column so every comment's text
+                  starts at the same x. Names that overflow get truncated. */}
+              <span
+                className={`font-mono text-tiny shrink-0 leading-snug truncate text-right ${redact && c.isYours ? "text-dt font-bold" : "text-muted"}`}
+                style={{ width: "5.5rem" }}
+              >
                 {isHost && !c.isYours && (
-                  <span className="ml-1 text-faint italic font-normal">host</span>
+                  <span className="mr-1 text-faint italic font-normal">host</span>
                 )}
+                {displayName}
               </span>
               <span className="font-mono text-tiny text-primary min-w-0 break-words leading-snug">
                 {displayText.split(/(https?:\/\/[^\s),]+|@\S+)/g).map((part, pi) => {

@@ -31,6 +31,11 @@ export default function SquadMembersView({
   onLocalSquadUpdate,
 }: SquadMembersViewProps) {
   const [memberMenu, setMemberMenu] = useState<{ name: string; userId: string } | null>(null);
+  // Pre-reveal: every non-self member is a kaomoji. Tapping into their
+  // profile would obviously blow the mystery, so the row is non-interactive.
+  // Kick/move-to-waitlist still leak (the action targets a specific user_id),
+  // so the per-row menu is suppressed too.
+  const guestsHidden = !!squad.mysteryGuestsHidden;
 
   return (
     <>
@@ -53,14 +58,14 @@ export default function SquadMembersView({
             <React.Fragment key={m.name}>
               <div
                 onClick={() => {
-                  if (m.name !== "You" && m.userId) {
+                  if (m.name !== "You" && m.userId && !guestsHidden) {
                     onClose();
                     onViewProfile?.(m.userId);
                   }
                 }}
                 className={cn("flex items-center gap-2.5", {
-                  "cursor-pointer": m.name !== "You" && !!m.userId,
-                  "cursor-default": m.name === "You" || !m.userId,
+                  "cursor-pointer": m.name !== "You" && !!m.userId && !guestsHidden,
+                  "cursor-default": m.name === "You" || !m.userId || guestsHidden,
                   "opacity-35": isGrayed,
                 })}
               >
@@ -84,7 +89,7 @@ export default function SquadMembersView({
                     {isConfirmed ? "down" : confirmResponse === "no" ? "out" : "pending"}
                   </span>
                 )}
-                {m.name !== "You" && m.userId && (
+                {m.name !== "You" && m.userId && !guestsHidden && (
                   <div className="flex gap-2 ml-auto items-center">
                     <button
                       onClick={(e) => {
@@ -151,12 +156,12 @@ export default function SquadMembersView({
               <div
                 key={m.userId}
                 onClick={() => {
-                  if (m.userId) {
+                  if (m.userId && !guestsHidden) {
                     onClose();
                     onViewProfile?.(m.userId);
                   }
                 }}
-                className={cn("flex items-center gap-2.5", m.userId ? "cursor-pointer" : "cursor-default")}
+                className={cn("flex items-center gap-2.5", m.userId && !guestsHidden ? "cursor-pointer" : "cursor-default")}
               >
                 <div className="size-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 bg-neutral-800 text-neutral-500">
                   {m.avatar}

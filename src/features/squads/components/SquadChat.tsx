@@ -7,6 +7,7 @@ import type { Squad } from "@/lib/ui-types";
 import { logError } from "@/lib/logger";
 import { formatTimeAgo } from "@/lib/utils";
 import { parseWhen } from "@/lib/dateParse";
+import { kaomojiForUser } from "@/lib/censor";
 import ChatHeader from "./ChatHeader";
 import MessageComposer from "./MessageComposer";
 import ChatMessage from "./ChatMessage";
@@ -133,8 +134,10 @@ const SquadChat = ({
       maxSquadSize: squad.maxSquadSize,
       expiresAt: squad.expiresAt,
       meetingSpot: squad.meetingSpot,
+      mystery: squad.mystery,
+      mysteryGuestsHidden: squad.mysteryGuestsHidden,
     }));
-  }, [squad.dateStatus, squad.eventIsoDate, squad.eventTime, squad.members, squad.waitlistedMembers, squad.downResponders, squad.maxSquadSize, squad.expiresAt, squad.meetingSpot]);
+  }, [squad.dateStatus, squad.eventIsoDate, squad.eventTime, squad.members, squad.waitlistedMembers, squad.downResponders, squad.maxSquadSize, squad.expiresAt, squad.meetingSpot, squad.mystery, squad.mysteryGuestsHidden]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [entering, setEntering] = useState(true);
@@ -407,20 +410,31 @@ const SquadChat = ({
     let stale = false;
     db.getSquadMessages(localSquad.id).then((raw) => {
       if (stale) return;
-      const msgs = raw.map((msg) => ({
-        id: msg.id,
-        sender: msg.is_system || !msg.sender_id ? "system" : (msg.sender_id === userId ? "You" : (msg.sender?.display_name ?? "Unknown")),
-        text: msg.text ?? "",
-        time: formatTimeAgo(new Date(msg.created_at)),
-        isYou: msg.sender_id === userId,
-        ...(msg.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: msg.id } : {}),
-        ...(msg.message_type === 'poll' ? { messageType: 'poll' as const, messageId: msg.id } : {}),
-        ...(msg.image_path ? {
-          imagePath: msg.image_path,
-          imageWidth: msg.image_width ?? undefined,
-          imageHeight: msg.image_height ?? undefined,
-        } : {}),
-      }));
+      const guestsHidden = !!localSquad.mysteryGuestsHidden;
+      const msgs = raw
+        // Match the hydrateSquads filter: pre-reveal drops system + poll +
+        // date_confirm messages so their name-baked bodies don't leak.
+        .filter((msg) => !guestsHidden || (!msg.is_system && msg.message_type !== 'poll' && msg.message_type !== 'date_confirm'))
+        .map((msg) => ({
+          id: msg.id,
+          sender: msg.is_system || !msg.sender_id
+            ? "system"
+            : msg.sender_id === userId
+              ? "You"
+              : guestsHidden
+                ? kaomojiForUser(localSquad.id, msg.sender_id)
+                : (msg.sender?.display_name ?? "Unknown"),
+          text: msg.text ?? "",
+          time: formatTimeAgo(new Date(msg.created_at)),
+          isYou: msg.sender_id === userId,
+          ...(msg.message_type === 'date_confirm' ? { messageType: 'date_confirm' as const, messageId: msg.id } : {}),
+          ...(msg.message_type === 'poll' ? { messageType: 'poll' as const, messageId: msg.id } : {}),
+          ...(msg.image_path ? {
+            imagePath: msg.image_path,
+            imageWidth: msg.image_width ?? undefined,
+            imageHeight: msg.image_height ?? undefined,
+          } : {}),
+        }));
       const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
       // Merge: keep any realtime messages that arrived before this fetch completed
       setMessages((prev) => {
@@ -471,8 +485,19 @@ const SquadChat = ({
     const channel = db.subscribeToMessages(localSquad.id, (newMessage) => {
       // Skip messages from current user (already added optimistically)
       if (userId && newMessage.sender_id === userId) return;
+      // Mystery squad pre-reveal: drop system messages (their bodies bake in
+      // real display names) + polls + date_confirms (leak proposers/confirmers)
+      // entirely, and replace sender names on chat messages with kaomoji
+      // deterministic by (squad.id, user.id) — same primitive as hydrateSquads.
+      if (localSquad.mysteryGuestsHidden && (newMessage.is_system || newMessage.message_type === 'poll' || newMessage.message_type === 'date_confirm')) {
+        return;
+      }
       const isSystem = newMessage.is_system || newMessage.sender_id === null;
-      const senderName = isSystem ? "system" : (newMessage.sender?.display_name ?? "Unknown");
+      const senderName = isSystem
+        ? "system"
+        : localSquad.mysteryGuestsHidden && newMessage.sender_id
+          ? kaomojiForUser(localSquad.id, newMessage.sender_id)
+          : (newMessage.sender?.display_name ?? "Unknown");
       const msg = {
         id: newMessage.id,
         sender: senderName,
@@ -1127,6 +1152,7 @@ const SquadChat = ({
             setPollVariant(localSquad.eventIsoDate ? 'text' : 'dates');
             setShowPollCreator(true);
           } : undefined}
+          mysteryRestricted={localSquad.mysteryGuestsHidden}
         />
       </div>
       )}

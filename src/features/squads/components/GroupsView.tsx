@@ -132,6 +132,14 @@ const SquadRow = ({
       <Countdown squad={squad} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
+          {squad.mystery && (
+            <span
+              className="font-mono text-[9px] uppercase tracking-widest border rounded px-[5px] py-px shrink-0"
+              style={{ color: "#ff00d4", borderColor: "#ff00d4" }}
+            >
+              ✦ mystery
+            </span>
+          )}
           <span className="font-serif text-xs text-primary font-normal truncate leading-tight tracking-[-0.02em]">
             {squad.name}
           </span>

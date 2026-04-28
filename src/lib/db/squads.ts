@@ -37,7 +37,7 @@ export async function getSquads(): Promise<Squad[]> {
     .select(`
       *,
       event:events(*),
-      check:interest_checks(author_id, event_time, event_date, location, text, date_flexible, time_flexible, max_squad_size, responses:check_responses(user_id, response, user:profiles!user_id(display_name, avatar_letter))),
+      check:interest_checks(author_id, event_time, event_date, location, text, date_flexible, time_flexible, max_squad_size, mystery, responses:check_responses(user_id, response, user:profiles!user_id(display_name, avatar_letter))),
       members:squad_members(*, user:profiles!user_id(*)),
       messages(*, sender:profiles!sender_id(display_name))
     `)

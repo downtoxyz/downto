@@ -180,10 +180,11 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
           userId: r.user_id,
         }));
       const sortedRawMessages = (s.messages ?? [])
-        // Pre-reveal: drop poll + date_confirm messages entirely. They leak
-        // proposers (and date_confirm replies leak who confirmed). Plain text
-        // chat survives but with sender names anonymized.
-        .filter((msg) => !guestsHidden || (msg.message_type !== 'poll' && msg.message_type !== 'date_confirm'))
+        // Pre-reveal: drop poll + date_confirm messages (leak proposers /
+        // confirmers) AND system messages (their bodies bake in real display
+        // names — "{name} just entered the chat", "{name} left", etc.). Plain
+        // text chat survives with sender names anonymized.
+        .filter((msg) => !guestsHidden || (!msg.is_system && msg.message_type !== 'poll' && msg.message_type !== 'date_confirm'))
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       const lastRawMessage = sortedRawMessages.length > 0 ? sortedRawMessages[sortedRawMessages.length - 1] : null;
       const messages = sortedRawMessages.map((msg) => {
@@ -340,20 +341,37 @@ export function useSquads({ userId, profile, checksRef, dispatch, showToast, onS
       }
     }
 
+    // Mystery + pre-reveal: don't bake the host's real name into local
+    // members or system-message bodies. The DB hydration will replace this
+    // local newSquad shortly anyway, but in the gap we keep the kaomoji vibe.
+    const localMystery = !!check.mystery && check.mysteryGuestsHidden !== false;
+    const localSquadId = squadDbId ?? `local-squad-${Date.now()}`;
+    const authorKaomoji = localMystery && check.authorId
+      ? kaomojiForUser(localSquadId, check.authorId)
+      : null;
     const newSquad: Squad = {
-      id: squadDbId ?? `local-squad-${Date.now()}`,
+      id: localSquadId,
       name: squadName,
-      event: `${check.author}'s idea \u00b7 ${check.expiresIn} left`,
+      event: localMystery
+        ? `mystery host \u00b7 ${check.expiresIn} left`
+        : `${check.author}'s idea \u00b7 ${check.expiresIn} left`,
       members: [
         { name: "You", avatar: profile?.avatar_letter ?? "?" },
         ...downPeople.map((p) => ({ name: p.name, avatar: p.avatar })),
-        ...(!check.isYours ? [{ name: check.author, avatar: check.author.charAt(0).toUpperCase() }] : []),
+        ...(!check.isYours
+          ? [{
+              name: authorKaomoji ?? check.author,
+              avatar: authorKaomoji ?? check.author.charAt(0).toUpperCase(),
+            }]
+          : []),
       ],
-      messages: [
-        { sender: "system", text: pickFormedMessage(check.text), time: "now" },
-        { sender: "system", text: pickContextCheck(check.author), time: "now" },
-        { sender: "You", text: opener, time: "now", isYou: true },
-      ],
+      messages: localMystery
+        ? [{ sender: "You", text: opener, time: "now", isYou: true }]
+        : [
+            { sender: "system", text: pickFormedMessage(check.text), time: "now" },
+            { sender: "system", text: pickContextCheck(check.author), time: "now" },
+            { sender: "You", text: opener, time: "now", isYou: true },
+          ],
       lastMsg: `You: ${opener}`,
       time: "now",
     };

@@ -152,6 +152,9 @@ export default function CheckDetailSheet({
         userId={userId}
         friends={friends}
         onPost={onPostComment}
+        anonymizeCommenters={check.mysteryGuestsHidden}
+        hostUserId={check.authorId}
+        threadSeed={check.id}
       />
     </DetailSheet>
   );
