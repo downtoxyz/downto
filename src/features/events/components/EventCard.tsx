@@ -2,11 +2,29 @@
 
 import { useState, useRef, useEffect, useCallback, memo } from "react";
 import type { Event } from "@/lib/ui-types";
-import type { Profile } from "@/lib/types";
+import type { Profile, CheckComment } from "@/lib/types";
 import cn from "@/lib/tailwindMerge";
 import * as db from "@/lib/db";
 import InlineCommentsBox from "@/shared/components/InlineCommentsBox";
 import DetailSheet from "@/shared/components/DetailSheet";
+
+interface EvCommentUI {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  text: string;
+  isYours: boolean;
+}
+
+const toEvCommentUI = (c: CheckComment, viewerId?: string | null): EvCommentUI => ({
+  id: c.id,
+  userId: c.user_id,
+  userName: c.user?.display_name ?? "Unknown",
+  userAvatar: c.user?.avatar_letter ?? "?",
+  text: c.text,
+  isYours: c.user_id === viewerId,
+});
 
 const EventCard = ({
   event,
@@ -17,6 +35,7 @@ const EventCard = ({
   onEdit,
   onViewProfile,
   isNew,
+  initialComments,
 }: {
   event: Event;
   userId?: string | null;
@@ -26,24 +45,23 @@ const EventCard = ({
   onEdit?: () => void;
   onViewProfile?: (userId: string) => void;
   isNew?: boolean;
+  /** Comments pre-fetched by the parent feed in a single batched query.
+   *  Undefined while the batch is still loading. */
+  initialComments?: CheckComment[];
 }) => {
   const [hovered, setHovered] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const touchMoved = useRef(false);
   const touchStartPos = useRef({ x: 0, y: 0 });
-  // Event comments — state owned by card, sheet posts via callback
-  const [evComments, setEvComments] = useState<{ id: string; userId: string; userName: string; userAvatar: string; text: string; isYours: boolean }[]>([]);
+  // Event comments — state owned by card, sheet posts via callback. Seeded
+  // from the parent's batched fetch (avoids the N+1 we used to spawn here).
+  const [evComments, setEvComments] = useState<EvCommentUI[]>(
+    () => (initialComments ?? []).map((c) => toEvCommentUI(c, userId)),
+  );
   useEffect(() => {
-    if (!event.id) return;
-    db.getEventComments(event.id).then((fetched) => {
-      setEvComments(fetched.map((c) => ({
-        id: c.id, userId: c.user_id,
-        userName: c.user?.display_name ?? "Unknown",
-        userAvatar: c.user?.avatar_letter ?? "?",
-        text: c.text, isYours: c.user_id === userId,
-      })));
-    }).catch(() => {});
-  }, [event.id, userId]);
+    if (!initialComments) return;
+    setEvComments(initialComments.map((c) => toEvCommentUI(c, userId)));
+  }, [initialComments, userId]);
   const postCmt = useCallback(async (text: string, _mentions?: string[]) => {
     const t = text.trim();
     if (!t || !event.id) return;

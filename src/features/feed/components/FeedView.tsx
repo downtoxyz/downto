@@ -99,6 +99,20 @@ export default function FeedView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checks.map((c) => c.id).join(',')]);
 
+  // Batch-fetch event comments in one round-trip. Each EventCard used to
+  // fetch its own — Sentry caught the N+1 (issue 7447165522). Cards now
+  // receive their slice via the initialComments prop.
+  const [eventComments, setEventComments] = useState<
+    Record<string, Awaited<ReturnType<typeof db.getEventComments>>>
+  >({});
+  useEffect(() => {
+    if (!events.length) return;
+    db.getEventCommentsBatch(events.map((e) => e.id).filter(Boolean))
+      .then(setEventComments)
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events.map((e) => e.id).join(',')]);
+
   const [mockEnabled] = useDevMockFeed();
   const effectiveChecks = mockEnabled ? DEV_MOCK_CHECKS : checks;
   const mockNewSet = React.useMemo(() => new Set(DEV_MOCK_NEW_IDS), []);
@@ -232,6 +246,7 @@ export default function FeedView({
                   onViewProfile={onViewProfile}
                   isNew={item.data.id === newlyAddedEventId || newItemIds.has(item.data.id)}
                   profile={profile}
+                  initialComments={eventComments[item.data.id]}
                 />
               )
             )}
