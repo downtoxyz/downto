@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { sanitize } from "@/lib/utils";
 import { parseWhen } from "@/lib/dateParse";
 import Grain from "@/app/components/Grain";
@@ -23,16 +23,26 @@ const FirstCheckScreen = ({
   // parseWhen returns every date the user implied — we keep the first since
   // the check schema is single-date for now. The user's full original input
   // becomes the preview label (covers "or" inputs naturally).
-  const parsed = whenInput ? parseWhen(whenInput) : null;
-  const parsedDate = parsed?.dates[0] ?? null;
-  const parsedTime = parsed?.time ?? null;
-  const whenPreview = (() => {
-    if (!parsedDate && !parsedTime) return null;
-    const parts: string[] = [];
-    if (parsed?.label) parts.push(parsed.label);
-    else if (parsedTime) parts.push(parsedTime);
-    return parts.join(" ");
-  })();
+  //
+  // Wrapped in a single useMemo (instead of three render-scoped consts +
+  // an IIFE) so all four bindings live in one closure — Sentry caught a
+  // "Can't find variable: parsedDate" TDZ-shaped ReferenceError on Mobile
+  // Safari 26.5 (issue 7446164800), which the prior chained-const layout
+  // somehow triggered through the minifier. One closure, one return shape,
+  // no inter-binding TDZ to mis-order.
+  const { parsed, parsedDate, parsedTime, whenPreview } = useMemo(() => {
+    const parsedRes = whenInput ? parseWhen(whenInput) : null;
+    const date = parsedRes?.dates[0] ?? null;
+    const time = parsedRes?.time ?? null;
+    let preview: string | null = null;
+    if (date || time) {
+      const parts: string[] = [];
+      if (parsedRes?.label) parts.push(parsedRes.label);
+      else if (time) parts.push(time);
+      preview = parts.join(" ");
+    }
+    return { parsed: parsedRes, parsedDate: date, parsedTime: time, whenPreview: preview };
+  }, [whenInput]);
 
   useEffect(() => {
     setTimeout(() => ideaRef.current?.focus(), 300);
