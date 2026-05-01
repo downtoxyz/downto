@@ -47,7 +47,9 @@ export const DEV_MOCK_CHECKS: InterestCheck[] = [
     movieTitle: "Spirited Away",
     year: "2001",
     director: "Hayao Miyazaki",
-    thumbnail: "https://a.ltrbxd.com/resized/film-poster/5/1/3/8/5138-spirited-away-0-230-0-345-crop.jpg",
+    // Letterboxd CDN hotlink-blocks; Wikimedia serves the same poster
+    // and accepts cross-origin <img> requests.
+    thumbnail: "https://upload.wikimedia.org/wikipedia/en/d/db/Spirited_Away_Japanese_poster.png",
     vibes: ["cozy", "nostalgia"],
     commentCount: 2,
     createdAt: hoursAgo(0.1),
@@ -178,5 +180,29 @@ export const DEV_MOCK_CHECKS: InterestCheck[] = [
     location: "Lilia",
     createdAt: hoursAgo(0.1),
     expiresAt: hoursFromNow(24),
+  },
+  {
+    // Mystery hangout pre-reveal: full ?-rectangle border, redacted
+    // wingdings author, hidden responder list, kaomoji-fied comments.
+    // mysteryUnrevealed and mysteryGuestsHidden are normally derived in
+    // useChecks.transformCheck; we set them directly here so the mock
+    // doesn't depend on event_date math at render time.
+    id: uuid(9),
+    text: "downto come to a mystery hangout",
+    author: "???",
+    authorId: uuid(117),
+    timeAgo: "30m",
+    expiresIn: "23h",
+    expiryPercent: 4,
+    responses: [],
+    eventDate: new Date(now + 9 * 86400_000).toISOString().slice(0, 10),
+    eventDateLabel: "Sat, May 9",
+    eventTime: "8pm",
+    location: "secret location · revealed day-of",
+    mystery: true,
+    mysteryUnrevealed: true,
+    mysteryGuestsHidden: true,
+    createdAt: hoursAgo(0.5),
+    expiresAt: hoursFromNow(23),
   },
 ];
