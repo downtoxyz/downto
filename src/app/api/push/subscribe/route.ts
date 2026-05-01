@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing subscription fields' }, { status: 400 });
   }
 
+  const ua = typeof userAgent === 'string' ? userAgent : null;
+
   const { error } = await supabase
     .from('push_subscriptions')
     .upsert(
@@ -64,13 +66,34 @@ export async function POST(request: NextRequest) {
         p256dh,
         auth: authKey,
         platform: 'web',
-        user_agent: typeof userAgent === 'string' ? userAgent : null,
+        user_agent: ua,
       },
       { onConflict: 'user_id,endpoint' }
     );
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Prune older web subs from the same browser on this user. Same user_id +
+  // same user_agent ⇒ same physical install; the previous endpoint is dead
+  // (PWA was reinstalled / SW re-registered) but Apple Web Push keeps
+  // accepting handoffs to it for weeks before returning 410, so the
+  // 410-based cleanup in sendPushToUser never fires. Without this prune,
+  // every reinstall adds a row, fan-out hits phantom endpoints, and the
+  // server falsely logs status=sent while the device receives nothing.
+  //
+  // Skipped when ua is null — pre-2026-04-26 rows and clients that don't
+  // send the header land here, and we can't tell them apart from legit
+  // other-device rows.
+  if (ua) {
+    await supabase
+      .from('push_subscriptions')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('platform', 'web')
+      .eq('user_agent', ua)
+      .neq('endpoint', endpoint);
   }
 
   return NextResponse.json({ ok: true });
