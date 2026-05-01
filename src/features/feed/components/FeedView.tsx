@@ -11,6 +11,7 @@ import InstallBanner from './InstallBanner';
 import DevMockFeedToggle from './DevMockFeedToggle';
 import { useDevMockFeed } from '../useDevMockFeed';
 import { DEV_MOCK_CHECKS, DEV_MOCK_NEW_IDS } from '../devMockChecks';
+import { DEV_MOCK_EVENTS, DEV_MOCK_NEW_EVENT_IDS } from '../devMockEvents';
 import { useFeedContext } from '@/features/checks/context/FeedContext';
 import { Linkify } from '@/shared/components/Linkify';
 
@@ -131,9 +132,13 @@ export default function FeedView({
 
   const [mockEnabled] = useDevMockFeed();
   const effectiveChecks = mockEnabled ? DEV_MOCK_CHECKS : checks;
+  const effectiveEvents = mockEnabled ? DEV_MOCK_EVENTS : events;
   const mockNewSet = React.useMemo(() => new Set(DEV_MOCK_NEW_IDS), []);
+  const mockNewEventSet = React.useMemo(() => new Set(DEV_MOCK_NEW_EVENT_IDS), []);
   const checkIsNew = (id: string) =>
     mockEnabled ? mockNewSet.has(id) : newItemIds.has(id);
+  const eventIsNew = (id: string) =>
+    mockEnabled ? mockNewEventSet.has(id) : (id === newlyAddedEventId || newItemIds.has(id));
 
   // Derived feed slices. Memoized so the O(n) filter/map and the O(n log n)
   // sort on chronoItems don't run every render — and so the array identities
@@ -168,7 +173,7 @@ export default function FeedView({
       ...visibleChecks
         .filter((c) => c.expiresIn === 'open')
         .map((c) => ({ kind: 'check' as const, data: c })),
-      ...events.map((e) => ({ kind: 'event' as const, data: e })),
+      ...effectiveEvents.map((e) => ({ kind: 'event' as const, data: e })),
     ];
 
     if (sortBy === 'recent') {
@@ -193,9 +198,9 @@ export default function FeedView({
     }
 
     return items;
-  }, [visibleChecks, events, sortBy]);
+  }, [visibleChecks, effectiveEvents, sortBy]);
 
-  const hasContent = checks.length > 0 || events.length > 0;
+  const hasContent = effectiveChecks.length > 0 || effectiveEvents.length > 0;
 
   return (
     <>
@@ -262,7 +267,7 @@ export default function FeedView({
                       : undefined
                   }
                   onViewProfile={onViewProfile}
-                  isNew={item.data.id === newlyAddedEventId || newItemIds.has(item.data.id)}
+                  isNew={eventIsNew(item.data.id)}
                   profile={profile}
                   initialComments={eventComments[item.data.id]}
                 />
