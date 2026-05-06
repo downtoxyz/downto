@@ -23,22 +23,28 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Fetch saved events
+  // Saved events
   const { data: savedEvents } = await supabase
     .from("saved_events")
     .select("*, event:events(*)")
     .eq("user_id", profile.id);
 
-  // Fetch interest check responses with event dates
-  const { data: checkResponses } = await supabase
+  // Checks the user is "down" on
+  const { data: downResponses } = await supabase
     .from("check_responses")
-    .select("*, check:interest_checks(*)")
+    .select("check:interest_checks(*)")
     .eq("user_id", profile.id)
-    .in("status", ["down", "waitlist"]);
+    .eq("response", "down");
+
+  // Checks the user authored (authors have no check_responses row)
+  const { data: authoredChecks } = await supabase
+    .from("interest_checks")
+    .select("*")
+    .eq("author_id", profile.id)
+    .not("event_date", "is", null);
 
   const icsEvents: ICSEventParams[] = [];
 
-  // Add saved events
   for (const se of savedEvents ?? []) {
     const ev = se.event;
     if (!ev?.date) continue;
@@ -51,10 +57,19 @@ export async function GET(
     });
   }
 
-  // Add interest checks with dates
-  for (const cr of checkResponses ?? []) {
-    const check = cr.check;
-    if (!check?.event_date) continue;
+  type CheckRow = {
+    id: string;
+    text: string | null;
+    event_date: string | null;
+    event_time: string | null;
+    location: string | null;
+  };
+
+  const seenCheckIds = new Set<string>();
+  const pushCheck = (check: CheckRow | null | undefined) => {
+    if (!check?.event_date) return;
+    if (seenCheckIds.has(check.id)) return;
+    seenCheckIds.add(check.id);
     icsEvents.push({
       uid: check.id,
       title: check.text ?? "Interest Check",
@@ -62,6 +77,13 @@ export async function GET(
       time: check.event_time ?? undefined,
       venue: check.location ?? undefined,
     });
+  };
+
+  for (const row of downResponses ?? []) {
+    pushCheck(row.check as unknown as CheckRow | null);
+  }
+  for (const check of authoredChecks ?? []) {
+    pushCheck(check as unknown as CheckRow);
   }
 
   const icsContent = generateICSCalendar(icsEvents, timezone);
