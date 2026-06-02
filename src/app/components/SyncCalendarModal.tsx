@@ -231,7 +231,7 @@ const SyncCalendarModal = ({
         ) : (
           <div style={{ padding: "0 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
             <p className="font-mono text-xs text-muted mb-4" style={{ fontSize: 11, lineHeight: 1.6 }}>
-              Subscribe once and your calendar app will automatically stay in sync. New events you save will appear automatically — no duplicates.
+              Subscribe once. Anything you save or are down for shows up here, and date / time / location edits flow through automatically — no need to re-add or re-save.
             </p>
 
             {tokenLoading ? (
