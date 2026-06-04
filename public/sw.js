@@ -32,7 +32,7 @@ self.addEventListener("push", (event) => {
   const { title = "down to", body = "", type, relatedId } = data;
 
   // Suppress notification if user is viewing this squad's chat
-  const isSquadType = type === "squad_message" || type === "squad_mention" || type === "squad_invite";
+  const isSquadType = type === "squad_message" || type === "squad_mention" || type === "squad_invite" || type === "squad_date_nudge";
   if (isSquadType && relatedId && relatedId === openSquadId) {
     return; // don't show notification, don't increment badge
   }
@@ -75,7 +75,7 @@ self.addEventListener("notificationclick", (event) => {
   let tab = "/";
   if (type === "friend_request" || type === "friend_accepted") {
     tab = "/?tab=profile&openFriends=1";
-  } else if (type === "squad_message" || type === "squad_invite" || type === "squad_join_request" || type === "squad_mention") {
+  } else if (type === "squad_message" || type === "squad_invite" || type === "squad_join_request" || type === "squad_mention" || type === "squad_date_nudge") {
     tab = relatedId ? `/?tab=squads&squadId=${relatedId}` : "/?tab=squads";
   } else if (type === "check_response" || type === "friend_check" || type === "check_comment" || type === "comment_mention") {
     tab = relatedId ? `/?tab=feed&checkId=${relatedId}` : "/?tab=feed";

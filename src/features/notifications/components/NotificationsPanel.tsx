@@ -162,7 +162,7 @@ const NotificationsPanel = ({
                       type: "friends",
                       tab: n.type === "friend_request" && !alreadyFriends ? "add" : "friends",
                     });
-                  } else if (n.type === "squad_message" || n.type === "squad_invite" || n.type === "date_confirm" || n.type === "squad_join_request" || n.type === "squad_mention") {
+                  } else if (n.type === "squad_message" || n.type === "squad_invite" || n.type === "date_confirm" || n.type === "squad_join_request" || n.type === "squad_mention" || n.type === "squad_date_nudge") {
                     // Mark all notifications for this squad as read
                     const squadId = n.related_squad_id;
                     if (squadId) {
@@ -242,6 +242,7 @@ const NotificationsPanel = ({
                       : n.type === "event_comment" ? "#5AC8FA22"
                       : n.type === "check_archived" ? "#FF444422"
                       : n.type === "check_revived" ? "#34C75922"
+                      : n.type === "squad_date_nudge" ? "#E8FF5A22"
                       : "#5856D622",
                   }}
                 >
@@ -288,6 +289,9 @@ const NotificationsPanel = ({
                       case "check_revived":
                         // Sparkle
                         return <svg {...iconProps}><path d="M208,144a15.78,15.78,0,0,1-10.42,14.94L146,178l-19,51.62a15.92,15.92,0,0,1-29.88,0L78,178l-51.62-19a15.92,15.92,0,0,1,0-29.88L78,110l19-51.62a15.92,15.92,0,0,1,29.88,0L146,110l51.62,19A15.78,15.78,0,0,1,208,144ZM152,48h16V64a8,8,0,0,0,16,0V48h16a8,8,0,0,0,0-16H184V16a8,8,0,0,0-16,0V32H152a8,8,0,0,0,0,16Zm88,32h-8V72a8,8,0,0,0-16,0v8h-8a8,8,0,0,0,0,16h8v8a8,8,0,0,0,16,0V96h8a8,8,0,0,0,0-16Z"/></svg>;
+                      case "squad_date_nudge":
+                        // CalendarCheck — "lock in a date?"
+                        return <svg {...iconProps}><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm0,176H48V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24ZM165.66,117.66l-48,48a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l42.34-42.35a8,8,0,0,1,11.32,11.32Z"/></svg>;
                       default:
                         // ChatTeardrop
                         return <svg {...iconProps}><path d="M132,24A100.11,100.11,0,0,0,32,124v84a16,16,0,0,0,16,16h84a100,100,0,0,0,0-200Zm0,184H48V124a84,84,0,1,1,84,84Z"/></svg>;

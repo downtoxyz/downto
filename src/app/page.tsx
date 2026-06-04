@@ -419,7 +419,7 @@ export default function Home() {
           setTab('profile');
           friendsHook.setFriendsInitialTab("friends");
           friendsHook.setFriendsOpen(true);
-        } else if (nType === 'squad_message' || nType === 'squad_invite' || nType === 'squad_mention') {
+        } else if (nType === 'squad_message' || nType === 'squad_invite' || nType === 'squad_mention' || nType === 'squad_date_nudge') {
           if (relatedId) {
             setSquadChatOrigin(tab);
             squadsHook.setAutoSelectSquadId(relatedId);
@@ -459,7 +459,7 @@ export default function Home() {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistration().then((reg) => {
           if (!reg) return;
-          const tags = ["squad_message", "squad_invite", "squad_mention", "date_confirm", "poll_created"];
+          const tags = ["squad_message", "squad_invite", "squad_mention", "date_confirm", "poll_created", "squad_date_nudge"];
           tags.forEach((tag) => {
             reg.getNotifications({ tag: `${tag}-${squad.id}` }).then((notifs) => {
               notifs.forEach((n) => n.close());
@@ -1003,7 +1003,7 @@ export default function Home() {
               if ("serviceWorker" in navigator) {
                 navigator.serviceWorker.getRegistration().then((reg) => {
                   if (!reg) return;
-                  const tags = ["squad_message", "squad_invite", "squad_mention", "date_confirm", "poll_created"];
+                  const tags = ["squad_message", "squad_invite", "squad_mention", "date_confirm", "poll_created", "squad_date_nudge"];
                   tags.forEach((tag) => {
                     reg.getNotifications({ tag: `${tag}-${squad.id}` }).then((notifs) => {
                       notifs.forEach((n) => n.close());

@@ -74,7 +74,8 @@ export function mapPushToNavigateAction(
     notifType === "squad_mention" ||
     notifType === "squad_join_request" ||
     notifType === "poll_created" ||
-    notifType === "date_confirm"
+    notifType === "date_confirm" ||
+    notifType === "squad_date_nudge"
   ) {
     return { type: "groups", squadId: relatedId };
   }
