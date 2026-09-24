@@ -1,0 +1,6 @@
+// Shared by every configuration. Environment-specific values live in Local/Staging/Prod.xcconfig.
+PRODUCT_BUNDLE_IDENTIFIER = xyz.downto.app
+IPHONEOS_DEPLOYMENT_TARGET = 26.0
+BUILD_NUMBER = 1
+// DEVELOPMENT_TEAM lives in Secrets.xcconfig (gitignored). Copy Secrets.example.xcconfig to create it; empty is fine for the simulator.
+#include? "Secrets.xcconfig"

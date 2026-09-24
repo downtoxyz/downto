@@ -175,7 +175,7 @@ configFiles:
   Release:       Config/Prod.xcconfig
 settings:
   base:
-    SWIFT_VERSION: "6.2"
+    SWIFT_VERSION: "6"                                    # language MODE (Xcode accepts 4/4.2/5/6); the toolchain is Swift 6.2 (Xcode 26.2). DECISIONS #33
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor          # Swift 6.2 (SE-0466): everything is @MainActor unless marked nonisolated — all model/domain/display value types ARE marked nonisolated (§1.0)
     SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT: YES   # SE-0461
@@ -205,7 +205,10 @@ targets:
         excludes: ["**/*.md"]
       - path: Downto/Resources/PrivacyInfo.xcprivacy      # listed explicitly so xcodegen puts it in the Copy Bundle Resources phase (must land at the bundle root)
         buildPhase: resources
-    entitlements: { path: Downto/Resources/Downto.entitlements }
+    entitlements:                                          # xcodegen WRITES this file on every `make gen` — the keys live here, never edited on disk (DECISIONS #33)
+      path: Downto/Resources/Downto.entitlements
+      properties:
+        aps-environment: development
     info:
       path: Downto/Config/Info.plist
       properties:
@@ -243,6 +246,9 @@ targets:
     platform: iOS
     sources: [DowntoUITests]
     dependencies: [{ target: Downto }]
+    settings:
+      base:
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated      # XCTestCase's inherited inits are nonisolated; a MainActor default breaks every subclass. Test bodies opt in with @MainActor. (DECISIONS #33)
 schemes:
   Downto-Local:
     build: { targets: { Downto: all, DowntoTests: [test], DowntoUITests: [test] } }
@@ -447,7 +453,7 @@ enum PostgresTimestamp {
 }
 ```
 
-Implementation: try `Date.ISO8601FormatStyle(includingFractionalSeconds: true)`, then without fractional seconds, then a `DateFormatter` (`yyyy-MM-dd HH:mm:ss.SSSSSSxxx`, `en_US_POSIX`) for the space-separated form Postgres emits inside some RPC JSON. Any failure → `DecodingError.dataCorrupted` with the raw string in the debug description. `ModelDecodingTests` covers all four forms.
+Implementation: **one regex-validated path** — `^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?\s*(Z|[+-]\d{2}(?::?\d{2})?)?$` with range guards on month/day/hour/minute/second, then `Calendar(.gregorian)` in a fixed-offset zone plus the fraction as nanoseconds. An earlier draft tried `Date.ISO8601FormatStyle` first and fell back to a `DateFormatter`; both were dropped because `ISO8601FormatStyle.parse` silently rolls `25:99:99` over into the next day (verified on iOS 26.3) — a bad server value must surface, not become a wrong `Date`. Any failure → `DecodingError.dataCorrupted` with the raw string in the debug description. Encoding is `Date.ISO8601FormatStyle(includingFractionalSeconds: true).format` (`…T18:04:11.123Z`). `ModelDecodingTests` covers all four forms, a non-UTC offset, and the roll-over rejection.
 
 ```swift
 let supabase = SupabaseClient(
@@ -455,8 +461,12 @@ let supabase = SupabaseClient(
     supabaseKey: config.supabaseAnonKey,
     options: .init(
         db: .init(encoder: JSON.encoder, decoder: JSON.decoder),
-        // SupabaseClientOptions.AuthOptions at v2.55.2 (Sources/Supabase/Types.swift:85-102), EXACT labels, in declaration order:
-        //   init(storage:, redirectToURL: = nil, storageKey: = nil, flowType: = .pkce, encoder: = …, decoder: = …, autoRefreshToken: = true)
+        // SupabaseClientOptions.AuthOptions at v2.55.2 (Sources/Supabase/Types.swift:37-47), EXACT labels, in declaration order — verified against the
+        // resolved checkout on 2026-09-23:
+        //   init(storage:, redirectToURL: = nil, storageKey: = nil, flowType: = .pkce, encoder: = …, decoder: = …, autoRefreshToken: = true,
+        //        emitLocalSessionAsInitialSession: = false, accessToken: = nil)          // the last two are defaulted and unused
+        // RealtimeClientOptions (Sources/RealtimeV2/Types.swift:165): init(headers:, heartbeatInterval:, reconnectDelay:, timeoutInterval:, …) — labels below are exact.
+        // KeychainLocalStorage(service: String? = "supabase.gotrue.swift", accessGroup: String? = nil) — Sources/Auth/Storage/KeychainLocalStorage.swift:14.
         auth: .init(
             storage: KeychainLocalStorage(service: "xyz.downto.app", accessGroup: nil),   // library storage; already kSecAttrAccessibleAfterFirstUnlock (§6)
             flowType: .implicit,                 // matches web
@@ -506,6 +516,7 @@ struct ID<Tag>: Hashable, Sendable, Codable, CustomStringConvertible {
     func encode(to encoder: Encoder) throws { var c = encoder.singleValueContainer(); try c.encode(raw) }
     var description: String { raw.uuidString.lowercased() }
 }
+extension ID: CodingKeyRepresentable { … }   // `[ID<Tag>: V]` must encode as a JSON OBJECT (§3.9 raw stores); without this JSONEncoder emits a flat pair array. Key = raw.uuidString.
 enum UserTag {}; enum CheckTag {}; enum SquadTag {}; enum EventTag {}; enum MessageTag {}; enum PollTag {}; enum NotificationTag {}; enum FriendshipTag {}; enum CommentTag {}
 enum ResponseRowTag {}; enum CoAuthorRowTag {}; enum HiddenRowTag {}; enum LeftRowTag {}; enum JoinRequestTag {}; enum ConfirmRowTag {}
 typealias UserID = ID<UserTag>; typealias CheckID = ID<CheckTag>; typealias SquadID = ID<SquadTag>
@@ -529,7 +540,7 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
     var timezone: String?; let calendarToken: UUID?; let referredByCheckId: CheckID?
     let usernameChangedAt: Date?; let createdAt: Date; let updatedAt: Date
 }
-enum Availability: String, TolerantEnum { case open, awkward, notAvailable = "not_available", unknown }
+enum Availability: String, TolerantEnum { case open, awkward, notAvailable = "not-available", unknown }   // HYPHEN: profiles.availability CHECK is ('open','awkward','not-available') (20260214000001:30) and src/lib/types.ts agrees; an earlier draft wrote "not_available" (DECISIONS #34)
 
 struct InterestCheck: Codable, Identifiable, Hashable, Sendable {
     let id: CheckID; let authorId: UserID; var text: String
@@ -607,8 +618,12 @@ enum NotificationType: String, TolerantEnum {
     case checkTag = "check_tag", checkComment = "check_comment", pollCreated = "poll_created", squadJoinRequest = "squad_join_request"
     case squadMention = "squad_mention", commentMention = "comment_mention", friendEvent = "friend_event", eventReminder = "event_reminder"
     case eventDown = "event_down", checkDateUpdated = "check_date_updated", checkTextUpdated = "check_text_updated"
-    case eventDateUpdated = "event_date_updated", eventComment = "event_comment", checkArchived = "check_archived"
+    case eventDateUpdated = "event_date_updated", checkArchived = "check_archived"
     case checkRevived = "check_revived", squadDateNudge = "squad_date_nudge", unknown
+    // NO `eventComment` case: the LATEST notifications_type_check (20260603000001:331-343) lists 22 values and does NOT include 'event_comment',
+    // although 20260423000002 added it and the comment trigger (20260429000002:93) still tries to INSERT it — a web-repo inconsistency (DECISIONS #35).
+    // Until a migration re-adds it, an 'event_comment' row cannot exist, and if one ever arrives it decodes as `.unknown` (routes nowhere, no side effects).
+    // `scripts/check-enums.sh` fails the build the day the constraint changes, which is the signal to add the case back here and in §5.3 / §7.3.
 }
 
 struct BlockedUser: Codable, Hashable, Sendable { let blockerId: UserID; let blockedId: UserID; let createdAt: Date }
@@ -885,7 +900,7 @@ struct PendingSend: Hashable, Sendable { let clientId: MessageID; let text: Stri
 enum ToastAction: Hashable, Sendable { case openSquad(SquadID), undoArchive(CheckID), openCheck(CheckID), retry }
 ```
 
-**Raw stores** (`Codable` because `LocalCache` snapshots them; all dictionary keys are `ID<Tag>`, which encodes as a string so `JSONEncoder` produces objects, not pair arrays — `ModelDecodingTests` round-trips each):
+**Raw stores** (`Codable` because `LocalCache` snapshots them; all dictionary keys are `ID<Tag>`, which conforms to **`CodingKeyRepresentable`** (§3.3) so `JSONEncoder` produces objects, not pair arrays — a plain `Codable` key would NOT be enough, `[ID: V]` encodes as `[k, v, k, v]` without that conformance; `IDTests.idsAreDictionaryKeysThatEncodeAsObjects` pins it and `ModelDecodingTests` round-trips each raw store):
 
 ```swift
 struct FeedRaw: Codable, Sendable, Equatable {                    // full listing in §4.2
@@ -1436,7 +1451,7 @@ func sideEffects(for n: NotificationFacts, openSquadId: SquadID?, myRole: (Squad
     case .checkArchived:      n.relatedCheckId.map { [.removeCheck($0)] } ?? []
     case .friendRequest:      [.friendsHydrate]
     case .friendAccepted:     [.friendsHydrate, .feedRefreshDebounced]          // FoF visibility changed
-    case .eventDown, .friendEvent, .eventDateUpdated, .eventComment, .eventReminder: n.relatedEventId.map { [.refreshEvent($0)] } ?? []
+    case .eventDown, .friendEvent, .eventDateUpdated, .eventReminder: n.relatedEventId.map { [.refreshEvent($0)] } ?? []   // no .eventComment case — see §3.4 / DECISIONS #35
     case .unknown:            []
     }
 }
@@ -1681,7 +1696,7 @@ Verified 2026-09-23: nothing in `public/`, `src/app/` or `next.config.*` serves 
 
 `get_shared_check` is `SECURITY DEFINER` with no `GRANT`/`REVOKE` (so callable by `anon`) and returns `author_name` unconditionally. For a mystery check that reveals the author to a logged-out viewer — the web has the same gap; native does not inherit it. `AuthView`'s banner renders `SharedCheck` through the same `Presence` projection: `Mystery.isUnrevealed(mystery: shared.mystery ?? true, authorId: shared.authorId, eventDate: shared.eventDate, viewer: nil, now:, calendar:)` → `.masked(kaomoji: Censor.kaomoji(seed: id), scramble: …)` and `Censor.stripAtMentions(text)`. Since the RPC does not return `mystery` today, `nil` is treated as "unknown → mask" (a non-mystery check briefly shows a kaomoji author on the banner, which is on-brand and harmless). **Web-repo deliverable**: add `ic.mystery` to `get_shared_check`'s RETURNS TABLE (one migration) so the banner is exact; and, separately, have the RPC itself null out `author_name` / `author_avatar` when `mystery AND event_date > CURRENT_DATE` so `/check/[id]` and OG previews stop leaking too. `SharedCheckFlowTests` asserts `String(reflecting: bannerModel)` contains no `authorName` when `mystery` is `true` or `nil` and the date is in the future.
 
-- **Push tap routing** (`Domain/PushRouting.swift`, pure, tested for all 23 types + unknown):
+- **Push tap routing** (`Domain/PushRouting.swift`, pure, tested for all 22 types + unknown — `event_comment` is not a DB value today, §3.4):
 
 ```swift
 func mapPushToRoute(type: String, relatedId: String?) -> Route? {
@@ -1691,7 +1706,7 @@ func mapPushToRoute(type: String, relatedId: String?) -> Route? {
     case .friendAccepted: return .friends(.friends)
     case .squadMessage, .squadInvite, .squadMention, .squadJoinRequest, .pollCreated, .dateConfirm, .squadDateNudge: return .squads(squadId: uuid.map(SquadID.init))
     case .friendCheck, .checkResponse, .checkTag, .checkDateUpdated, .checkTextUpdated, .checkComment, .commentMention: return .feed(checkId: uuid.map(CheckID.init))
-    case .eventDown, .friendEvent, .eventDateUpdated, .eventComment, .eventReminder: return .feed(checkId: nil)
+    case .eventDown, .friendEvent, .eventDateUpdated, .eventReminder: return .feed(checkId: nil)
     case .checkArchived, .checkRevived, .unknown: return nil
     }
 }
@@ -1958,7 +1973,7 @@ Swift Testing (`import Testing`) for unit tests; XCTest only for `DowntoUITests`
 | `ExpiryTests` | open/expired/remaining, percent math, `isDanger` at exactly 75 |
 | `SquadCountdownTests` | every branch of §10.4, date-only vs timed, `proposed` vs `locked` past |
 | `FeedOrderingTests` | pinned urgency order; recent vs upcoming; dateless after dated; hidden excluded; NEW badge; expired dropped |
-| `PushRoutingTests` | all 23 types + unknown + malformed relatedId |
+| `PushRoutingTests` | all 22 types + unknown + malformed relatedId |
 | `GateTests` | full `resolveGate` matrix incl. sweep case and shared-check branch |
 | `NotificationSideEffectsTests` | every type × (open squad matches / doesn't) × for `.squadInvite` and `.dateConfirm` the four `(previousRole, myRole)` pairs (§5.3); exactly one toast per notification; waitlisted copy ≠ formed copy ≠ promoted copy |
 | `EmailValidityTests` | 8 ported |

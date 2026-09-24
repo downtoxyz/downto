@@ -1,0 +1,6 @@
+// Debug-Prod + Release: the production Supabase project. Values mirror /.env.local.
+#include "Base.xcconfig"
+APP_ENV = prod
+SUPABASE_URL = https:/$()/aszqxpachdruoshitfif.supabase.co
+SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzenF4cGFjaGRydW9zaGl0ZmlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwODI1MDEsImV4cCI6MjA4NjY1ODUwMX0.QyfJTUElyPOputkS4RezGa0co-U2bnWo5Pr-NJ1fnj0
+API_BASE_URL = https:/$()/downto.xyz

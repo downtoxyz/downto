@@ -220,3 +220,31 @@ Format: **Conflict / Decision / Why / Where changed (file §)**.
 - **Conflict:** `ARCHITECTURE.md` §14 said `dim` on `bg` is 3.2:1 and acceptable for 10 pt labels. `DESIGN.md` §8: it is 3.45:1, may carry only decorative or redundant text, and section labels / anything the user reads are `inkMuted`.
 - **Decision:** `DESIGN.md` §8 (the audit rule: "if deleting the text would remove information, it is at least `inkMuted`; if the row is at less than full opacity, it is a bug").
 - **Where:** `ARCHITECTURE.md` §14 accessibility paragraph, §13 "Typography".
+
+---
+
+*Entries 33–35 were added while scaffolding the project (first green build, 2026-09-23). They record where the verified toolchain / schema disagreed with `ARCHITECTURE.md` revision 4.*
+
+## 33. Build settings that the toolchain actually accepts
+
+- **Conflict:** `ARCHITECTURE.md` §1.1 set `SWIFT_VERSION: "6.2"`, declared the entitlements file as `entitlements: { path: … }` only, and let `DowntoUITests` inherit `SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor`. Xcode's `SWIFT_VERSION` is a *language mode* (4 / 4.2 / 5 / 6), XcodeGen **overwrites** the entitlements file on every `generate` (an on-disk `aps-environment` was silently reset to an empty dict), and an XCUITest subclass under a MainActor default fails to compile (`init()` / `init(invocation:)` / `init(selector:)` "has different actor isolation from nonisolated overridden declaration").
+- **Decision:** `SWIFT_VERSION: "6"` (the toolchain is still Swift 6.2 / Xcode 26.2); entitlement keys live in `project.yml` under `entitlements.properties`; `DowntoUITests` sets `SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated` and each test body is `@MainActor`. The app and unit-test targets keep the MainActor default. Also: a Makefile variable must not carry a trailing comment (`SIM ?= … # …` keeps the whitespace and xcodebuild cannot match the destination); comments are on their own lines.
+- **Where:** `ARCHITECTURE.md` §1.1, §12; `project.yml`, `Makefile`.
+
+## 34. `Availability.notAvailable` raw value is `not-available` (hyphen)
+
+- **Conflict:** `ARCHITECTURE.md` §3.4 wrote `notAvailable = "not_available"`. The only CHECK constraint on `profiles.availability` (`20260214000001_initial_schema.sql:30`) is `('open', 'awkward', 'not-available')`, and `src/lib/types.ts:11` + every web call site use the hyphen.
+- **Decision:** `"not-available"`. `scripts/check-enums.sh` now diffs this (and every other `// column:`-tagged enum) against the latest constraint, so the doc can no longer drift from the schema unnoticed.
+- **Where:** `ARCHITECTURE.md` §3.4; `Downto/Domain/Enums.swift`.
+
+## 35. `event_comment` is not a valid `notifications.type` today
+
+- **Conflict:** `ARCHITECTURE.md` §3.4 / §5.3 / §7.3 / §11.1 listed 23 `NotificationType` cases including `eventComment = "event_comment"`. `20260423000002_reply_notifications.sql` did add it, but the **latest** `notifications_type_check` (`20260603000001_check_squad_follows_check_lifecycle.sql:331-343`) re-created the constraint with 22 values and left `'event_comment'` out, while `notify_check_comment` (last rewritten in `20260429000002:93`) still tries to INSERT it. §3.2's rule is "confirm each CHECK against the *latest* migration".
+- **Decision:** the Swift enum mirrors the constraint (22 values + `unknown`); no `eventComment` case, no `.eventComment` arm in `mapPushToRoute` / `NotificationSideEffects`. If such a row ever arrives it decodes as `.unknown` (routes nowhere, no side effects, body rendered as-is). This is a **web-repo bug to file**: either re-add `'event_comment'` to the constraint or stop inserting it. When the constraint changes, `make test` fails in `check-enums.sh`, which is the signal to add the case back in Domain/Enums.swift and the two Domain switches.
+- **Where:** `ARCHITECTURE.md` §3.4, §5.3, §7.3, §11.1; `Downto/Domain/Enums.swift`; `scripts/check-enums.sh`.
+
+## 36. `ID<Tag>` is `CodingKeyRepresentable`
+
+- **Conflict:** `ARCHITECTURE.md` §3.9 said ID-keyed dictionaries encode as JSON objects "because `ID` encodes as a string". They do not: `JSONEncoder` emits a flat `[key, value, key, value]` array for any key type that is not `String`/`Int` or `CodingKeyRepresentable` (verified by `IDTests`).
+- **Decision:** `extension ID: CodingKeyRepresentable` in `Domain/ID.swift` (key = `raw.uuidString`). `FeedRaw`/`SquadsRaw`/`ChatRaw`/`FriendsRaw` snapshots therefore round-trip as objects as the doc intended.
+- **Where:** `ARCHITECTURE.md` §3.3, §3.9; `Downto/Domain/ID.swift`.

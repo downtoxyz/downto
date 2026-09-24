@@ -1,0 +1,2 @@
+xcodegen 2.45.4
+# xcbeautify 2.x is OPTIONAL — the Makefile falls back to `cat` when it is absent. Do not brew install from a build task.

@@ -1,0 +1,9 @@
+// Debug-Staging: the staging Supabase project. Values mirror /.env.staging.local.
+// NOTE: .env.staging.local defines no NEXT_PUBLIC_API_BASE and no Vercel staging URL, so API_BASE_URL
+// points at prod web until a staging web deployment exists. Override in Staging.override.xcconfig (gitignored).
+#include "Base.xcconfig"
+APP_ENV = staging
+SUPABASE_URL = https:/$()/tloixybibothbxzlnwrj.supabase.co
+SUPABASE_ANON_KEY = sb_publishable_N79neGUe9OvN3BL_bVdYow_jJlp9zrP
+API_BASE_URL = https:/$()/downto.xyz
+#include? "Staging.override.xcconfig"

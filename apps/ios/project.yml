@@ -1,0 +1,105 @@
+name: Downto
+options:
+  bundleIdPrefix: xyz.downto
+  deploymentTarget: { iOS: "26.0" }
+  xcodeVersion: "26.2"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+configs:
+  Debug-Local: debug
+  Debug-Staging: debug
+  Debug-Prod: debug
+  Release: release
+configFiles:
+  Debug-Local:   Config/Local.xcconfig
+  Debug-Staging: Config/Staging.xcconfig
+  Debug-Prod:    Config/Prod.xcconfig
+  Release:       Config/Prod.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "6"                                    # Swift 6 language mode on the Swift 6.2 toolchain (Xcode 26.2). SWIFT_VERSION takes a language mode, not a toolchain version.
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor              # SE-0466: everything is @MainActor unless marked nonisolated — all model/domain/display value types ARE marked nonisolated (ARCHITECTURE §1.0)
+    SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT: YES   # SE-0461
+    SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY: YES
+    TARGETED_DEVICE_FAMILY: "1"
+    INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)                 # from Config/Secrets.xcconfig; empty is fine for simulator
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    OTHER_SWIFT_FLAGS: -warnings-as-errors                # keep the build clean from day one
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    exactVersion: "2.55.2"                                # PINNED (not `from:`): `main` has already renamed AuthOptions.autoRefreshToken →
+                                                          # automaticallyRefreshesToken and added KeychainLocalStorage(useDataProtectionKeychain:);
+                                                          # every snippet in ARCHITECTURE.md is written against v2.55.2. Bumping = a PR that re-reads §3.1 + §6.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: "1.18.0"
+targets:
+  Downto:
+    type: application
+    platform: iOS
+    sources:
+      - path: Downto
+        excludes: ["**/*.md", "Resources/PrivacyInfo.xcprivacy"]
+      - path: Downto/Resources/PrivacyInfo.xcprivacy      # listed explicitly so xcodegen puts it in the Copy Bundle Resources phase (must land at the bundle root)
+        buildPhase: resources
+    entitlements:                                          # xcodegen WRITES this file on every `make gen` — edit it here, not on disk
+      path: Downto/Resources/Downto.entitlements
+      properties:
+        aps-environment: development
+    info:
+      path: Downto/Config/Info.plist
+      properties:
+        CFBundleDisplayName: down to
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: $(BUILD_NUMBER)                   # set by CI; 1 locally
+        APP_ENV: $(APP_ENV)
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        API_BASE_URL: $(API_BASE_URL)
+        UIAppFonts: [InterVariable.ttf, IBMPlexMono-Regular.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf, IBMPlexMono-Bold.ttf, IBMPlexMono-Italic.ttf]   # ARCHITECTURE §13 / DESIGN §2
+        CFBundleURLTypes: [{ CFBundleURLSchemes: [downto] }]       # fallback custom scheme; universal links are primary (§7.2)
+        UIBackgroundModes: [remote-notification]
+        NSAppTransportSecurity: { NSAllowsLocalNetworking: true }   # local Supabase over http
+        NSPhotoLibraryUsageDescription: "to send a pic to your squad"
+        NSCameraUsageDescription: "to send a pic to your squad"
+        UIUserInterfaceStyle: Light                          # cream theme is light-only in M1
+        ITSAppUsesNonExemptEncryption: false
+    dependencies:
+      - package: Supabase
+        products: [Supabase]                                # umbrella: Auth, PostgREST, Realtime, Storage, Functions
+  DowntoTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [DowntoTests]
+    dependencies:
+      - target: Downto
+      - package: SnapshotTesting
+        products: [SnapshotTesting]
+    settings:
+      base:
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+  DowntoUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [DowntoUITests]
+    dependencies: [{ target: Downto }]
+    settings:
+      base:
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated      # XCTestCase's inherited inits are nonisolated; a MainActor default breaks every override. Test bodies opt in with @MainActor.
+schemes:
+  Downto-Local:
+    build: { targets: { Downto: all, DowntoTests: [test], DowntoUITests: [test] } }
+    run:  { config: Debug-Local }
+    test: { config: Debug-Local, targets: [DowntoTests, DowntoUITests] }
+  Downto-Staging:
+    build: { targets: { Downto: all } }
+    run:  { config: Debug-Staging }
+  Downto-Prod:
+    build: { targets: { Downto: all } }
+    run:  { config: Debug-Prod }
+    archive: { config: Release }
