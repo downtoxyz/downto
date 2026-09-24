@@ -7,7 +7,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENUMS="$HERE/Downto/Domain/Enums.swift"
+ENUMS="${ENUMS_FILE:-$HERE/Downto/Domain/Enums.swift}"
 MIGRATIONS="${MIGRATIONS_DIR:-$HERE/../../supabase/migrations}"
 
 [ -f "$ENUMS" ] || { echo "check-enums: $ENUMS missing" >&2; exit 1; }
@@ -45,19 +45,27 @@ if not swift:
     sys.exit(1)
 
 # --- SQL side ---------------------------------------------------------------
+# A constraint is attributed to a table only when the SQL *statement* that carries it is a
+# `CREATE TABLE <table>` or `ALTER TABLE <table>` — not merely because the file mentions the table
+# somewhere (a trigger or policy in the same file must not attach another table's CHECK to this one).
 files = sorted(p for p in mig_dir.iterdir() if p.suffix == ".sql")
 sql_last = {}
 for f in files:
     text = f.read_text()
+    statements = text.split(";")
     for (table, col) in swift:
+        owner = re.compile(
+            r"\b(?:CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|ALTER\s+TABLE(?:\s+IF\s+EXISTS)?(?:\s+ONLY)?)\s+(?:public\.)?%s\b" % re.escape(table),
+            re.I,
+        )
         # CHECK (col IN ('a','b')) or CHECK (col IS NULL OR col IN (...)); constraints are multi-line for notifications.type
         pat = re.compile(r"CHECK\s*\(\s*(?:%s\s+IS\s+NULL\s+OR\s+)?%s\s+IN\s*\((.*?)\)\s*\)" % (col, col), re.S | re.I)
-        for m in pat.finditer(text):
-            # make sure the constraint is about this table (the file must mention the table name)
-            if table not in text:
+        for stmt in statements:
+            if not owner.search(stmt):
                 continue
-            vals = set(re.findall(r"'([^']*)'", m.group(1)))
-            sql_last[(table, col)] = (f.name, vals)
+            for m in pat.finditer(stmt):
+                vals = set(re.findall(r"'([^']*)'", m.group(1)))
+                sql_last[(table, col)] = (f.name, vals)
 
 status = 0
 for key, (name, sv) in sorted(swift.items()):

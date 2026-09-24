@@ -453,7 +453,7 @@ enum PostgresTimestamp {
 }
 ```
 
-Implementation: **one regex-validated path** — `^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?\s*(Z|[+-]\d{2}(?::?\d{2})?)?$` with range guards on month/day/hour/minute/second, then `Calendar(.gregorian)` in a fixed-offset zone plus the fraction as nanoseconds. An earlier draft tried `Date.ISO8601FormatStyle` first and fell back to a `DateFormatter`; both were dropped because `ISO8601FormatStyle.parse` silently rolls `25:99:99` over into the next day (verified on iOS 26.3) — a bad server value must surface, not become a wrong `Date`. Any failure → `DecodingError.dataCorrupted` with the raw string in the debug description. Encoding is `Date.ISO8601FormatStyle(includingFractionalSeconds: true).format` (`…T18:04:11.123Z`). `ModelDecodingTests` covers all four forms, a non-UTC offset, and the roll-over rejection.
+Implementation: **one regex-validated path** — `^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?\s*(Z|[+-]\d{2}(?::?\d{2})?)?$` with range guards on month/day/hour/minute/second, then `Calendar(.gregorian)` in a fixed-offset zone plus the fraction as nanoseconds, then the components are **re-extracted from the built `Date` and must match exactly** (range guards alone let `2026-09-31` / `2026-02-29` / `:60` roll silently into the next month/minute). An earlier draft tried `Date.ISO8601FormatStyle` first and fell back to a `DateFormatter`; both were dropped because `ISO8601FormatStyle.parse` silently rolls `25:99:99` over into the next day (verified on iOS 26.3) — a bad server value must surface, not become a wrong `Date`. Any failure → `DecodingError.dataCorrupted` with the raw string in the debug description. Encoding is `Date.ISO8601FormatStyle(includingFractionalSeconds: true).format` (`…T18:04:11.123Z`). `ModelDecodingTests` covers all four forms, a non-UTC offset, and the roll-over rejection.
 
 ```swift
 let supabase = SupabaseClient(
@@ -2031,7 +2031,8 @@ enum Fixtures {
 ```make
 # apps/ios/Makefile
 SHELL := /bin/bash
-.SHELLFLAGS := -o pipefail -c               # xcodebuild's exit status must survive the pipe
+.SHELLFLAGS := -o pipefail -c               # xcodebuild's exit status must survive the pipe — but macOS's GNU Make 3.81 IGNORES .SHELLFLAGS (3.82+ only),
+PIPEFAIL = set -o pipefail;                  # so every piped recipe also starts with $(PIPEFAIL) (DECISIONS #37)
 SIM ?= platform=iOS Simulator,name=iPhone 17 Pro   # no OS= pin: the runtime on the dev Mac is 26.3.x; pinning 26.2 makes xcodebuild fail to find a destination. Override: make build SIM="platform=iOS Simulator,name=iPhone 17 Pro,OS=26.3"
 PROJ = Downto.xcodeproj
 DD   = .build
@@ -2039,11 +2040,11 @@ PRETTY = (command -v xcbeautify >/dev/null && xcbeautify || cat)   # xcbeautify 
 
 gen:            ; xcodegen generate --spec project.yml
 resolve: gen    ; xcodebuild -resolvePackageDependencies -project $(PROJ) -scheme Downto-Local -derivedDataPath $(DD)
-build: gen      ; xcodebuild build -project $(PROJ) -scheme Downto-Local -destination "$(SIM)" -derivedDataPath $(DD) CODE_SIGNING_ALLOWED=NO 2>&1 | $(PRETTY)
-test: gen       ; xcodebuild test -project $(PROJ) -scheme Downto-Local -destination "$(SIM)" -derivedDataPath $(DD) CODE_SIGNING_ALLOWED=NO -only-testing:DowntoTests 2>&1 | $(PRETTY)
+build: gen      ; $(PIPEFAIL) xcodebuild build -project $(PROJ) -scheme Downto-Local -destination "$(SIM)" -derivedDataPath $(DD) CODE_SIGNING_ALLOWED=NO 2>&1 | $(PRETTY)
+test: gen       ; $(PIPEFAIL) xcodebuild test -project $(PROJ) -scheme Downto-Local -destination "$(SIM)" -derivedDataPath $(DD) CODE_SIGNING_ALLOWED=NO -only-testing:DowntoTests 2>&1 | $(PRETTY)
 test-domain:    ; scripts/test-domain.sh          # assembles Downto/Domain + DowntoTests/Domain into a temp SwiftPM package and runs `swift test` on macOS (~10 s)
-ui-test: gen    ; xcodebuild test ... -only-testing:DowntoUITests/FakeWorldSmokeTests 2>&1 | $(PRETTY)
-ui-test-live:   ; (cd ../.. && supabase start && npm run dev &) ; xcodebuild test ... -only-testing:DowntoUITests/LiveSmokeTests 2>&1 | $(PRETTY)
+ui-test: gen    ; $(PIPEFAIL) xcodebuild test ... -only-testing:DowntoUITests/FakeWorldSmokeTests 2>&1 | $(PRETTY)
+ui-test-live:   ; (cd ../.. && supabase start && npm run dev &) ; $(PIPEFAIL) xcodebuild test ... -only-testing:DowntoUITests/LiveSmokeTests 2>&1 | $(PRETTY)
 snapshot-record:; SNAPSHOT_TESTING_RECORD=all $(MAKE) test
 run: build      ; xcrun simctl boot "iPhone 17 Pro" || true; xcrun simctl install booted $(DD)/Build/Products/Debug-Local-iphonesimulator/Downto.app; xcrun simctl launch booted xyz.downto.app
 screenshot:     ; xcrun simctl io booted screenshot /tmp/downto.png

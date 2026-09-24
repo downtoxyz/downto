@@ -48,6 +48,24 @@ struct ModelDecodingTests {
         }
     }
 
+    @Test(arguments: [
+        "2026-09-31T00:00:00Z",      // September has 30 days — Calendar would roll this to Oct 1
+        "2026-02-29T00:00:00Z",      // 2026 is not a leap year
+        "2026-09-23T18:04:60Z",      // no leap seconds in timestamptz — would roll into the next minute
+        "2026-09-23T24:00:00Z",      // hour 24 is not a valid hour
+    ])
+    func rejectsCalendarInvalidValuesInsteadOfRollingOver(_ raw: String) {
+        #expect(throws: DecodingError.self, "\(raw) must not decode") {
+            _ = try JSON.decoder.decode([Date].self, from: Data("[\"\(raw)\"]".utf8))
+        }
+    }
+
+    @Test func acceptsRealLeapDayAndEndOfMonth() throws {
+        // The round-trip guard must not reject values that ARE valid.
+        _ = try JSON.decoder.decode([Date].self, from: Data("[\"2028-02-29T00:00:00Z\"]".utf8))
+        _ = try JSON.decoder.decode([Date].self, from: Data("[\"2026-12-31T23:59:59.999999+00:00\"]".utf8))
+    }
+
     @Test func encodesISO8601WithFractionalSecondsAndZ() throws {
         let data = try JSON.encoder.encode([Self.base.addingTimeInterval(0.123)])
         #expect(String(decoding: data, as: UTF8.self) == "[\"2026-09-23T18:04:11.123Z\"]")
@@ -125,6 +143,24 @@ struct AppConfigTests {
         info = Self.good
         info["API_BASE_URL"] = "127.0.0.1:3000"   // no scheme
         #expect(throws: AppConfig.ConfigError.malformed("API_BASE_URL", "127.0.0.1:3000")) { _ = try AppConfig(info: { info[$0] }) }
+    }
+
+    @Test func buildsAndComparesOffTheMainActor() async throws {
+        // AppConfig, its nested Env and ConfigError are `nonisolated` (ARCHITECTURE §1.0): constructing one and using the
+        // synthesized Equatable conformances from a detached task must compile and run.
+        let info: [String: String] = Self.good.compactMapValues { $0 as? String }   // Sendable capture for the detached closure
+        let env: AppConfig.Env? = try await Task.detached {
+            let c = try AppConfig(info: { info[$0] })
+            return c.env == .local ? c.env : nil
+        }.value
+        #expect(env == .local)
+
+        var broken = info
+        broken["SUPABASE_URL"] = nil
+        let err: AppConfig.ConfigError? = await Task.detached {
+            do { _ = try AppConfig(info: { broken[$0] }); return nil } catch let e as AppConfig.ConfigError { return e } catch { return nil }
+        }.value
+        #expect(err == .missing("SUPABASE_URL"))
     }
 
     @Test func theRealBundleIsConfigured() throws {

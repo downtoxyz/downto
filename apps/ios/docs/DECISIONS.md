@@ -223,7 +223,7 @@ Format: **Conflict / Decision / Why / Where changed (file §)**.
 
 ---
 
-*Entries 33–35 were added while scaffolding the project (first green build, 2026-09-23). They record where the verified toolchain / schema disagreed with `ARCHITECTURE.md` revision 4.*
+*Entries 33–37 were added while scaffolding the project (first green build, 2026-09-23). They record where the verified toolchain / schema disagreed with `ARCHITECTURE.md` revision 4.*
 
 ## 33. Build settings that the toolchain actually accepts
 
@@ -248,3 +248,9 @@ Format: **Conflict / Decision / Why / Where changed (file §)**.
 - **Conflict:** `ARCHITECTURE.md` §3.9 said ID-keyed dictionaries encode as JSON objects "because `ID` encodes as a string". They do not: `JSONEncoder` emits a flat `[key, value, key, value]` array for any key type that is not `String`/`Int` or `CodingKeyRepresentable` (verified by `IDTests`).
 - **Decision:** `extension ID: CodingKeyRepresentable` in `Domain/ID.swift` (key = `raw.uuidString`). `FeedRaw`/`SquadsRaw`/`ChatRaw`/`FriendsRaw` snapshots therefore round-trip as objects as the doc intended.
 - **Where:** `ARCHITECTURE.md` §3.3, §3.9; `Downto/Domain/ID.swift`.
+
+## 37. `.SHELLFLAGS` is ignored by the macOS `make`; pipefail goes inline
+
+- **Conflict:** #28 / `ARCHITECTURE.md` §12 relied on `.SHELLFLAGS := -o pipefail -c` to carry `xcodebuild`'s exit status through `| xcbeautify || cat`. macOS ships **GNU Make 3.81**, and `.SHELLFLAGS` only exists from 3.82 — it was silently ignored, so `make build` / `make test` / `make ui-test` exited 0 on a failed build or test run (verified: `(exit 3) 2>&1 | cat` under the committed Makefile returned 0).
+- **Decision:** keep `.SHELLFLAGS` for newer makes, and additionally start every piped recipe with `$(PIPEFAIL)` = `set -o pipefail;` (bash 3.2 supports it). `scripts/test-domain.sh` already had `set -o pipefail`. Also: `PostgresTimestamp` re-extracts the calendar fields from the built `Date` and rejects any mismatch (`2026-09-31`, `2026-02-29`, `:60` were rolling over silently despite the range guards); `scripts/check-enums.sh` attributes a `CHECK` to a table only when the *statement* is a `CREATE TABLE` / `ALTER TABLE` of that table (the file-mentions-the-table heuristic could attach another table's `status` constraint).
+- **Where:** `Makefile`, `ARCHITECTURE.md` §3.1, §12; `Downto/Data/Supabase.swift`; `scripts/check-enums.sh`; `DowntoTests/Data/ModelDecodingTests.swift`.

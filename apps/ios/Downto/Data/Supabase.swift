@@ -69,7 +69,7 @@ nonisolated enum PostgresTimestamp {
         }
         guard let y = group(1).flatMap(Int.init), let mo = group(2).flatMap(Int.init), let d = group(3).flatMap(Int.init),
               let h = group(4).flatMap(Int.init), let mi = group(5).flatMap(Int.init), let se = group(6).flatMap(Int.init),
-              (1...12).contains(mo), (1...31).contains(d), (0...23).contains(h), (0...59).contains(mi), (0...60).contains(se)   // Calendar would silently roll 25:99:99 over
+              (1...12).contains(mo), (1...31).contains(d), (0...23).contains(h), (0...59).contains(mi), (0...59).contains(se)   // Calendar would silently roll 25:99:99 over
         else { return nil }
 
         var offsetSeconds = 0
@@ -87,6 +87,10 @@ nonisolated enum PostgresTimestamp {
         comps.year = y; comps.month = mo; comps.day = d
         comps.hour = h; comps.minute = mi; comps.second = se
         guard let base = cal.date(from: comps) else { return nil }
+        // Range guards cannot catch "2026-09-31" or "2026-02-29": Calendar.date(from:) silently rolls those into the next
+        // month. Re-extract the fields and require an exact match, so a bad server value surfaces instead of shifting a day.
+        let back = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: base)
+        guard back.year == y, back.month == mo, back.day == d, back.hour == h, back.minute == mi, back.second == se else { return nil }
 
         var fraction: TimeInterval = 0
         if let f = group(7) {
