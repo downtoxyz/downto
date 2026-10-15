@@ -24,6 +24,14 @@ nonisolated enum JSON {
         d.dateDecodingStrategy = .custom(PostgresTimestamp.decode)
         return d
     }()
+
+    /// camelCase on the wire — the `/api/*` Next routes accept `{squadId, deviceToken, …}` (§3.9 "API results / requests"),
+    /// so `DowntoAPI` must NOT snake_case its request bodies. Same date strategy as `encoder`.
+    static let camelEncoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .custom(PostgresTimestamp.encode)
+        return e
+    }()
 }
 
 /// Accepts every timestamptz shape Postgres / PostgREST / RPC JSON emit:

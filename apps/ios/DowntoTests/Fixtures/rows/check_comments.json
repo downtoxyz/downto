@@ -1,0 +1,22 @@
+[
+  {
+    "id": "f2000000-0000-4000-8000-000000000001",
+    "check_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+    "event_id": null,
+    "user_id": "11111111-1111-4111-8111-111111111111",
+    "text": "omw @sara_k",
+    "mentions": [
+      "22222222-2222-4222-8222-222222222222"
+    ],
+    "created_at": "2026-05-01T18:04:11.123456+00:00"
+  },
+  {
+    "id": "f2000000-0000-4000-8000-000000000002",
+    "check_id": null,
+    "event_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc1",
+    "user_id": "44444444-4444-4444-8444-444444444444",
+    "text": "who's going",
+    "mentions": [],
+    "created_at": "2026-05-01T18:04:11.123456+00:00"
+  }
+]

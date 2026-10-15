@@ -1,0 +1,69 @@
+[
+  {
+    "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+    "squad_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+    "message_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd4",
+    "question": "which night?",
+    "options": [
+      {
+        "date": "2026-05-02",
+        "time": "7pm"
+      },
+      {
+        "date": "2026-05-03",
+        "time": null
+      }
+    ],
+    "status": "active",
+    "created_by": "22222222-2222-4222-8222-222222222222",
+    "created_at": "2026-05-01T18:04:11.123456+00:00",
+    "multi_select": true,
+    "poll_type": "dates",
+    "grid_hour_start": null,
+    "grid_hour_end": null,
+    "grid_slot_minutes": null,
+    "grid_dates": null,
+    "collection_style": null
+  },
+  {
+    "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+    "squad_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+    "message_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+    "question": "snacks",
+    "options": [
+      "popcorn",
+      "sushi",
+      "nothing"
+    ],
+    "status": "closed",
+    "created_by": "11111111-1111-4111-8111-111111111111",
+    "created_at": "2026-05-01T18:04:11.123456+00:00",
+    "multi_select": false,
+    "poll_type": "text",
+    "grid_hour_start": null,
+    "grid_hour_end": null,
+    "grid_slot_minutes": null,
+    "grid_dates": null,
+    "collection_style": null
+  },
+  {
+    "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3",
+    "squad_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+    "message_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+    "question": "when works?",
+    "options": [],
+    "status": "active",
+    "created_by": "11111111-1111-4111-8111-111111111111",
+    "created_at": "2026-05-01T18:04:11.123456+00:00",
+    "multi_select": true,
+    "poll_type": "availability",
+    "grid_hour_start": 17,
+    "grid_hour_end": 23,
+    "grid_slot_minutes": 60,
+    "grid_dates": [
+      "2026-05-02",
+      "2026-05-03"
+    ],
+    "collection_style": "availability"
+  }
+]
