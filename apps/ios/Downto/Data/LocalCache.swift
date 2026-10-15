@@ -20,7 +20,7 @@ actor LocalCache {
         let savedAt: Date
     }
 
-    let directory: URL
+    nonisolated let directory: URL
     private let log = Logger(subsystem: "xyz.downto.app", category: "cache")
 
     /// Default: `Application Support/DowntoCache`. Tests pass a temp directory.

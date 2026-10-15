@@ -3,7 +3,7 @@
 import Foundation
 import Synchronization
 
-final class StubURLProtocol: URLProtocol, @unchecked Sendable {
+nonisolated final class StubURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated struct Response: Sendable {
         let status: Int
         let body: Data

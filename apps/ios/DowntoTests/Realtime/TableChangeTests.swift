@@ -16,7 +16,7 @@ private nonisolated struct PostgresChangesPayload: Decodable {
 
 @Suite("TableChange decoding")
 struct TableChangeTests {
-    static func payload(_ key: String) throws -> PostgresChangesPayload {
+    fileprivate static func payload(_ key: String) throws -> PostgresChangesPayload {
         let all = try JSONDecoder().decode([String: PostgresChangesPayload].self, from: FixtureLoader.data("realtime_postgres_changes"))
         return try #require(all[key])
     }
@@ -25,7 +25,7 @@ struct TableChangeTests {
         let p = try Self.payload("insert")
         #expect(p.table == "check_responses")
         let change = try TableChange<CheckResponse>(event: p.type, record: p.record, oldRecord: p.oldRecord)
-        guard case .insert(let row) = change else { return Issue.record("expected .insert, got \(change)") }
+        guard case .insert(let row) = change else { Issue.record("expected .insert, got \(change)"); return }
         #expect(row.id.description == "f0000000-0000-4000-8000-000000000009")
         #expect(row.checkId.description == "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1")
         #expect(row.response == .down)
@@ -38,7 +38,7 @@ struct TableChangeTests {
         // Without REPLICA IDENTITY FULL the old_record of an UPDATE is the primary key only → `old` must be nil, not a decode failure.
         let p = try Self.payload("update")
         let change = try TableChange<CheckResponse>(event: p.type, record: p.record, oldRecord: p.oldRecord)
-        guard case .update(let new, let old) = change else { return Issue.record("expected .update") }
+        guard case .update(let new, let old) = change else { Issue.record("expected .update"); return }
         #expect(new.response == .down, "waitlist → down promotion (§5.6 path 1)")
         #expect(old == nil)
     }
@@ -46,7 +46,7 @@ struct TableChangeTests {
     @Test func deleteOnSurrogatePKTableCarriesOnlyTheId() throws {
         let p = try Self.payload("delete")
         let change = try TableChange<CheckResponse>(event: p.type, record: p.record, oldRecord: p.oldRecord)
-        guard case .delete(let old, let keys) = change else { return Issue.record("expected .delete") }
+        guard case .delete(let old, let keys) = change else { Issue.record("expected .delete"); return }
         #expect(old == nil)
         #expect(keys.count == 1)
         #expect(keys["id"]?.stringValue == "f0000000-0000-4000-8000-000000000001")
@@ -59,7 +59,7 @@ struct TableChangeTests {
         let p = try Self.payload("delete_full")
         #expect(p.table == "friendships")
         let change = try TableChange<Friendship>(event: p.type, record: p.record, oldRecord: p.oldRecord)
-        guard case .delete(let old, let keys) = change else { return Issue.record("expected .delete") }
+        guard case .delete(let old, let keys) = change else { Issue.record("expected .delete"); return }
         let row = try #require(old)
         #expect(row.status == .pending)
         #expect(row.requesterId.description == "44444444-4444-4444-8444-444444444444")

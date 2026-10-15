@@ -146,7 +146,7 @@ struct EventEntry: View {
         .overlay(alignment: .bottom) {
             if model.isImminent { Rectangle().fill(increaseContrast ? Color.dangerInk : Color.danger).frame(height: 2).accessibilityHidden(true) }
         }
-        .scrollTransition(.interactive, axis: .vertical) { content, phase in
+        .scrollTransition(.interactive, axis: .vertical) { [reduceMotion] content, phase in
             content.scaleEffect(reduceMotion ? 1 : 1 + phase.value * -0.03)
         }
     }

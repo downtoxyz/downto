@@ -1,4 +1,6 @@
 import Foundation
+import CoreGraphics
+import ImageIO
 import Testing
 @testable import Downto
 

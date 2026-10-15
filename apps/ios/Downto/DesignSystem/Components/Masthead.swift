@@ -2,9 +2,7 @@
 // right cluster (sort toggle, bell with dot/count, the "+" that rotates 45° into "×" while Create is open, with the first-check glow).
 import SwiftUI
 
-nonisolated enum FeedSort: String, Hashable, Sendable, CaseIterable {
-    case recent = "RECENT", upcoming = "UPCOMING"
-}
+// `FeedSort` lives in Domain/FeedOrdering.swift; the toggle renders its raw value uppercased.
 
 struct Masthead: View {
     let wordmark: String
@@ -63,7 +61,7 @@ struct Masthead: View {
     private func sortToggle(_ sort: Binding<FeedSort>) -> some View {
         HStack(spacing: 8) {
             ForEach(FeedSort.allCases, id: \.self) { s in
-                Text(s.rawValue)
+                Text(s.rawValue.uppercased())
                     .dtFont(.label)
                     .foregroundStyle(sort.wrappedValue == s ? AnyShapeStyle(Color.ink) : AnyShapeStyle(DTStockInk(token: .inkMuted)))
                     .overlay(alignment: .bottom) { if sort.wrappedValue == s { Rectangle().fill(Color.ink).frame(height: 1).offset(y: 2) } }
@@ -78,7 +76,7 @@ struct Masthead: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("sort")
-        .accessibilityValue(sort.wrappedValue.rawValue.lowercased())
+        .accessibilityValue(sort.wrappedValue.rawValue)
         .accessibilityAddTraits(.isButton)
         .accessibilityAdjustableAction { _ in sort.wrappedValue = sort.wrappedValue == .recent ? .upcoming : .recent }
     }

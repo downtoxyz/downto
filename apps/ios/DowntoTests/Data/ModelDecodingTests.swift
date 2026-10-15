@@ -68,7 +68,7 @@ struct ModelDecodingTests {
 
     @Test func encodesISO8601WithFractionalSecondsAndZ() throws {
         let data = try JSON.encoder.encode([Self.base.addingTimeInterval(0.123)])
-        #expect(String(decoding: data, as: UTF8.self) == "[\"2026-09-23T18:04:11.123Z\"]")
+        #expect(String(decoding: data, as: UTF8.self) == "[\"2026-09-23T18:04:11.123000Z\"]")
     }
 
     @Test func roundTripsThroughTheCoderPair() throws {

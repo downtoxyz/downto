@@ -51,9 +51,14 @@ nonisolated enum PostgresTimestamp {
         try c.encode(format(date))
     }
 
-    /// "2026-09-23T18:04:11.123Z"
+    /// "2026-09-23T18:04:11.123456Z" — six fractional digits, the precision of a Postgres `timestamptz`, so a decoded
+    /// server value re-encodes losslessly (the on-disk `LocalCache` round-trip depends on it). `ISO8601FormatStyle` stops at ms.
     static func format(_ date: Date) -> String {
-        Date.ISO8601FormatStyle(includingFractionalSeconds: true).format(date)
+        let whole = date.timeIntervalSince1970.rounded(.down)
+        let micros = Int(((date.timeIntervalSince1970 - whole) * 1_000_000).rounded())
+        let (carry, frac) = micros == 1_000_000 ? (1.0, 0) : (0.0, micros)
+        let head = Date.ISO8601FormatStyle().format(Date(timeIntervalSince1970: whole + carry))   // "…T18:04:11Z"
+        return head.dropLast() + "." + String(format: "%06d", frac) + "Z"
     }
 
     /// One regex-validated path for every form. (`Date.ISO8601FormatStyle.parse` was tried first in an earlier draft, but it

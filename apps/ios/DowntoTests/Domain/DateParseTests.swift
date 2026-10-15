@@ -497,7 +497,7 @@ struct DateParseTests {
 
     // MARK: Fuzz
 
-    @Test("fuzz — parseWhen never traps on 10k random strings and never returns a date more than ~2 months in the past")
+    @Test("fuzz — parseWhen never traps on 2k random strings and never returns a date more than ~2 months in the past")
     func fuzz() {
         struct LCG { var s: UInt64; mutating func next() -> UInt64 { s = s &* 6364136223846793005 &+ 1442695040888963407; return s >> 33 } }
         var rng = LCG(s: 0x5EED)
@@ -505,7 +505,7 @@ struct DateParseTests {
                      "noon", "midnight", "tomorrow", "tn", "weekend", "month", "week", "12/25", "2/30", "13/1", "feb", "31st", "0", "99", "–", "-", ",", "", " ", "🎉", "ß", "İ", "@", "\n", "1230pm", "at 0", "13pm"]
         let floor = Self.frozenNow.addingTimeInterval(-70 * 86_400)
         var parsedSome = 0
-        for _ in 0..<10_000 {
+        for _ in 0..<2_000 {   // ~7 ms per iteration in Debug; 10k made every `make test` take 70 s+
             let n = Int(rng.next() % 6) + 1
             var parts: [String] = []
             for _ in 0..<n { parts.append(atoms[Int(rng.next() % UInt64(atoms.count))]) }
@@ -518,6 +518,6 @@ struct DateParseTests {
             _ = DateParse.findDateTimeSpans(input, now: Self.frozenNow, calendar: Self.cal)
             _ = DateParse.stripDateTimeText(input, now: Self.frozenNow, calendar: Self.cal)
         }
-        #expect(parsedSome > 1000)
+        #expect(parsedSome > 200)
     }
 }

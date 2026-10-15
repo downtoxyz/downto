@@ -68,7 +68,7 @@ struct AppErrorTests {
             _ = try JSONDecoder().decode(Row.self, from: Data("{}".utf8))
             Issue.record("expected a throw")
         } catch {
-            guard case .decoding(let desc) = AppError(error) else { return Issue.record("not .decoding: \(AppError(error))") }
+            guard case .decoding(let desc) = AppError(error) else { Issue.record("not .decoding: \(AppError(error))"); return }
             #expect(desc.contains("id"))
             #expect(AppError(error).toastCopy == "something broke, try again")
         }

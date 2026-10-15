@@ -29,7 +29,7 @@ nonisolated struct ID<Tag>: Hashable, Sendable, Codable, CustomStringConvertible
 
 /// Lets `[ID<Tag>: V]` encode as a JSON object keyed by the UUID string instead of a flat `[key, value, key, value]` array
 /// (JSONEncoder only emits objects for String/Int keys or `CodingKeyRepresentable` keys). `FeedRaw` & co. depend on this (§3.9).
-extension ID: CodingKeyRepresentable {
+nonisolated extension ID: CodingKeyRepresentable {
     nonisolated struct Key: CodingKey {
         let stringValue: String
         var intValue: Int? { nil }
