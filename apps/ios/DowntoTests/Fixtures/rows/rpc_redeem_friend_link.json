@@ -1,0 +1,14 @@
+[
+  {
+    "success": true,
+    "creator_id": "22222222-2222-4222-8222-222222222222",
+    "creator_name": "sara"
+  },
+  {
+    "error": "Already friends",
+    "already_friends": true
+  },
+  {
+    "error": "Link expired"
+  }
+]
