@@ -127,7 +127,15 @@ struct DownToggle: View {
         .animation(effectivePressed ? DTCurve.pressIn : DTSpring.stamp, value: effectivePressed)
         .contentShape(Rectangle().size(width: max(100, minWidth + 12), height: 44).offset(x: -6, y: -4))
         .frame(minHeight: 44)
-        .highPriorityGesture(pressGesture, including: state.isInteractive && !disabledOffline ? .all : .subviews)
+        .pressButton(enabled: state.isInteractive && !disabledOffline, onPressChange: { down in
+            // The toggle owns its touch (DESIGN §4.1 rule 4): the Button keeps the row's press from tinting underneath.
+            if down && !pressed { touchDownCount += 1; onEvent(.touchDown) }
+            pressed = down
+        }, onTap: { (point: CGPoint?) in
+            pressed = false
+            touch = point
+            tap(at: point)
+        })
         .dtFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: touchDownCount)
         .dtFeedback(.impact(flexibility: .rigid, intensity: 0.9), trigger: apexCount)
         .dtFeedback(.impact(weight: .light), trigger: undoCount)
@@ -192,25 +200,6 @@ struct DownToggle: View {
     }
 
     // MARK: Gesture — the toggle owns its touch (DESIGN §4.1 rule 4: a press on the pill never tints the row)
-
-    private var pressGesture: some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .local)
-            .onChanged { value in
-                if !pressed {
-                    pressed = true
-                    touch = value.startLocation
-                    touchDownCount += 1
-                    onEvent(.touchDown)
-                }
-                let inside = abs(value.translation.width) < 60 && abs(value.translation.height) < 40
-                if pressed != inside { pressed = inside }
-            }
-            .onEnded { value in
-                let inside = abs(value.translation.width) < 60 && abs(value.translation.height) < 40
-                pressed = false
-                if inside { tap(at: value.startLocation) }
-            }
-    }
 
     private func tap(at point: CGPoint?) {
         switch state {

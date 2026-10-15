@@ -142,12 +142,14 @@ struct CheckEntry: View {
         if isPreviewCopy {
             entry
         } else {
+            // A Button, not a DragGesture(minimumDistance: 0): since iOS 18 a zero-distance drag — even a simultaneous one — wins the
+            // touch from the enclosing ScrollView and the feed stops scrolling. Button presses are delayed and cancelled by the
+            // ScrollView natively, which is exactly the §4.1 precedence (scroll > press), so the style just reports isPressed.
             entry
+                .pressButton(onPressChange: { down in down ? beginPress() : cancelPress() }, onTap: { pressed = false; onTap() })
                 .overlay { if pressed { Rectangle().fill(DTContrastAware(token: .pressTint)).allowsHitTesting(false) } }
                 .scaleEffect(pressed && !reduceMotion ? 0.99 : 1)
                 .animation(pressed ? DTCurve.pressIn : DTSpring.ink, value: pressed)
-                .onTapGesture { pressed = false; onTap() }
-                .simultaneousGesture(pressGesture)
                 .onChange(of: scrollInteracting) { _, moving in if moving { cancelPress() } }
                 .dtFeedback(.impact(flexibility: .soft, intensity: 0.35), trigger: pressCount)
                 .contextMenu(menuItems: { menuItems }, preview: { CheckEntry(model: model, isPreviewCopy: true).frame(width: 360) })
@@ -401,21 +403,15 @@ struct CheckEntry: View {
 
     // MARK: Gesture (DESIGN §4.1 precedence)
 
-    private var pressGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                let moved = abs(value.translation.width) > 6 || abs(value.translation.height) > 6
-                if moved || scrollInteracting { cancelPress(); return }
-                if pressTask == nil && !pressed {
-                    pressTask = Task {
-                        try? await Task.sleep(for: .milliseconds(40))
-                        guard !Task.isCancelled else { return }
-                        pressed = true
-                        pressCount += 1
-                    }
-                }
-            }
-            .onEnded { _ in cancelPress() }
+    /// 40 ms after touch-down the tint lands (DESIGN §4.1); a scroll or lift before that cancels it silently.
+    private func beginPress() {
+        guard pressTask == nil, !pressed, !scrollInteracting else { return }
+        pressTask = Task {
+            try? await Task.sleep(for: .milliseconds(40))
+            guard !Task.isCancelled else { return }
+            pressed = true
+            pressCount += 1
+        }
     }
 
     private func cancelPress() {
@@ -483,4 +479,40 @@ extension CheckEntryModel {
         }
     }
     .background(Color.paper)
+}
+
+/// Plain button chrome that only reports `isPressed` transitions to the host.
+struct PressReportingStyle: ButtonStyle {
+    let onPressChange: (Bool) -> Void
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onChange(of: configuration.isPressed) { _, down in onPressChange(down) }
+    }
+}
+
+/// Wraps the view in a chrome-less Button so a press is tracked (down / cancelled / released) *and* the enclosing ScrollView
+/// still scrolls. Never use `DragGesture(minimumDistance: 0)` for press feedback inside a ScrollView: since iOS 18 it wins the
+/// touch even as a simultaneous gesture and the list stops scrolling. `onTap` receives the release location when the system
+/// provides one (the DownToggle's sweep originates there); `enabled == false` lets the touch fall through to the parent.
+struct PressButton: ViewModifier {
+    var enabled = true
+    let onPressChange: (Bool) -> Void
+    let onTap: (CGPoint?) -> Void
+    @State private var lastLocation: CGPoint? = nil
+
+    func body(content: Content) -> some View {
+        Button { onTap(lastLocation); lastLocation = nil } label: { content }
+            .buttonStyle(PressReportingStyle(onPressChange: onPressChange))
+            .simultaneousGesture(SpatialTapGesture(coordinateSpace: .local).onEnded { lastLocation = $0.location })
+            .disabled(!enabled)
+    }
+}
+
+extension View {
+    func pressButton(enabled: Bool = true, onPressChange: @escaping (Bool) -> Void, onTap: @escaping () -> Void) -> some View {
+        modifier(PressButton(enabled: enabled, onPressChange: onPressChange, onTap: { _ in onTap() }))
+    }
+    func pressButton(enabled: Bool = true, onPressChange: @escaping (Bool) -> Void, onTap: @escaping (CGPoint?) -> Void) -> some View {
+        modifier(PressButton(enabled: enabled, onPressChange: onPressChange, onTap: onTap))
+    }
 }
