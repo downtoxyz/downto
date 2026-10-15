@@ -231,12 +231,6 @@ struct CheckEntry: View {
             .foregroundStyle(bodyInk)
             .strikethrough(model.isHidden, color: Color.inkFaint)
             .lineLimit(6)
-            .mask {
-                VStack(spacing: 0) {
-                    Color.black
-                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: 24)
-                }
-            }
     }
 
     private var whenWhere: some View {
