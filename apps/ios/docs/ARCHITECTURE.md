@@ -1503,7 +1503,7 @@ Path 1 is the belt-and-braces: it makes the role flip *instantly* even if the no
 }
 ```
 
-`Domain/EmailValidity.swift` ports `emailValidity.ts` (`isValidEmailShape` with `^[^\s@]+@[^\s@]+\.[a-z]{2,}$` case-insensitive; `suggestFix` with the same 19-entry typo map — `COMMON_DOMAIN_TYPOS` has 19 keys, `EmailValidityTests.typoMapParity` pins the count) — surfaced as "did you mean {fix}?" tap-to-apply, non-blocking.
+`Domain/EmailValidity.swift` ports `emailValidity.ts` (`isValidEmailShape` with `^[^\s@]+@[^\s@]+\.[a-z]{2,}$` case-insensitive; `suggestFix` with the same 21-entry typo map) — surfaced as "did you mean {fix}?" tap-to-apply, non-blocking.
 
 ### 6.1 Onboarding gate (`Domain/Gate.swift`, pure)
 
@@ -1868,7 +1868,7 @@ Important: JS `(h + i * 2654435761) % 29` is computed in doubles — for `h < 2^
 | `hello` | 261238937 | `✬✳✤✪▓❀` | `✬` | `( ˙꒳​˙ )` |
 | `über::naïve` | 3911048391 | `◆✭✴✣✰▒` | `◆` | `(◕ᴗ◕)` |
 
-Plus: `kaomojiForUser(threadSeed: "3f2504e0-4f89-11d3-9a0c-0305e82c3301", userId: "a1b2c3d4-0000-4000-8000-000000000001")` == `(◕‿◕)`; `kaomojiAssignment(threadSeed: "3f2504e0-…3301", userIds: […0001, …0002, …0003])` == `[…0001: "(◕‿◕)", …0002: "(´◡`)", …0003: "(◔‿◔)"]` (no collision in this trio — each keeps its preferred kaomoji; the walk-forward case is pinned separately with …0018, whose preferred under this thread is also `(◕‿◕)`: `[…0001, …0018]` → `…0018: "(´◡`)"`, and in roster order `[…0018, …0001]` → `…0001: "(´◡`)"`); `stripAtMentions("hey @kat and @sam_1 down?")` == `"hey @??? and @??? down?"`. The test file records the node one-liner used so the goldens can be regenerated if `censor.ts` changes.
+Plus: `kaomojiForUser(threadSeed: "3f2504e0-4f89-11d3-9a0c-0305e82c3301", userId: "a1b2c3d4-0000-4000-8000-000000000001")` == `(◕‿◕)`; `kaomojiAssignment(threadSeed: "3f2504e0-…3301", userIds: […0001, …0002, …0003])` == `[…0001: "(◕‿◕)", …0002: "(´◡`)", …0003: "(◔‿◔)"]` (0002's preferred collides and walks forward); `stripAtMentions("hey @kat and @sam_1 down?")` == `"hey @??? and @??? down?"`. The test file records the node one-liner used so the goldens can be regenerated if `censor.ts` changes.
 
 ### 9.3 Enforcement points (the only three places raw rows become display)
 
@@ -1923,7 +1923,7 @@ enum DateParse {
 Porting rules:
 - Inject `now` and `Calendar` (the TS reads `new Date()` inline, which is why its tests use fake timers). Production passes `.now` / `.current`.
 - Regexes become Swift `Regex` literals; keep the TS function order and comment headers so the two files diff side by side. Where JS and Swift regex semantics differ (`\b` with Unicode, lookbehind), note the original TS line in a comment.
-- The `new Date(withYear)` "whatever JS accepts" fallback in `tryParseSingle` becomes an explicit `Date.ParseStrategy` list, locale `en_US_POSIX`, in this order: `"MMM d yyyy"`, `"MMMM d yyyy"`, `"EEE, MMM d yyyy"`, `"EEE MMM d yyyy"`, `"M/d/yyyy"`, `"M/d/yy"`, `"MMM d"`, `"MMMM d"`, `"M/d"` (the last three take the current year and, like the TS, roll forward a year only when the result is more than 2 months in the past — "Mar 25" typed on Apr 27 stays this year, `dti_range`; a shape that carries its own year is never rolled). `"d MMM"` (day-first, "12 feb") is deliberately not in the list: only V8's loose `new Date()` accepted it on the web, `parseNaturalDate` never did. Documented in the file; a test enumerates them.
+- The `new Date(withYear)` "whatever JS accepts" fallback in `tryParseSingle` becomes an explicit `Date.ParseStrategy` list, locale `en_US_POSIX`, in this order: `"MMM d yyyy"`, `"MMMM d yyyy"`, `"EEE, MMM d yyyy"`, `"EEE MMM d yyyy"`, `"M/d/yyyy"`, `"M/d/yy"`, `"MMM d"`, `"MMMM d"`, `"M/d"` (last three assume the next occurrence ≥ today). Documented in the file; a test enumerates them.
 - Labels via `Date.FormatStyle` `.weekday(.abbreviated).month(.abbreviated).day()` in `en_US` to match `toLocaleDateString("en-US", {weekday:"short", month:"short", day:"numeric"})` → "Fri, May 1".
 - Tests: `DateParseTests` ports all **55** cases from `dateParse.test.ts` with `FROZEN_NOW = Mon 2026-04-27 14:00` in the test calendar's time zone (`America/Los_Angeles`), each `@Test` named after the TS case; plus DST-transition day, year-end week wrap, `12am`/`12pm`, and a fuzz test (`parseWhen` never throws on 10k random strings and never returns a date before `now - 1 day`).
 
@@ -1976,7 +1976,7 @@ Swift Testing (`import Testing`) for unit tests; XCTest only for `DowntoUITests`
 | `PushRoutingTests` | all 22 types + unknown + malformed relatedId |
 | `GateTests` | full `resolveGate` matrix incl. sweep case and shared-check branch |
 | `NotificationSideEffectsTests` | every type × (open squad matches / doesn't) × for `.squadInvite` and `.dateConfirm` the four `(previousRole, myRole)` pairs (§5.3); exactly one toast per notification; waitlisted copy ≠ formed copy ≠ promoted copy |
-| `EmailValidityTests` | 9 ported (4 `isValidEmailShape` + 5 `suggestEmailFix`) + typo-map parity |
+| `EmailValidityTests` | 8 ported |
 | `ModelDecodingTests` | one JSON fixture per table and per RPC in `Fixtures/rows/`; 4 timestamp forms; `LocalDate`; `.unknown` fallback for every `TolerantEnum`; `ID<Tag>` round-trip |
 | `AppConfigTests` | each missing/malformed key throws its specific error |
 | `AppErrorTests` | 23505 → usernameTaken, 42501 → rlsDenied, URLError → network, 401 api |
