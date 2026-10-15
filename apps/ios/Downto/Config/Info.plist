@@ -61,6 +61,8 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
 </dict>
