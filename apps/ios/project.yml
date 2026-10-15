@@ -64,6 +64,7 @@ targets:
         UIAppFonts: [InterVariable.ttf, IBMPlexMono-Regular.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf, IBMPlexMono-Bold.ttf, IBMPlexMono-Italic.ttf]   # ARCHITECTURE §13 / DESIGN §2
         CFBundleURLTypes: [{ CFBundleURLSchemes: [downto] }]       # fallback custom scheme; universal links are primary (§7.2)
         UIBackgroundModes: [remote-notification]
+        UILaunchScreen: {}          # required; without it iOS runs the app letterboxed in legacy compatibility scaling
         NSAppTransportSecurity: { NSAllowsLocalNetworking: true }   # local Supabase over http
         NSPhotoLibraryUsageDescription: "to send a pic to your squad"
         NSCameraUsageDescription: "to send a pic to your squad"
