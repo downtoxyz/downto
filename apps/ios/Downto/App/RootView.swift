@@ -42,6 +42,8 @@ struct RootView: View {
             }
         }
         .onChange(of: gate, initial: true) { _, g in advance(g) }
+        .onChange(of: env.preGateDone) { _, _ in advance(gate) }        // returning users reach .main before the pre-gate task finishes
+        .onChange(of: env.profile.meLoaded) { _, _ in advance(gate) }
     }
 
     /// The §4.4.1 ladder: pre-gate as soon as the profile has a name; boot once the gate has passed setup; drain once on .main.

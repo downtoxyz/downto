@@ -84,6 +84,7 @@ targets:
     settings:
       base:
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        GENERATE_INFOPLIST_FILE: YES                  # test bundles are ad-hoc signed too (DECISIONS #38) and signing needs a plist
   DowntoUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -91,6 +92,7 @@ targets:
     dependencies: [{ target: Downto }]
     settings:
       base:
+        GENERATE_INFOPLIST_FILE: YES
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated      # XCTestCase's inherited inits are nonisolated; a MainActor default breaks every override. Test bodies opt in with @MainActor.
 schemes:
   Downto-Local:

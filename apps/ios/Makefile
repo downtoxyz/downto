@@ -12,7 +12,9 @@ PROJ = Downto.xcodeproj
 DD   = .build
 # xcbeautify is optional and NOT installed by default; never `brew install` from a make target.
 PRETTY = (command -v xcbeautify >/dev/null && xcbeautify || cat)
-XCB = xcodebuild -project $(PROJ) -scheme Downto-Local -destination "$(SIM)" -derivedDataPath $(DD) CODE_SIGNING_ALLOWED=NO
+# Ad-hoc signing (not NO signing): an unsigned simulator app has no entitlements, so the Keychain rejects writes, supabase-swift
+# cannot persist the session, and every PostgREST call silently goes out as `anon` (empty feed, no session after relaunch).
+XCB = xcodebuild -project $(PROJ) -scheme Downto-Local -destination "$(SIM)" -derivedDataPath $(DD) CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
 
 .PHONY: gen resolve build test test-domain ui-test ui-test-live snapshot-record run screenshot clean check
 
@@ -25,6 +27,7 @@ test-domain:    ; scripts/test-domain.sh          # assembles Downto/Domain + Do
 ui-test: gen    ; $(PIPEFAIL) $(XCB) test -only-testing:DowntoUITests 2>&1 | $(PRETTY)
 ui-test-live: gen ; (cd ../.. && supabase start && npm run dev &) ; $(PIPEFAIL) $(XCB) test -only-testing:DowntoUITests/LiveSmokeTests 2>&1 | $(PRETTY)
 snapshot-record:; SNAPSHOT_TESTING_RECORD=all $(MAKE) test
-run: build      ; xcrun simctl boot "iPhone 17 Pro" || true; xcrun simctl install booted $(DD)/Build/Products/Debug-Local-iphonesimulator/Downto.app; xcrun simctl launch booted xyz.downto.app
+ARGS ?=
+run: build      ; xcrun simctl boot "iPhone 17 Pro" || true; xcrun simctl terminate booted xyz.downto.app || true; xcrun simctl install booted $(DD)/Build/Products/Debug-Local-iphonesimulator/Downto.app; xcrun simctl launch booted xyz.downto.app $(ARGS)
 screenshot:     ; xcrun simctl io booted screenshot /tmp/downto.png
 clean:          ; rm -rf $(DD) $(PROJ)

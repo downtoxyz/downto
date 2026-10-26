@@ -28,6 +28,7 @@ struct AuthView: View {
         .animation(DTSpring.page, value: stage)
         .sheet(item: $safariURL) { SafariSheet(url: $0).ignoresSafeArea() }
         .task { await loadBanner() }
+        .task { await UITestLogin.run(env: env) }
         .onAppear { if env.session.pendingEmail != nil { stage = .code } }
     }
 

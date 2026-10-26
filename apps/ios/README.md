@@ -7,11 +7,13 @@ SwiftUI app for iOS 26+, Swift 6.2, one target. Specs live in `docs/` (`INVENTOR
 ```sh
 cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig   # once; empty DEVELOPMENT_TEAM is fine for the simulator
 make gen            # xcodegen generate → Downto.xcodeproj (+ Downto/Config/Info.plist, committed)
-make build          # Debug-Local, iPhone 17 Pro simulator, -warnings-as-errors
+make build          # Debug-Local, iPhone 17 Pro simulator, -warnings-as-errors, ad-hoc signed (Keychain needs entitlements even on the simulator)
 make test           # check-privacy + check-enums scripts, then DowntoTests (Swift Testing)
 make test-domain    # Downto/Domain + DowntoTests/Domain as a macOS SwiftPM package — seconds, no simulator
 make ui-test        # DowntoUITests (XCUITest) on the simulator
 make run screenshot # install + launch on the booted simulator, then /tmp/downto.png
+make run ARGS="-DT_FAKE_WORLD busyFriday -DT_TAB squads"   # fake world (no network); -DT_OPEN_SQUAD movieNight opens a chat
+make run ARGS="-uiTestLogin kat@test.com"                 # DEBUG auto-login against local Supabase via Mailpit
 ```
 
 Configs: `Debug-Local` (local Supabase at 127.0.0.1:54321 + `npm run dev`), `Debug-Staging`, `Debug-Prod`/`Release` — values in `Config/*.xcconfig`, injected into Info.plist and read by `AppConfig` (throws on a missing key). `xcbeautify` is optional; the Makefile falls back to `cat`. Override the simulator with `make build SIM="platform=iOS Simulator,name=iPhone 17 Pro,OS=26.3"`.

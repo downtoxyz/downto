@@ -254,3 +254,15 @@ Format: **Conflict / Decision / Why / Where changed (file §)**.
 - **Conflict:** #28 / `ARCHITECTURE.md` §12 relied on `.SHELLFLAGS := -o pipefail -c` to carry `xcodebuild`'s exit status through `| xcbeautify || cat`. macOS ships **GNU Make 3.81**, and `.SHELLFLAGS` only exists from 3.82 — it was silently ignored, so `make build` / `make test` / `make ui-test` exited 0 on a failed build or test run (verified: `(exit 3) 2>&1 | cat` under the committed Makefile returned 0).
 - **Decision:** keep `.SHELLFLAGS` for newer makes, and additionally start every piped recipe with `$(PIPEFAIL)` = `set -o pipefail;` (bash 3.2 supports it). `scripts/test-domain.sh` already had `set -o pipefail`. Also: `PostgresTimestamp` re-extracts the calendar fields from the built `Date` and rejects any mismatch (`2026-09-31`, `2026-02-29`, `:60` were rolling over silently despite the range guards); `scripts/check-enums.sh` attributes a `CHECK` to a table only when the *statement* is a `CREATE TABLE` / `ALTER TABLE` of that table (the file-mentions-the-table heuristic could attach another table's `status` constraint).
 - **Where:** `Makefile`, `ARCHITECTURE.md` §3.1, §12; `Downto/Data/Supabase.swift`; `scripts/check-enums.sh`; `DowntoTests/Data/ModelDecodingTests.swift`.
+
+## 38. Simulator builds are ad-hoc signed, never `CODE_SIGNING_ALLOWED=NO`
+
+- **Conflict:** `ARCHITECTURE.md` §12 / #28 built and tested with `CODE_SIGNING_ALLOWED=NO`. An unsigned simulator app carries no entitlements (no `application-identifier`), so `SecItemAdd` fails, supabase-swift's `KeychainLocalStorage` cannot persist the session, `auth.session` is nil for every later call, and every PostgREST request silently goes out with the `anon` key — observed 2026-10-26 as an empty feed for a user with 12 visible checks and no session after a cold relaunch, with no error anywhere.
+- **Decision:** `CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-` (ad-hoc) in the Makefile's `XCB` for build / test / ui-test / run. No team is needed. The `README` says why.
+- **Where:** `Makefile`; `README.md`; `ARCHITECTURE.md` §12 is superseded on this point.
+
+## 39. Returning users: the boot ladder must re-run when `preGateDone` flips
+
+- **Conflict:** §4.4.1 drives the ladder from gate changes. For an onboarded user the gate is already `.main` when `runPreGate()` starts, so nothing re-evaluated `bootAfterLogin` once the (async) pre-gate finished — the feed sat on the skeleton forever.
+- **Decision:** `RootView` observes `env.preGateDone` and `env.profile.meLoaded` in addition to the gate and calls `advance(gate)` on each.
+- **Where:** `App/RootView.swift`.
