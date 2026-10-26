@@ -88,6 +88,7 @@ struct FolioInset: ViewModifier {
                     .frame(height: hidden ? 0 : nil)
                     .offset(y: hidden ? height + 40 : 0)
                     .clipped()
+                    .background { if !hidden { Color.paper.ignoresSafeArea(edges: .bottom) } }   // cover the home-indicator gap below the labels
                     .animation(Motion.resolve(.page, reduceMotion: reduceMotion), value: hidden)
             }
     }

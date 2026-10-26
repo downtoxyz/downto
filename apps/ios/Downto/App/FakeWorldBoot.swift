@@ -1,5 +1,5 @@
-// App/FakeWorldBoot.swift — `-DT_FAKE_WORLD <world>` launch argument (ARCHITECTURE §11.3). The fixture worlds themselves
-// are the lanes' to fill (Preview/Fixtures.swift); until then the hook exists so DowntoApp and the smoke test compile.
+// App/FakeWorldBoot.swift — `-DT_FAKE_WORLD <world>` launch argument (ARCHITECTURE §11.3). Builds every store from the
+// fixture worlds (Preview/Fixtures.swift + SocialFixtures + SquadFixtures as the lanes land) and never touches the network.
 import Foundation
 
 enum FakeWorldBoot {
@@ -7,7 +7,7 @@ enum FakeWorldBoot {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-DT_FAKE_WORLD"), i + 1 < args.count else { return nil }
-        return AppEnvironment.fake(named: args[i + 1], config: config)
+        return AppEnvironment.fake(Fixtures.World(rawValue: args[i + 1]) ?? .busyFriday, config: config)
         #else
         return nil
         #endif
@@ -15,27 +15,45 @@ enum FakeWorldBoot {
 }
 
 extension AppEnvironment {
-    /// A live-shaped environment with every store pre-filled from a fixture world and the network never touched.
-    /// TODO(feed/squads/social): populate from `Fixtures.world(_:)` once each lane's raw types are projected.
-    static func fake(named name: String, config: AppConfig) -> AppEnvironment {
+    /// Chat raws for the fake world; SquadChatView's ChatStore loads from here when `isFake` (see ChatStore.hydrate).
+    nonisolated(unsafe) static var fakeChatRaws: [SquadID: ChatRaw] = [:]
+    var fakeChats: [SquadID: ChatRaw] {
+        get { Self.fakeChatRaws }
+        set { Self.fakeChatRaws = newValue }
+    }
+
+    /// A live-shaped environment with every store pre-filled from a fixture world; `isFake` short-circuits every network call.
+    static func fake(_ world: Fixtures.World, config: AppConfig) -> AppEnvironment {
         let env = AppEnvironment(config: config, isFake: true)
-        let meId = UserID(UUID(uuidString: "00000000-0000-0000-0000-000000000001")!)
-        env.profile.setFake(me: Profile.fakeMe(id: meId))
-        env.session.setFakeState(.signedIn(meId))
+        let built = Fixtures.world(world)
+        let profiles = Array(built.feed.profiles.values)
+                env.profile.setFake(me: built.me)
+        env.session.setFakeState(.signedIn(built.me.id))
         env.reachability.setFake(offline: false)
-        env.markFakeBooted(meId)
+        let phase = LoadPhase.loaded(at: built.now, stale: false)
+        env.feed.load(raw: built.feed, phase: phase, now: built.now)
+        let squadWorld = SquadFixtures.busyFriday(me: built.me.id, profiles: built.feed.profiles, now: built.now, longChat: true)
+        let social = SocialFixtures.busyFriday(me: built.me, profiles: profiles, now: built.now, squadId: squadWorld.movieNight, climbingCheckId: Fixtures.climbingId)
+        env.squads.load(raw: world == .emptyNewUser ? SquadsRaw() : squadWorld.squads, phase: phase)
+        env.fakeChats = world == .emptyNewUser ? [:] : squadWorld.chats
+        env.notifications.load(items: world == .emptyNewUser ? [] : social.notifications, phase: phase)
+        env.friends.load(raw: world == .emptyNewUser ? FriendsRaw() : social.friends, phase: phase)
+        env.bootAfterLogin(userId: built.me.id)
+        #if DEBUG
+        // `-DT_TAB squads|you` and `-DT_OPEN_SQUAD movieNight|karaoke|mystery` land the fake world on a screen (smoke tests, screenshots).
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "-DT_TAB"), i + 1 < args.count {
+            env.router.tab = args[i + 1] == "squads" ? .squads : args[i + 1] == "you" ? .you : .feed
+        }
+        if let i = args.firstIndex(of: "-DT_OPEN_SQUAD"), i + 1 < args.count {
+            let id: SquadID? = switch args[i + 1] { case "movieNight": squadWorld.movieNight; case "karaoke": squadWorld.karaoke; case "mystery": squadWorld.mystery; default: nil }
+            if let id { env.router.tab = .squads; env.router.squadPath = [id] }
+        }
+        #endif
         return env
     }
 
-    func markFakeBooted(_ userId: UserID) {
-        bootAfterLogin(userId: userId)
-    }
-}
-
-extension Profile {
-    static func fakeMe(id: UserID) -> Profile {
-        Profile(id: id, username: "kat", displayName: "Kat", avatarUrl: nil, avatarLetter: "K", availability: .open, igHandle: nil,
-                onboarded: true, isTest: true, timezone: TimeZone.current.identifier, themeEnabled: false, calendarToken: nil,
-                referredByCheckId: nil, usernameChangedAt: nil, createdAt: .now, updatedAt: .now)
+    static func fake(named name: String, config: AppConfig) -> AppEnvironment {
+        fake(Fixtures.World(rawValue: name) ?? .busyFriday, config: config)
     }
 }

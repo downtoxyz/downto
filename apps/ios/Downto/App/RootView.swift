@@ -33,7 +33,7 @@ struct RootView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.98)))
         }
         .animation(.smooth(duration: 0.35), value: gate)
-        .task { env.session.start(); env.reachability.start() }
+        .task { if !env.isFake { env.session.start() }; env.reachability.start() }
         .onChange(of: env.session.state, initial: true) { _, state in
             switch state {
             case .signedIn(let id): Task { await env.loadMeForGate(userId: id) }

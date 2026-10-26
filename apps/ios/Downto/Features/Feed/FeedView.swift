@@ -135,9 +135,7 @@ struct FeedView: View {
     }
 
     @ViewBuilder private var banners: some View {
-        if let n = env.notifications.pendingFriendRequests.first {
-            FriendRequestBanner(notification: n)
-        }
+        FriendRequestBanner()
         if env.push.authorization != .authorized, !Defaults.notifNudgeDismissed, feed.hasChecks || !env.squads.rows.isEmpty {
             NotifNudgeBanner()
         }
@@ -282,7 +280,7 @@ struct FeedView: View {
             let day = feed.now.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()).lowercased()
             parts.append(live > 0 ? "\(day) · \(live) timed" : day)
         }
-        if env.realtime.status != .connected, env.bootedForUser != nil, !env.reachability.isOffline { parts.append("· reconnecting") }
+        if env.realtime.status != .connected, env.bootedForUser != nil, !env.reachability.isOffline, !env.isFake { parts.append("· reconnecting") }
         return parts.joined(separator: " ")
     }
 
@@ -396,33 +394,6 @@ struct SquadFormedStamp: View {
 }
 
 // MARK: - Banners (DESIGN §7.4)
-
-struct FriendRequestBanner: View {
-    let notification: AppNotification
-    @Environment(AppEnvironment.self) private var env
-    @State private var busy = false
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(notification.title).dtFont(.bodySmall).foregroundStyle(Color.ink).lineLimit(1)
-            Spacer()
-            if let u = notification.relatedUserId, case .incoming(let f) = env.friends.relationship(with: u) {
-                Button { busy = true; Task { await env.friends.accept(f); await env.notifications.markRead(notification.id); busy = false } } label: {
-                    Text("ACCEPT").dtFont(.button).foregroundStyle(.dtInk).frame(minHeight: 44)
-                }.buttonStyle(.plain).disabled(busy)
-            } else {
-                Button { env.router.present(.friends(tab: .add)) } label: { Text("SEE").dtFont(.button).foregroundStyle(.dtInk).frame(minHeight: 44) }.buttonStyle(.plain)
-            }
-            Button { Task { await env.notifications.markRead(notification.id) } } label: {
-                Text("LATER").dtFont(.button).foregroundStyle(.inkMuted).frame(minHeight: 44)
-            }.buttonStyle(.plain)
-        }
-        .padding(.horizontal, Space.gutter)
-        .frame(height: 44)
-        .background(Color.checkNew)
-        .hairline()
-    }
-}
 
 struct NotifNudgeBanner: View {
     @Environment(AppEnvironment.self) private var env

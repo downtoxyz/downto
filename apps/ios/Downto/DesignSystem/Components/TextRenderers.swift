@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Mystery name reveal: glyph *i* of *n* is settled when `progress ≥ (i + 1) / n`; before that it draws a random symbol
 /// re-picked every 25ms, seeded by `(i, frame)` so it is deterministic per frame.
-struct ScrambleRenderer: TextRenderer, Animatable {
+nonisolated struct ScrambleRenderer: TextRenderer, Animatable {
     var progress: Double
     var elapsed: Double
     var reduceMotion = false
@@ -38,7 +38,7 @@ struct ScrambleRenderer: TextRenderer, Animatable {
 
 /// Drop-in for the deleted-check quip, empty-state headlines and the "WAITLISTED" label: each glyph from `offset(y: −6)` + opacity,
 /// 20ms stagger. `progress` 0 → 1 covers the whole string.
-struct WobbleRenderer: TextRenderer, Animatable {
+nonisolated struct WobbleRenderer: TextRenderer, Animatable {
     var progress: Double
     var reduceMotion = false
 

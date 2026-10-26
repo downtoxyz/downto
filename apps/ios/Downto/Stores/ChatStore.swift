@@ -177,7 +177,10 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
                 for await _ in NotificationCenter.default.notifications(named: .NSCalendarDayChanged) { self?.tick() }
             }
         }
-        if env.isFake { phase = .loaded(at: .now, stale: false); rebuild(); return }
+        if env.isFake {
+            if let r = env.fakeChats[squadId] { raw = r }
+            phase = .loaded(at: .now, stale: false); rebuild(); return
+        }
         if confirmTask == nil {
             confirmTask = env.realtime.subscribeDateConfirms(squadId: squadId) { [weak self] change in self?.apply(change) }
         }

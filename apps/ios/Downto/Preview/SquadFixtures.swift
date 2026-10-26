@@ -18,7 +18,15 @@ nonisolated enum SquadFixtures {
         return cal.date(from: c)!
     }()
 
-    static func uuid(_ n: Int) -> UUID { UUID(uuidString: String(format: "00000000-0000-4000-8000-%012d", n))! }
+    /// Shares id space with `Fixtures` (feed lane): people 1…5 and checks 101…106 resolve to the same rows there, so squads' checkId
+    /// matches the feed's check and mySquadMemberships line up.
+    static func uuid(_ n: Int) -> UUID {
+        switch n {
+        case 1...5: UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", n))!
+        case 101...106: UUID(uuidString: String(format: "10000000-0000-0000-0000-%012d", n - 100))!
+        default: UUID(uuidString: String(format: "00000000-0000-4000-8000-%012d", n))!
+        }
+    }
 
     static func profile(_ n: Int, _ name: String) -> Profile {
         Profile(id: UserID(uuid(n)), username: name.lowercased(), displayName: name, avatarUrl: nil, avatarLetter: String(name.prefix(1)).uppercased(),

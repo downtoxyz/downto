@@ -18,7 +18,10 @@ nonisolated enum SocialFixtures {
         return cal.date(from: c)!
     }()
 
-    static func uuid(_ n: Int) -> UUID { UUID(uuidString: String(format: "5000c1a1-0000-4000-8000-%012d", n))! }
+    /// People 1…5 share `Fixtures`' id space (feed lane) so friend rows resolve to the same profiles.
+    static func uuid(_ n: Int) -> UUID {
+        n <= 5 ? UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", n))! : UUID(uuidString: String(format: "5000c1a1-0000-4000-8000-%012d", n))!
+    }
 
     static func profile(_ n: Int, _ username: String, _ name: String, availability: Availability = .open, now: Date = friday) -> Profile {
         Profile(id: UserID(uuid(n)), username: username, displayName: name, avatarUrl: nil, avatarLetter: String(name.prefix(1)).uppercased(),

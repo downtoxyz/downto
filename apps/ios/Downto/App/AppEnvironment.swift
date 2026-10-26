@@ -104,7 +104,7 @@ import os
         bootedForUser = userId
         bootTask = Task { [self] in
             await loadSnapshots(userId: userId)
-            await realtime.startUserChannels(userId: userId, handlers: userChannelHandlers())
+            if !isFake { await realtime.startUserChannels(userId: userId, handlers: userChannelHandlers()) }
             await withTaskGroup(of: Void.self) { g in
                 g.addTask { await self.profile.loadMe() }
                 g.addTask { await self.feed.hydrate() }
