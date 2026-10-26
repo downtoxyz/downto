@@ -434,7 +434,7 @@ nonisolated enum FeedProject {
 // MARK: - Store
 
 @Observable final class FeedStore {
-    enum SquadOutcome: Hashable, Sendable { case formed, joined }
+    nonisolated enum SquadOutcome: Hashable, Sendable { case formed, joined }
 
     // rendered
     private(set) var items: [FeedItem] = []
