@@ -1243,7 +1243,12 @@ nonisolated enum FeedProject {
     }
 
     /// Fake worlds / snapshots: replace raw wholesale (only legal outside a select — boot, tests, previews).
-    func load(raw r: FeedRaw, phase p: LoadPhase) { raw = r; phase = p; rebuild() }
+    func load(raw r: FeedRaw, phase p: LoadPhase, now clock: Date? = nil) {
+        raw = r
+        phase = p
+        if let clock { now = clock }
+        rebuild()
+    }
 
     /// Tests: apply a raw edit as if it were a realtime change (goes through the buffer).
     func applyRaw(_ f: @escaping (inout FeedRaw) -> Void) { record(f); rebuild() }
