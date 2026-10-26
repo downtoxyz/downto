@@ -35,6 +35,7 @@ struct SquadChatView: View {
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(30))
                     now = .now
+                    store.tick()
                 }
             } onCancel: {
                 Task { @MainActor in store.teardown() }

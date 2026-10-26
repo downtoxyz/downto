@@ -125,6 +125,8 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
     private(set) var isMysteryLocked = false
     private(set) var phase: LoadPhase = .idle
     private(set) var lifecycle: SquadLifecycle = .live
+    /// The clock every projection reads (tests drive it; the view ticks it every 30 s; day change resets it).
+    private(set) var now: Date = .now
     /// Active poll, for the header chip (M1: scrolls to the placeholder row).
     private(set) var activePollMessageId: MessageID?
     private(set) var activePollQuestion: String?
@@ -172,7 +174,7 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
         env.squads.openChat = self
         if dayTask == nil {
             dayTask = Task { [weak self] in
-                for await _ in NotificationCenter.default.notifications(named: .NSCalendarDayChanged) { self?.rebuild() }
+                for await _ in NotificationCenter.default.notifications(named: .NSCalendarDayChanged) { self?.tick() }
             }
         }
         if env.isFake { phase = .loaded(at: .now, stale: false); rebuild(); return }
@@ -448,19 +450,19 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
 
     func rebuild() {
         let me = self.me
-        let now = Date.now
+        let now = self.now
         let cal = Calendar.current
         squad = raw.squad
         check = raw.check
-        polls = raw.polls
-        votes = raw.votes
-        confirms = raw.confirms.values.sorted { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
-        joinRequests = raw.joinRequests.filter { $0.status == .pending }
-
         let sortedMembers = raw.members.sorted { $0.joinedAt < $1.joinedAt }
         myRole = sortedMembers.first { $0.userId == me }?.role
         let locked = (raw.check?.mystery ?? false) && Mystery.isGuestsHidden(mystery: true, eventDate: raw.check?.eventDate, now: now, calendar: cal)
         isMysteryLocked = locked
+        // Side tables carry raw user ids (poll.createdBy, confirm.userId) — under the lock they are not published at all (§9.3).
+        polls = locked ? [:] : raw.polls
+        votes = locked ? [:] : raw.votes
+        confirms = locked ? [] : raw.confirms.values.sorted { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
+        joinRequests = raw.joinRequests.filter { $0.status == .pending }
 
         let assignment = locked ? Censor.kaomojiAssignment(threadSeed: squadId.description, userIds: sortedMembers.map(\.userId)) : [:]
         var keys: [MemberKey: UserID] = [:]
@@ -534,6 +536,9 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
     }
 
     func load(raw r: ChatRaw) { raw = r; phase = .loaded(at: .now, stale: false); rebuild() }
+    func tick() { now = .now; rebuild() }
+    /// Tests / fixtures: drive the clock by hand.
+    func setNow(_ d: Date) { now = d; rebuild() }
     func setScrollAtBottom(_ atBottom: Bool) { scroll.isAtBottom = atBottom; if atBottom { scroll.unseenCount = 0 } }
 }
 
