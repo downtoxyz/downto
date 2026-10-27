@@ -121,6 +121,7 @@ struct SquadRowView: View {
         .onLongPressGesture(minimumDuration: 0.04, maximumDistance: 20, perform: {}, onPressingChanged: { pressed = $0 })
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("squad-row")
     }
 
     private func previewText(_ m: MessagePreview) -> String {

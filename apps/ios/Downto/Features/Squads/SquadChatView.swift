@@ -12,6 +12,7 @@ struct SquadChatView: View {
     @State private var now = Date.now
     @State private var flashId: MessageID?
     @State private var sends = 0
+    @State private var bottomInsetHeight: CGFloat = 0
     @State private var successes = 0
     @State private var lastLifecycle: SquadLifecycle = .live
     @State private var keyboardShown = false
@@ -85,8 +86,10 @@ struct SquadChatView: View {
                                      onSetDate: { env.router.present(.dateProposal(squadId)) })
                     }
                     .dtFeedback(.impact(weight: .medium), trigger: sends)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bottomInsetHeight = $0 }
                 }
                 .overlay(alignment: .bottomTrailing) {
+                    // The overlay spans the inset too, so lift the circle above the composer: otherwise it sits exactly on the send button.
                     if !chat.scroll.isAtBottom {
                         Button { scrollToBottom(animated: true) } label: {
                             ZStack {
@@ -101,7 +104,7 @@ struct SquadChatView: View {
                             .frame(width: 44, height: 44)
                         }
                         .buttonStyle(.plain)
-                        .padding(.trailing, 12).padding(.bottom, 8)
+                        .padding(.trailing, 12).padding(.bottom, 8 + bottomInsetHeight)
                         .transition(.scale(scale: 0.6).combined(with: .opacity))
                         .accessibilityLabel("scroll to newest")
                     }

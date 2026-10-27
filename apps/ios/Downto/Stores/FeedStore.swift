@@ -1217,7 +1217,7 @@ nonisolated enum FeedProject {
 
     func stopClock() { clockTask?.cancel(); dayTask?.cancel(); tzTask?.cancel(); clockTask = nil; dayTask = nil; tzTask = nil }
 
-    func tick() { now = .now; rebuild() }
+    func tick() { guard !env.isFake else { return }; now = .now; rebuild() }   // fake worlds keep the fixture clock
 
     private func dayChanged() {
         now = .now

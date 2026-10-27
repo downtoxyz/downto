@@ -438,7 +438,7 @@ nonisolated struct SquadSections: Sendable, Equatable {
         }
     }
     func stopClock() { clockTask?.cancel(); clockTask = nil }
-    func tick() { now = .now; rebuild() }
+    func tick() { guard !env.isFake else { return }; now = .now; rebuild() }
 
     func reset() {
         stopClock()

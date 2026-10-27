@@ -135,6 +135,7 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
     /// True while a page of older rows is being fetched (the 24 pt shimmer rule at the top).
     private(set) var isPaging = false
     private(set) var hasMoreHistory = true
+    private var fakeBacklog: [Message] = []
     var draft: String { didSet { Defaults.setDraft(draft, squadId) } }
     private(set) var sending: [MessageID: PendingSend] = [:]
     /// Local bytes for optimistic image rows (`path == "local:<id>"`).
@@ -179,6 +180,15 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
         }
         if env.isFake {
             if let r = env.fakeChats[squadId] { raw = r }
+            now = env.feed.now
+            // Fake paging: keep the newest `initialPage` rows, park the rest so loadOlder() can prepend them like the server would.
+            let sorted = raw.messages.values.sorted { $0.createdAt < $1.createdAt }
+            if sorted.count > Self.initialPage {
+                fakeBacklog = Array(sorted.prefix(sorted.count - Self.initialPage))
+                for m in fakeBacklog { raw.messages[m.id] = nil }
+                raw.oldestLoadedAt = sorted[sorted.count - Self.initialPage].createdAt
+                hasMoreHistory = true
+            }
             phase = .loaded(at: .now, stale: false); rebuild(); return
         }
         if confirmTask == nil {
@@ -402,9 +412,18 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
 
     /// Prepends up to 100 older rows (§7.6 item 3); returns how many so the scroll controller can anchor. Bypasses the buffer.
     func loadOlder() async -> Int {
-        guard !isPaging, hasMoreHistory, let oldest = raw.oldestLoadedAt, !env.isFake else { return 0 }
+        guard !isPaging, hasMoreHistory, let oldest = raw.oldestLoadedAt else { return 0 }
         isPaging = true
         defer { isPaging = false }
+        if env.isFake {
+            let page = Array(fakeBacklog.suffix(Self.pageSize))
+            fakeBacklog.removeLast(page.count)
+            for m in page { raw.messages[m.id] = m }
+            if let first = page.first { raw.oldestLoadedAt = min(oldest, first.createdAt) }
+            hasMoreHistory = !fakeBacklog.isEmpty
+            rebuild()
+            return page.count
+        }
         do {
             let rows: [Message] = try await db.from("messages").select().eq("squad_id", value: squadId)
                 .lt("created_at", value: PostgresTimestamp.format(oldest)).order("created_at", ascending: false).limit(Self.pageSize).execute().value
@@ -539,7 +558,7 @@ nonisolated enum SquadLifecycle: Hashable, Sendable {
     }
 
     func load(raw r: ChatRaw) { raw = r; phase = .loaded(at: .now, stale: false); rebuild() }
-    func tick() { now = .now; rebuild() }
+    func tick() { guard !env.isFake else { return }; now = .now; rebuild() }
     /// Tests / fixtures: drive the clock by hand.
     func setNow(_ d: Date) { now = d; rebuild() }
     func setScrollAtBottom(_ atBottom: Bool) { scroll.isAtBottom = atBottom; if atBottom { scroll.unseenCount = 0 } }

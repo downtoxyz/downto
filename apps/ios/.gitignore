@@ -10,3 +10,4 @@ Config/*.override.xcconfig
 xcuserdata/
 *.xcuserstate
 .DS_Store
+build/

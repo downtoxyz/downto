@@ -51,6 +51,7 @@ struct Folio: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(label.capitalized), tab \(index(of: tab)) of 3")
+                .accessibilityIdentifier("tab-\(label.lowercased())")
                 .accessibilityValue(tab == .squads && squadUnread ? "unread" : "")
                 .accessibilityAddTraits(selected == tab ? [.isSelected] : [])
                 .accessibilityRemoveTraits(selected == tab ? [] : [.isSelected])

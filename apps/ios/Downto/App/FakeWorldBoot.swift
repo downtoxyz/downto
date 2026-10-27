@@ -24,6 +24,7 @@ extension AppEnvironment {
 
     /// A live-shaped environment with every store pre-filled from a fixture world; `isFake` short-circuits every network call.
     static func fake(_ world: Fixtures.World, config: AppConfig) -> AppEnvironment {
+        Defaults.clearAll(except: [])          // a fixture world is deterministic: no drafts, flags or pending intents from earlier launches
         let env = AppEnvironment(config: config, isFake: true)
         let built = Fixtures.world(world)
         let profiles = Array(built.feed.profiles.values)
@@ -35,6 +36,7 @@ extension AppEnvironment {
         let squadWorld = SquadFixtures.busyFriday(me: built.me.id, profiles: built.feed.profiles, now: built.now, longChat: true)
         let social = SocialFixtures.busyFriday(me: built.me, profiles: profiles, now: built.now, squadId: squadWorld.movieNight, climbingCheckId: Fixtures.climbingId)
         env.squads.load(raw: world == .emptyNewUser ? SquadsRaw() : squadWorld.squads, phase: phase)
+        env.squads.setNow(built.now)
         env.fakeChats = world == .emptyNewUser ? [:] : squadWorld.chats
         env.notifications.load(items: world == .emptyNewUser ? [] : social.notifications, phase: phase)
         env.friends.load(raw: world == .emptyNewUser ? FriendsRaw() : social.friends, phase: phase)
@@ -48,6 +50,10 @@ extension AppEnvironment {
         if let i = args.firstIndex(of: "-DT_OPEN_SQUAD"), i + 1 < args.count {
             let id: SquadID? = switch args[i + 1] { case "movieNight": squadWorld.movieNight; case "karaoke": squadWorld.karaoke; case "mystery": squadWorld.mystery; default: nil }
             if let id { env.router.tab = .squads; env.router.squadPath = [id] }
+        }
+        if let i = args.firstIndex(of: "-DT_TOAST"), i + 1 < args.count {
+            let text = args[i + 1]
+            Task { try? await Task.sleep(for: .seconds(1)); env.toasts.show(text) }
         }
         #endif
         return env

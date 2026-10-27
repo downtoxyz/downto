@@ -7,6 +7,7 @@ final class GalleryScrollTests: XCTestCase {
     @MainActor
     private func dragMoves(anchor: String, from start: XCUIElement) -> Bool {
         let app = XCUIApplication()
+        app.launchArguments = ["-DT_FAKE_WORLD", "busyFriday"]
         app.launch()
         XCTAssertTrue(app.staticTexts["down to"].waitForExistence(timeout: 15))
         let el = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", anchor)).firstMatch
@@ -31,6 +32,7 @@ final class GalleryScrollTests: XCTestCase {
     @MainActor func testDragFromDownPillDoesNotStamp() {
         // A scroll that starts on an idle pill must not count as a tap (DESIGN §4.1 precedence: scroll > press).
         let app = XCUIApplication()
+        app.launchArguments = ["-DT_FAKE_WORLD", "busyFriday"]
         app.launch()
         XCTAssertTrue(app.staticTexts["down to"].waitForExistence(timeout: 15))
         let pill = app.buttons["down"].firstMatch

@@ -77,6 +77,7 @@ struct ComposerSlot: View {
                     .accessibilityLabel("poll").accessibilityHint("polls are on web for now")
             }
             TextField("", text: $text, prompt: Text("say something").foregroundStyle(Color.inkFaint), axis: .vertical)
+                .accessibilityIdentifier("composer")
                 .dtFont(.body)
                 .foregroundStyle(Color.ink)
                 .lineLimit(1...5)
@@ -152,6 +153,7 @@ struct ComposerSlot: View {
         let names = Set(t.split(whereSeparator: { $0.isWhitespace }).filter { $0.hasPrefix("@") }.map { String($0.dropFirst()).lowercased() })
         let ids = chat.mentionable.filter { names.contains($0.username.lowercased()) }.map(\.id)
         onSend(t, ids)
+        text = ""          // the store clears its draft; the view's text is the source of truth for the field (one-way sync, SquadChatView)
         mentionIds = []
     }
 }
