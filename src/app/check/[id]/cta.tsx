@@ -40,15 +40,26 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
 
   if (state === "loading") return null;
 
+  // Universal links open the iOS app directly; this custom-scheme link is the fallback where they are suppressed
+  // (in-app browsers, long-press "open in Safari"). No-op on devices without the app.
+  const openInApp = (
+    <a href={`downto://check/${checkId}`} className="block text-center font-mono text-[10px] uppercase tracking-widest text-dim no-underline mt-3">
+      open in the down to app →
+    </a>
+  );
+
   const baseClasses = "block w-full text-center bg-dt text-on-accent rounded-xl font-mono text-xs font-bold uppercase no-underline border-none cursor-pointer";
   const baseStyle = { padding: 14, letterSpacing: "0.08em" };
 
   // Not logged in — send through auth flow with pending check
   if (state === "logged-out") {
     return (
-      <a href={`/?pendingCheck=${checkId}`} className={baseClasses} style={baseStyle}>
-        Join to respond
-      </a>
+      <>
+        <a href={`/?pendingCheck=${checkId}`} className={baseClasses} style={baseStyle}>
+          Join to respond
+        </a>
+        {openInApp}
+      </>
     );
   }
 
@@ -65,6 +76,7 @@ export default function CheckPreviewCTA({ checkId }: { checkId: string }) {
         <a href={`/?tab=feed&checkId=${checkId}`} className={`${baseClasses} !bg-card !text-primary`} style={baseStyle}>
           Open downto
         </a>
+        {openInApp}
       </div>
     );
   }

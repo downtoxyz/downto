@@ -41,7 +41,7 @@ async function buildSharedCheck(
   return {
     id: shared.id,
     text: shared.text,
-    author: shared.author_name,
+    author: shared.author_name ?? "???",   // NULL while a mystery check is unrevealed (get_shared_check masks it)
     authorId: shared.author_id,
     timeAgo: formatTimeAgo(new Date(shared.created_at)),
     ...computeExpiry(shared.expires_at, shared.created_at),
@@ -52,6 +52,7 @@ async function buildSharedCheck(
     eventTime: shared.event_time ?? undefined,
     location: shared.location ?? undefined,
     viaFriendName: "shared link",
+    mystery: shared.mystery,
     squadId: shared.squadId ?? undefined,
     squadMemberCount: shared.squadMemberCount,
     inSquad: shared.inSquad,
