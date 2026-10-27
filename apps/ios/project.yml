@@ -65,7 +65,7 @@ targets:
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
         API_BASE_URL: $(API_BASE_URL)
-        UIAppFonts: [InterVariable.ttf, IBMPlexMono-Regular.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf, IBMPlexMono-Bold.ttf, IBMPlexMono-Italic.ttf]   # ARCHITECTURE §13 / DESIGN §2
+        UIAppFonts: [InterVariable.ttf, IBMPlexMono-Regular.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf, IBMPlexMono-Bold.ttf, IBMPlexMono-Italic.ttf, InstrumentSerif-Regular.ttf, InstrumentSerif-Italic.ttf, SpaceMono-Regular.ttf, SpaceMono-Bold.ttf, SpaceMono-Italic.ttf, SpaceMono-BoldItalic.ttf]   # ARCHITECTURE §13 / DESIGN §2
         CFBundleURLTypes: [{ CFBundleURLSchemes: [downto] }]       # fallback custom scheme; universal links are primary (§7.2)
         UIBackgroundModes: [remote-notification]
         UILaunchScreen: {}          # required; without it iOS runs the app letterboxed in legacy compatibility scaling

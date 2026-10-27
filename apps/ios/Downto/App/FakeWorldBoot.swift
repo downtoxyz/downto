@@ -24,7 +24,7 @@ extension AppEnvironment {
 
     /// A live-shaped environment with every store pre-filled from a fixture world; `isFake` short-circuits every network call.
     static func fake(_ world: Fixtures.World, config: AppConfig) -> AppEnvironment {
-        Defaults.clearAll(except: [])          // a fixture world is deterministic: no drafts, flags or pending intents from earlier launches
+        Defaults.clearAll(except: [.edition])  // a fixture world is deterministic: no drafts, flags or pending intents from earlier launches
         let env = AppEnvironment(config: config, isFake: true)
         let built = Fixtures.world(world)
         let profiles = Array(built.feed.profiles.values)
@@ -57,6 +57,7 @@ extension AppEnvironment {
             let target = Fixtures.calendar.date(byAdding: .day, value: 3, to: built.now)!.addingTimeInterval(60)
             Task { try? await Task.sleep(for: .seconds(secs)); feed.jumpClock(to: target) }
         }
+        if let i = args.firstIndex(of: "-DT_EDITION"), i + 1 < args.count, let e = Edition(rawValue: args[i + 1]) { env.edition.set(e) }
         if let i = args.firstIndex(of: "-DT_TOAST"), i + 1 < args.count {
             let text = args[i + 1]
             Task { try? await Task.sleep(for: .seconds(1)); env.toasts.show(text) }

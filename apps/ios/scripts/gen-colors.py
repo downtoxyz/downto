@@ -31,6 +31,31 @@ TOKENS = {
 }
 
 
+# Dragonfruit edition (src/lib/themes/dragonfruit.ts, OKLCH scales resolved to sRGB): dark warm-gray paper, magenta rules, lime accent.
+# Written as `df_<name>` colour sets (both slots identical); `Color.dt(_:)` picks them when Edition.current == .dragonfruit.
+DRAGONFRUIT = {
+    "paper": ("0C080A", 1), "card": ("130D11", 1), "surface": ("1D161A", 1), "deep": ("151013", 1),
+    "ink": ("F1E8EE", 1),
+    "inkMuted": ("AEA0A8", 1), "inkMutedOnSurface": ("D5CAD1", 1),
+    "inkExpired": ("8B7B85", 1), "inkDim": ("8B7B85", 1), "inkFaint": ("6F5D68", 1),
+    "rule": ("3B2F36", 1), "ruleLight": ("51434C", 1), "ruleMid": ("A32384", 1),
+    "dt": ("E2F400", 1), "dtInk": ("E2F400", 1), "dtInkOnSurface": ("EFFF60", 1),
+    "onDt": ("0A0A00", 1),
+    "dtFaint": ("E2F400", 0.06), "dtSubtle": ("E2F400", 0.12), "dtLight": ("E2F400", 0.22), "dtMid": ("E2F400", 0.55),
+    "pool": ("00D4FF", 1), "poolInk": ("5AE3FF", 1), "poolInkOnSurface": ("5AE3FF", 1),
+    "squad": ("C026D3", 1), "squadInk": ("FF83E6", 1), "squadInkOnSurface": ("FFAFF6", 1),
+    "danger": ("FF4D6D", 1), "dangerInk": ("FF8AA0", 1), "dangerInkOnSurface": ("FFA3B4", 1),
+    "success": ("51CF66", 1), "successInk": ("8EE59E", 1), "successInkOnSurface": ("8EE59E", 1),
+    "warn": ("FFA94D", 1), "warnInk": ("FFC98A", 1),
+    "info": ("5AC8FA", 1), "unreadSquad": ("FF453A", 1),
+    "newLime": ("CBDC00", 1), "newInk": ("0A0A00", 1),
+    "checkMine": ("3E0430", 1), "checkDown": ("2D3200", 1),
+    "checkNew": ("424800", 1), "checkNewRule": ("8D9A00", 1),
+    "waitlistBg": ("2E2416", 1), "downIdle": ("281E24", 1), "downIdleRule": ("A32384", 1),
+    "heroWash": ("FFF0F5", 0.55), "heroWashDown": ("C8E63C", 0.60),
+}
+
+
 def comp(hexv, alpha):
     return {"color-space": "srgb", "components": {
         "alpha": f"{alpha:.3f}", "red": f"0x{hexv[0:2]}", "green": f"0x{hexv[2:4]}", "blue": f"0x{hexv[4:6]}"}}
@@ -43,6 +68,18 @@ for name, (lh, la, dh, da) in TOKENS.items():
     doc = {"colors": [
         {"idiom": "universal", "color": comp(lh, la)},
         {"idiom": "universal", "appearances": [{"appearance": "luminosity", "value": "dark"}], "color": comp(dh, da)},
+    ], "info": {"author": "xcode", "version": 1}}
+    with open(os.path.join(d, "Contents.json"), "w") as f:
+        json.dump(doc, f, indent=2)
+        f.write("\n")
+missing = set(TOKENS) - set(DRAGONFRUIT)
+assert not missing, f"DRAGONFRUIT is missing {sorted(missing)}"
+for name, (h, a) in DRAGONFRUIT.items():
+    d = os.path.join(OUT, f"df_{name}.colorset")
+    os.makedirs(d, exist_ok=True)
+    doc = {"colors": [
+        {"idiom": "universal", "color": comp(h, a)},
+        {"idiom": "universal", "appearances": [{"appearance": "luminosity", "value": "dark"}], "color": comp(h, a)},
     ], "info": {"author": "xcode", "version": 1}}
     with open(os.path.join(d, "Contents.json"), "w") as f:
         json.dump(doc, f, indent=2)

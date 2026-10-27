@@ -22,6 +22,8 @@ enum Defaults {
         case hapticsEnabled = "dt.hapticsEnabled"
         case seenIds = "dt.seenIds"
         case revealedSeen = "dt.revealedSeen"
+        /// Theme preference (Edition.swift reads/writes it directly); survives logout like feedSort.
+        case edition = "dt.edition"
     }
 
     static var store: UserDefaults = .standard
@@ -98,7 +100,7 @@ enum Defaults {
     }
 
     /// Logout: every `dt.*` key except the listed ones.
-    static func clearAll(except keep: Set<Key> = [.feedSort]) {
+    static func clearAll(except keep: Set<Key> = [.feedSort, .edition]) {
         for (k, _) in store.dictionaryRepresentation() where k.hasPrefix("dt.") {
             if let key = Key(rawValue: k), keep.contains(key) { continue }
             store.removeObject(forKey: k)

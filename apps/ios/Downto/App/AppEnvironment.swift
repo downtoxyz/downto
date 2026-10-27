@@ -19,6 +19,7 @@ import os
     let cache: LocalCache
     let images: ImageCache
     let reachability: Reachability
+    let edition = EditionStore()
     // Built after `self` exists (they hold `unowned let env`).
     private(set) var feed: FeedStore!
     private(set) var squads: SquadsStore!

@@ -8,62 +8,64 @@ private final class DTBundleToken {}
 
 nonisolated extension Color {
     /// Every token is an Asset Catalog colour set (Any + Dark) under Resources/Assets.xcassets/Colors — see scripts/gen-colors.py.
-    private static func dt(_ name: String) -> Color { Color(name, bundle: Bundle(for: DTBundleToken.self)) }
+    private static func dt(_ name: String) -> Color {
+        Color(Edition.current == .dragonfruit ? "df_\(name)" : name, bundle: Bundle(for: DTBundleToken.self))
+    }
 
     // Stocks
-    static let paper = dt("paper")
-    static let card = dt("card")
-    static let surface = dt("surface")
-    static let deep = dt("deep")
+    static var paper: Color { dt("paper") }
+    static var card: Color { dt("card") }
+    static var surface: Color { dt("surface") }
+    static var deep: Color { dt("deep") }
     // Ink
-    static let ink = dt("ink")
-    static let inkMuted = dt("inkMuted")
-    static let inkMutedOnSurface = dt("inkMutedOnSurface")
-    static let inkExpired = dt("inkExpired")
-    static let inkDim = dt("inkDim")
-    static let inkFaint = dt("inkFaint")
+    static var ink: Color { dt("ink") }
+    static var inkMuted: Color { dt("inkMuted") }
+    static var inkMutedOnSurface: Color { dt("inkMutedOnSurface") }
+    static var inkExpired: Color { dt("inkExpired") }
+    static var inkDim: Color { dt("inkDim") }
+    static var inkFaint: Color { dt("inkFaint") }
     // Rules
-    static let rule = dt("rule")
-    static let ruleLight = dt("ruleLight")
-    static let ruleMid = dt("ruleMid")
+    static var rule: Color { dt("rule") }
+    static var ruleLight: Color { dt("ruleLight") }
+    static var ruleMid: Color { dt("ruleMid") }
     // Magenta
-    static let dt = dt("dt")
-    static let dtInk = dt("dtInk")
-    static let dtInkOnSurface = dt("dtInkOnSurface")
-    static let onDt = dt("onDt")
-    static let dtFaint = dt("dtFaint")
-    static let dtSubtle = dt("dtSubtle")
-    static let dtLight = dt("dtLight")
-    static let dtMid = dt("dtMid")
+    static var dt: Color { dt("dt") }
+    static var dtInk: Color { dt("dtInk") }
+    static var dtInkOnSurface: Color { dt("dtInkOnSurface") }
+    static var onDt: Color { dt("onDt") }
+    static var dtFaint: Color { dt("dtFaint") }
+    static var dtSubtle: Color { dt("dtSubtle") }
+    static var dtLight: Color { dt("dtLight") }
+    static var dtMid: Color { dt("dtMid") }
     // Semantic
-    static let pool = dt("pool")
-    static let poolInk = dt("poolInk")
-    static let poolInkOnSurface = dt("poolInkOnSurface")
-    static let squad = dt("squad")
-    static let squadInk = dt("squadInk")
-    static let squadInkOnSurface = dt("squadInkOnSurface")
-    static let danger = dt("danger")
-    static let dangerInk = dt("dangerInk")
-    static let dangerInkOnSurface = dt("dangerInkOnSurface")
-    static let success = dt("success")
-    static let successInk = dt("successInk")
-    static let successInkOnSurface = dt("successInkOnSurface")
-    static let warn = dt("warn")
-    static let warnInk = dt("warnInk")
-    static let info = dt("info")
-    static let unreadSquad = dt("unreadSquad")
-    static let newLime = dt("newLime")
-    static let newInk = dt("newInk")
+    static var pool: Color { dt("pool") }
+    static var poolInk: Color { dt("poolInk") }
+    static var poolInkOnSurface: Color { dt("poolInkOnSurface") }
+    static var squad: Color { dt("squad") }
+    static var squadInk: Color { dt("squadInk") }
+    static var squadInkOnSurface: Color { dt("squadInkOnSurface") }
+    static var danger: Color { dt("danger") }
+    static var dangerInk: Color { dt("dangerInk") }
+    static var dangerInkOnSurface: Color { dt("dangerInkOnSurface") }
+    static var success: Color { dt("success") }
+    static var successInk: Color { dt("successInk") }
+    static var successInkOnSurface: Color { dt("successInkOnSurface") }
+    static var warn: Color { dt("warn") }
+    static var warnInk: Color { dt("warnInk") }
+    static var info: Color { dt("info") }
+    static var unreadSquad: Color { dt("unreadSquad") }
+    static var newLime: Color { dt("newLime") }
+    static var newInk: Color { dt("newInk") }
     // Card-state tints (§1.3)
-    static let checkMine = dt("checkMine")
-    static let checkDown = dt("checkDown")
-    static let checkNew = dt("checkNew")
-    static let checkNewRule = dt("checkNewRule")
-    static let waitlistBg = dt("waitlistBg")
-    static let downIdle = dt("downIdle")
-    static let downIdleRule = dt("downIdleRule")
-    static let heroWash = dt("heroWash")
-    static let heroWashDown = dt("heroWashDown")
+    static var checkMine: Color { dt("checkMine") }
+    static var checkDown: Color { dt("checkDown") }
+    static var checkNew: Color { dt("checkNew") }
+    static var checkNewRule: Color { dt("checkNewRule") }
+    static var waitlistBg: Color { dt("waitlistBg") }
+    static var downIdle: Color { dt("downIdle") }
+    static var downIdleRule: Color { dt("downIdleRule") }
+    static var heroWash: Color { dt("heroWash") }
+    static var heroWashDown: Color { dt("heroWashDown") }
 
     /// Every token name, for the gallery swatch page and the asset-presence test.
     static let dtTokenNames: [String] = [

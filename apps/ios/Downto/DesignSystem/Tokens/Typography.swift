@@ -110,6 +110,10 @@ nonisolated enum DTTextStyle: Hashable, Sendable, CaseIterable {
         let s = overrideSize ?? size
         switch overrideFace ?? spec.face {
         case .inter(let wght, let opsz, let tabular):
+            if Edition.current == .dragonfruit {
+                // Instrument Serif ships one weight; the serif reads smaller at a given size, so it is set ~6% larger.
+                return UIFontDescriptor(name: "InstrumentSerif-Regular", size: (s * 1.06).rounded())
+            }
             var variation: [Int: CGFloat] = [Self.wghtTag: min(900, wght + (bold ? 100 : 0))]
             if let opsz { variation[Self.opszTag] = opsz }
             var attrs: [UIFontDescriptor.AttributeName: Any] = [
@@ -124,9 +128,19 @@ nonisolated enum DTTextStyle: Hashable, Sendable, CaseIterable {
             }
             return UIFontDescriptor(fontAttributes: attrs).withSize(s)
         case .plex(let cut):
+            if Edition.current == .dragonfruit { return UIFontDescriptor(name: Self.spaceMono(for: bold ? cut.bolder : cut), size: s) }
             return UIFontDescriptor(name: (bold ? cut.bolder : cut).rawValue, size: s)
         case .kaomoji:
             return Self.kaomojiDescriptor(size: s)
+        }
+    }
+
+    /// Dragonfruit's mono: Space Mono has Regular / Bold / Italic only.
+    nonisolated static func spaceMono(for cut: PlexCut) -> String {
+        switch cut {
+        case .regular, .medium: "SpaceMono-Regular"
+        case .semiBold, .bold: "SpaceMono-Bold"
+        case .italic: "SpaceMono-Italic"
         }
     }
 
@@ -155,7 +169,9 @@ nonisolated enum DTTextStyle: Hashable, Sendable, CaseIterable {
     /// The scaled tracking in points for the current Dynamic Type traits (DESIGN §2: `.tracking()` does not scale by itself).
     nonisolated func scaledTracking(compatibleWith traits: UITraitCollection? = nil, halve: Bool = false) -> CGFloat {
         let scaled = UIFontMetrics(forTextStyle: relativeTo).scaledValue(for: size, compatibleWith: traits)
-        return CGFloat(trackingEm) * scaled * (halve ? 0.5 : 1)
+        var em = trackingEm
+        if Edition.current == .dragonfruit, case .inter = spec.face { em = 0.02 }   // the serif wants air, not Inter's tight tracking (web: +0.04em)
+        return CGFloat(em) * scaled * (halve ? 0.5 : 1)
     }
 }
 

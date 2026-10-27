@@ -33,6 +33,9 @@ struct RootView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.98)))
         }
         .animation(.smooth(duration: 0.35), value: gate)
+        .id(env.edition.current)                                             // every token/face re-resolves for the new edition
+        .animation(.smooth(duration: 0.5), value: env.edition.current)      // DESIGN §7.10: the palette crossfade
+        .preferredColorScheme(env.edition.current.isDark ? .dark : .light)   // system surfaces (keyboard, dialogs) follow the paper
         .task { if !env.isFake { env.session.start() }; env.reachability.start() }
         .onChange(of: env.session.state, initial: true) { _, state in
             switch state {

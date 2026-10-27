@@ -56,6 +56,12 @@
 		<string>IBMPlexMono-SemiBold.ttf</string>
 		<string>IBMPlexMono-Bold.ttf</string>
 		<string>IBMPlexMono-Italic.ttf</string>
+		<string>InstrumentSerif-Regular.ttf</string>
+		<string>InstrumentSerif-Italic.ttf</string>
+		<string>SpaceMono-Regular.ttf</string>
+		<string>SpaceMono-Bold.ttf</string>
+		<string>SpaceMono-Italic.ttf</string>
+		<string>SpaceMono-BoldItalic.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

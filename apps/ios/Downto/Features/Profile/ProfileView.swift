@@ -105,6 +105,14 @@ struct ProfileView: View {
                 Toggle("", isOn: $haptics).labelsHidden().tint(Color.dt).accessibilityLabel("haptics")
             }
             notificationsRow
+            ColophonRow(title: "edition") {
+                Picker("edition", selection: Binding(get: { env.edition.current }, set: { env.edition.set($0) })) {
+                    ForEach(Edition.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 200)
+                .accessibilityLabel("edition")
+            }
         }
     }
 
