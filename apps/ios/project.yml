@@ -51,6 +51,10 @@ targets:
       path: Downto/Resources/Downto.entitlements
       properties:
         aps-environment: development
+        com.apple.developer.associated-domains:            # universal links (ARCHITECTURE §7.2); the AASA is served by the web repo (PR #513)
+          - applinks:downto.xyz
+          - applinks:downto.xyz?mode=developer           # dev builds bypass Apple's CDN cache
+          - applinks:staging.downto.xyz?mode=developer
     info:
       path: Downto/Config/Info.plist
       properties:
