@@ -266,3 +266,9 @@ Format: **Conflict / Decision / Why / Where changed (file §)**.
 - **Conflict:** §4.4.1 drives the ladder from gate changes. For an onboarded user the gate is already `.main` when `runPreGate()` starts, so nothing re-evaluated `bootAfterLogin` once the (async) pre-gate finished — the feed sat on the skeleton forever.
 - **Decision:** `RootView` observes `env.preGateDone` and `env.profile.meLoaded` in addition to the gate and calls `advance(gate)` on each.
 - **Where:** `App/RootView.swift`.
+
+## 40. Router writes that follow `@State` mutations are deferred one turn
+
+- **Conflict:** `CreateOverlay.post()` cleared its `@State` fields and then set `router.isCreateOpen = false` inside `withAnimation`. The queued state update flushed synchronously as the write began; `MainShell` re-rendered reading the stale `true` and the Observation change was consumed, so the overlay never unmounted (reproduced by `CreateOverlayTests.testPostLandsInFeedAndCloses`; the plain close button, with no preceding `@State` writes, was fine).
+- **Decision:** a store/router write that follows local `@State` mutations in the same call is made on the next main-actor turn (`Task { @MainActor in … }`); the host animates with `.animation(_:value:)` rather than `withAnimation` at the write site.
+- **Where:** `Features/Feed/CreateOverlay.swift` `close(discard:)`; `App/MainShell.swift` already had the `.animation(value:)`.

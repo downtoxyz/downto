@@ -37,6 +37,23 @@ final class LiveSmokeTests: XCTestCase {
         app.buttons["back"].firstMatch.tap()
         app.buttons["tab-squads"].tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "squad-row").firstMatch.waitForExistence(timeout: 10))
+
+        // Post a check through the Create overlay: it must land at the top of the feed as "your check".
+        app.buttons["tab-feed"].tap()
+        app.buttons["new check"].firstMatch.tap()
+        let editor = app.textViews["check text"].exists ? app.textViews["check text"] : app.textFields["check text"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "create overlay editor should be up")
+        let text = "smoke check \(Int(Date().timeIntervalSince1970))"
+        editor.tap(); editor.typeText(text)
+        let post = app.buttons["POST →"].firstMatch
+        XCTAssertTrue(waitUntil(timeout: 5) { post.exists && post.isEnabled }, "POST should enable with text")
+        post.tap()
+        XCTAssertTrue(waitUntil(timeout: 8) { !editor.exists }, "the overlay should close after a successful post")
+        // A fresh 24 h check sorts to the end of the TIMED tier (least urgent first is at the top), so scroll until it is on screen.
+        let postedEntry = app.staticTexts[text]
+        _ = postedEntry.waitForExistence(timeout: 5)
+        for _ in 0..<10 where !(postedEntry.exists && postedEntry.isHittable) { app.swipeUp() }
+        XCTAssertTrue(postedEntry.exists, "the posted check should appear in the feed")
     }
 
     @MainActor

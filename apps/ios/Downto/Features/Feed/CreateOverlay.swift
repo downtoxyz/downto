@@ -228,8 +228,12 @@ struct CreateOverlay: View {
     private func close(discard: Bool) {
         if discard { clearDraft() }
         editorFocused = false
-        withAnimation(DTSpring.page) { env.router.isCreateOpen = false }
         env.router.createPrefill = nil
+        // Deferred one hop: after a post, the @State clears above have queued a view update, and a synchronous write here lands
+        // mid-flush — MainShell re-renders reading the stale `true` and never sees the change (observed on device). Writing on the
+        // next turn is unambiguous; MainShell's `.animation(DTSpring.page, value: router.isCreateOpen)` animates the removal.
+        let router = env.router
+        Task { @MainActor in router.isCreateOpen = false }
     }
 
     private func post() async {
