@@ -32,7 +32,7 @@ struct Folio: View {
                     } label: {
                         Text(label)
                             .dtFont(.label, size: 11)
-                            .foregroundStyle(selected == tab ? AnyShapeStyle(Color.onDt) : AnyShapeStyle(DTStockInk(token: .inkMuted)))
+                            .foregroundStyle(selected == tab ? AnyShapeStyle(Color.ink) : AnyShapeStyle(DTStockInk(token: .inkMuted)))   // ink, not onDt: the pill is 60% glass, not a solid accent fill
                             .multilineTextAlignment(.center)
                             .overlay(alignment: .topTrailing) {
                                 if tab == .squads && squadUnread { SquadUnreadDot().offset(x: 4, y: -2) }
