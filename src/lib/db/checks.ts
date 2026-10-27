@@ -13,10 +13,11 @@ export async function getSharedCheck(checkId: string) {
   if (error || !data || data.length === 0) return null;
   const check = data[0] as {
     id: string; text: string; author_id: string;
-    author_name: string; author_avatar: string;
+    // author_name / author_avatar are NULL while a mystery check is unrevealed (20261027000001) — the RPC is anon-callable.
+    author_name: string | null; author_avatar: string | null;
     event_date: string | null; event_time: string | null;
     location: string | null; expires_at: string | null;
-    created_at: string; response_count: number;
+    created_at: string; response_count: number; mystery: boolean;
   };
 
   // Check if current user has responded and is in a squad for this check

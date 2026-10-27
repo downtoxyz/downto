@@ -12,6 +12,16 @@ interface CheckData {
   created_at: string;
   author: { display_name: string; avatar_letter: string };
   responseCount: number;
+  mystery: boolean;
+}
+
+/** Mystery checks reveal their author on the event date (mystery.ts isUnrevealed, non-author viewer). */
+function isAuthorHidden(mystery: boolean, eventDate: string | null): boolean {
+  if (!mystery) return false;
+  if (!eventDate) return true;
+  const today = new Date();
+  const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  return eventDate > localToday;
 }
 
 async function getCheck(id: string): Promise<CheckData | null> {
@@ -19,7 +29,7 @@ async function getCheck(id: string): Promise<CheckData | null> {
 
   const { data: check, error } = await supabase
     .from("interest_checks")
-    .select("id, text, event_date, event_time, location, created_at, author:profiles!author_id(display_name, avatar_letter)")
+    .select("id, text, event_date, event_time, location, created_at, mystery, author:profiles!author_id(display_name, avatar_letter)")
     .eq("id", id)
     .is("archived_at", null)
     .not("shared_at", "is", null)
@@ -33,6 +43,7 @@ async function getCheck(id: string): Promise<CheckData | null> {
     .eq("check_id", id);
 
   const author = Array.isArray(check.author) ? check.author[0] : check.author;
+  const hidden = isAuthorHidden(Boolean(check.mystery), check.event_date);
 
   return {
     id: check.id,
@@ -41,8 +52,11 @@ async function getCheck(id: string): Promise<CheckData | null> {
     event_time: check.event_time,
     location: check.location,
     created_at: check.created_at,
-    author: { display_name: author?.display_name ?? "Someone", avatar_letter: author?.avatar_letter ?? "?" },
+    author: hidden
+      ? { display_name: "???", avatar_letter: "?" }
+      : { display_name: author?.display_name ?? "Someone", avatar_letter: author?.avatar_letter ?? "?" },
     responseCount: count ?? 0,
+    mystery: Boolean(check.mystery),
   };
 }
 
@@ -61,7 +75,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const check = await getCheck(id);
   if (!check) return { title: "Check not found — down to" };
 
-  const title = `${check.author.display_name}: ${check.text.slice(0, 60)}`;
+  const title = check.mystery && check.author.display_name === "???"
+    ? `someone: ${check.text.replace(/@[a-z0-9_]+/gi, "@???").slice(0, 60)}`
+    : `${check.author.display_name}: ${check.text.slice(0, 60)}`;
   const descParts = [formatDate(check.event_date), check.event_time, check.location].filter(Boolean);
   const description = descParts.length > 0 ? descParts.join(" · ") : "Are you down?";
 
