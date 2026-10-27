@@ -1,5 +1,6 @@
-// DesignSystem/Components/Folio.swift — the tab bar (DESIGN §4.11; DECISIONS #13). Three typeset labels, a 2pt dt underline sliding
-// with DTSpring.page, intrinsic height ≥ 52, `.isTabBar`. Hidden by `router.hidesFolio` (the host collapses the safeAreaInset).
+// DesignSystem/Components/Folio.swift — the tab bar (DESIGN §4.11; DECISIONS #13, amended on device 2026-10-27). Three typeset labels
+// with a 2pt dt underline sliding with DTSpring.page, now set in a floating Liquid Glass capsule that hugs the home indicator so the
+// feed scrolls underneath instead of ending above a paper band. `.isTabBar`. Hidden by `router.hidesFolio` (the host collapses the inset).
 import SwiftUI
 
 /// The measured Folio height, published so scroll views can inset by it (DESIGN §4.11).
@@ -43,11 +44,11 @@ struct Folio: View {
                                     .matchedGeometryEffect(id: "underline", in: underline)
                             }
                         }
-                        .padding(.horizontal, -4)
                     }
-                    .padding(.vertical, 11)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .contentShape(Rectangle())
+                    .fixedSize(horizontal: true, vertical: false)   // the underline is as wide as the word, not the capsule third
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(label.capitalized), tab \(index(of: tab)) of 3")
@@ -57,10 +58,11 @@ struct Folio: View {
                 .accessibilityRemoveTraits(selected == tab ? [] : [.isSelected])
             }
         }
+        .padding(.horizontal, 10)
         .frame(maxWidth: .infinity)
-        .background(Color.paper)
-        .elevation(.laid, ruleOnly: true)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { _ in }
+        .frame(height: 52)
+        .glassEffect(.regular.interactive(), in: .capsule)      // iOS 26 Liquid Glass: the content shows through as it scrolls under
+        .padding(.horizontal, Space.gutter)
         .background(GeometryReader { geo in Color.clear.preference(key: FolioHeightKey.self, value: geo.size.height) })
         .dtFeedback(.selection, trigger: taps)
         .accessibilityElement(children: .contain)
@@ -84,12 +86,14 @@ struct FolioInset: ViewModifier {
     func body(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom, spacing: 0) {
+                // No paper behind it: the capsule floats 6pt above the home indicator and the scroll content passes beneath.
                 Folio(selected: $selected, squadUnread: squadUnread, onReselect: onReselect)
+                    .padding(.bottom, 6)
                     .onPreferenceChange(FolioHeightKey.self) { height = $0 }
                     .frame(height: hidden ? 0 : nil)
-                    .offset(y: hidden ? height + 40 : 0)
-                    .clipped()
-                    .background { if !hidden { Color.paper.ignoresSafeArea(edges: .bottom) } }   // cover the home-indicator gap below the labels
+                    .offset(y: hidden ? height + 60 : 0)
+                    .opacity(hidden ? 0 : 1)
+                    .allowsHitTesting(!hidden)
                     .animation(Motion.resolve(.page, reduceMotion: reduceMotion), value: hidden)
             }
     }
