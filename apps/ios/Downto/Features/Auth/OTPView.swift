@@ -31,7 +31,29 @@ struct OTPView: View {
                 .padding(.top, 36)
                 .modifier(Shake(trigger: shake))
                 .dtFeedback(.error, trigger: shake)
-                .onTapGesture { focused = true }
+                .overlay {
+                    // The real field, stretched over the slots: tapping focuses it and long-press shows the system Paste menu.
+                    TextField("", text: $code)
+                        .keyboardType(.numberPad)
+                        .textContentType(.oneTimeCode)
+                        .focused($focused)
+                        .foregroundStyle(.clear)
+                        .tint(.clear)
+                        .accentColor(.clear)
+                        .onChange(of: code) { _, v in onCodeChange(v) }
+                        .accessibilityLabel("8 digit code")
+                }
+
+            // Mail autofill only works for codes that arrive in Mail/Messages on this device; everyone else pastes.
+            PasteButton(payloadType: String.self) { items in
+                if let s = items.first { code = String(s.filter(\.isNumber).prefix(8)) }
+            }
+            .labelStyle(.titleOnly)
+            .buttonBorderShape(.capsule)
+            .tint(Color.dt)
+            .controlSize(.small)
+            .padding(.top, 12)
+            .accessibilityLabel("paste code")
 
             Group {
                 if let error {
@@ -46,16 +68,6 @@ struct OTPView: View {
             Spacer(minLength: 0).frame(maxHeight: .infinity)
         }
         .padding(.horizontal, Space.gutter)
-        .background {
-            TextField("", text: $code)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .focused($focused)
-                .opacity(0.02)
-                .frame(width: 1, height: 1)
-                .onChange(of: code) { _, v in onCodeChange(v) }
-                .accessibilityLabel("8 digit code")
-        }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
                 ResendRow(sentAt: sentAt, promoted: expired || locked) { Task { await resend() } }
