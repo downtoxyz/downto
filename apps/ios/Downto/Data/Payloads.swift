@@ -9,9 +9,10 @@ nonisolated struct SharedCheck: Codable, Identifiable, Hashable, Sendable {
     let id: CheckID
     let text: String
     let authorId: UserID
-    let authorName: String
-    /// author_avatar CHAR(1)
-    let authorAvatar: String
+    /// NULL while a mystery check is unrevealed (20261027000001 — the RPC is anon-callable, so it masks server-side).
+    let authorName: String?
+    /// author_avatar CHAR(1); NULL under the same rule.
+    let authorAvatar: String?
     let eventDate: LocalDate?
     let eventTime: String?
     let location: String?
@@ -19,7 +20,7 @@ nonisolated struct SharedCheck: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     /// BIGINT
     let responseCount: Int
-    /// NOT returned by the RPC today (§7.3 lists adding it as a web-repo deliverable). nil = unknown → the pre-login banner masks.
+    /// Returned since 20261027000001; nil against an older server = unknown → the pre-login banner masks.
     let mystery: Bool?
 }
 

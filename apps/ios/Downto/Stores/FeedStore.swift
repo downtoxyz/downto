@@ -366,13 +366,15 @@ nonisolated enum FeedProject {
         // §7.1 — the synthetic shared-link card, only while the real row is invisible.
         var synthetic: FeedCheck?
         if let s = raw.sharedCheck, raw.checks[s.id] == nil {
-            let masked = Mystery.isUnrevealed(mystery: s.mystery ?? false, authorId: s.authorId, eventDate: s.eventDate, viewer: me, now: now, calendar: calendar)
+            // The server already NULLs the author while a mystery check is unrevealed; a nil name is therefore masked regardless of the clock.
+            let masked = s.authorName == nil
+                || Mystery.isUnrevealed(mystery: s.mystery ?? false, authorId: s.authorId, eventDate: s.eventDate, viewer: me, now: now, calendar: calendar)
             let mine = raw.myResponseRow(checkId: s.id, me: me)
             let fc = FeedCheck(
                 id: s.id,
                 text: masked ? Censor.stripAtMentions(s.text) : s.text,
                 author: masked ? .masked(kaomoji: Censor.kaomoji(seed: s.id.description), scramble: Censor.wingdings(seed: s.id.description))
-                               : .person(PersonRef(id: s.authorId, displayName: s.authorName, username: "", avatarLetter: s.authorAvatar, isMe: false)),
+                               : .person(PersonRef(id: s.authorId, displayName: s.authorName ?? "someone", username: "", avatarLetter: s.authorAvatar ?? "?", isMe: false)),
                 via: "shared link",
                 guests: .countOnly(s.responseCount),
                 downCount: s.responseCount,

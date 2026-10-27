@@ -143,8 +143,9 @@ struct AuthView: View {
 
     /// §7.3 — mystery-safe: nil mystery → mask.
     private func sharedCheckBand(_ s: SharedCheck) -> some View {
-        let masked = Mystery.isUnrevealed(mystery: s.mystery ?? true, authorId: s.authorId, eventDate: s.eventDate, viewer: nil, now: .now, calendar: .current)
-        let name = masked ? Censor.kaomoji(seed: s.id.description) : s.authorName
+        let masked = s.authorName == nil
+            || Mystery.isUnrevealed(mystery: s.mystery ?? true, authorId: s.authorId, eventDate: s.eventDate, viewer: nil, now: .now, calendar: .current)
+        let name = masked ? Censor.kaomoji(seed: s.id.description) : (s.authorName ?? "someone")
         let text = masked ? Censor.stripAtMentions(s.text) : s.text
         return VStack(alignment: .leading, spacing: 4) {
             Text("\(name) wants to know if you're down").dtFont(.bodySmall).foregroundStyle(Color.ink)
