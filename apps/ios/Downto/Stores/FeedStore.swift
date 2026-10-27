@@ -1221,8 +1221,13 @@ nonisolated enum FeedProject {
 
     func tick() { guard !env.isFake else { return }; now = .now; rebuild() }   // fake worlds keep the fixture clock
 
-    private func dayChanged() {
-        now = .now
+    /// Moves the clock through the day-change path (previews, fake-world `-DT_REVEAL_AFTER`): what midnight does, on demand.
+    func jumpClock(to date: Date) { dayChanged(now: date) }
+
+    private func dayChanged() { dayChanged(now: .now) }
+
+    private func dayChanged(now clock: Date) {
+        now = clock
         let before = Set(items.compactMap { $0.check.flatMap { $0.mystery == .unrevealed ? $0.id : nil } })
         rebuild()
         let after = Set(items.compactMap { $0.check.flatMap { $0.mystery == .unrevealed ? $0.id : nil } })

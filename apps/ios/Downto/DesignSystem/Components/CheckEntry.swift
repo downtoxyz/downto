@@ -25,6 +25,15 @@ nonisolated struct CheckEntryModel: Hashable, Sendable, Identifiable {
         let text: String
     }
 
+    /// DESIGN §5.7: set on the FIRST render after a mystery check flipped to revealed (store `revealedNow`); carries what the
+    /// redacted entry looked like so the choreography can start from it. nil = no ceremony.
+    nonisolated struct RevealCue: Hashable, Sendable {
+        let kaomoji: String
+        let scramble: String
+        let guests: Int
+        init(kaomoji: String, scramble: String, guests: Int) { self.kaomoji = kaomoji; self.scramble = scramble; self.guests = guests }
+    }
+
     nonisolated struct SquadLink: Hashable, Sendable {
         let hasUnread: Bool
     }
@@ -57,6 +66,7 @@ nonisolated struct CheckEntryModel: Hashable, Sendable, Identifiable {
     var moreCommentsCount = 0
     var letterboxdURL: String? = nil
     var isTopOfTimed = false
+    var revealCue: RevealCue? = nil
     /// "Sara + 2 others down" / "no responses yet" / "guests revealed on the day".
     var responseLine: String {
         if isMystery { return "guests revealed on the day" }
@@ -92,6 +102,15 @@ struct CheckEntry: View {
     var contextActions: [ContextAction] = []
     /// Render without the press/context-menu chrome (the preview copy the system lifts must be an un-pressed entry).
     var isPreviewCopy = false
+    /// The §5.7 reveal finished (or was skipped under Reduce Motion): the host records it as seen.
+    var onRevealed: () -> Void = {}
+
+    // Mystery reveal choreography (DESIGN §5.7): 0 idle · 1 fuse · 2 avatar flipped · 3 name unscrambled · 4 guests rising · 5 done.
+    @State private var revealPhase = 0
+    @State private var burn: Double = 0
+    @State private var flipAngle: Double = 0
+    @State private var guestCount = 0
+    private var revealing: Bool { model.revealCue != nil && revealPhase < 5 }
 
     nonisolated struct ContextAction: Identifiable, Hashable, Sendable {
         let id: String
@@ -130,8 +149,9 @@ struct CheckEntry: View {
             .background(background)
             .overlay(alignment: .leading) { leftRule }
             .overlay(alignment: .topTrailing) { if model.isNew && !model.isExpired && !model.isHidden { NewFlag().padding(.top, 12) } }
-            .overlay { if model.isMystery { MysteryFrame() } }
+            .overlay { if model.isMystery || (revealing && revealPhase < 2) { MysteryFrame(burn: revealing ? burn : 0) } }
             .overlay(alignment: .top) { if let expiry = model.expiry { ExpiryRule(expiry: expiry, isTopOfSection: model.isTopOfTimed) } }
+            .task(id: model.revealCue) { await runReveal() }
             .hairline(.bottom, color: model.tint == .new && !isDown ? .checkNewRule : .rule)
             .contentShape(Rectangle())
             .accessibilityElement(children: .ignore)
@@ -163,6 +183,40 @@ struct CheckEntry: View {
         }
     }
 
+    // MARK: Mystery reveal (DESIGN §5.7)
+
+    private func runReveal() async {
+        guard let cue = model.revealCue, revealPhase == 0 else { return }
+        if reduceMotion {
+            withAnimation(DTCurve.crossfadeLong) { revealPhase = 5 }
+            guestCount = cue.guests
+            onRevealed()
+            return
+        }
+        revealPhase = 1
+        Task { await HapticEngine.shared.play(.mysteryReveal(guests: cue.guests)) }
+        withAnimation(.linear(duration: 0.85)) { burn = 1 }                       // 1. fuse
+        try? await Task.sleep(for: .milliseconds(700))
+        if !model.isMine {
+            withAnimation(.easeIn(duration: 0.12)) { flipAngle = 90 }             // 2. flip out…
+            try? await Task.sleep(for: .milliseconds(120))
+        }
+        revealPhase = 2
+        withAnimation(DTSpring.reveal) { flipAngle = 0 }                          //    …and back with the letter
+        try? await Task.sleep(for: .milliseconds(200))
+        revealPhase = 3                                                           // 3. unscramble (ScrambleText animates itself)
+        try? await Task.sleep(for: .milliseconds(400))
+        withAnimation(DTSpring.stamp) { revealPhase = 4 }                         // 4. guests rise, count climbs
+        let step = max(40, 300 / max(1, cue.guests))
+        for i in stride(from: 0, through: cue.guests, by: 1) {
+            withAnimation(DTSpring.stamp) { guestCount = i }
+            try? await Task.sleep(for: .milliseconds(step))
+        }
+        try? await Task.sleep(for: .milliseconds(900))
+        withAnimation(DTCurve.crossfade) { revealPhase = 5 }                     // 5. a short crossfade into the normal entry
+        onRevealed()
+    }
+
     // MARK: Anatomy
 
     private var content: some View {
@@ -188,7 +242,14 @@ struct CheckEntry: View {
 
     private var byline: some View {
         HStack(spacing: 8) {
-            AvatarLetter(presence: model.author, size: .inline, expired: model.isExpired || model.isHidden)
+            Group {
+                if let cue = model.revealCue, revealing, revealPhase < 2 {
+                    AvatarLetter(presence: .masked(kaomoji: cue.kaomoji, scramble: cue.scramble), size: .inline)
+                } else {
+                    AvatarLetter(presence: model.author, size: .inline, expired: model.isExpired || model.isHidden)
+                }
+            }
+            .rotation3DEffect(.degrees(flipAngle), axis: (x: 0, y: 1, z: 0))
             if model.isMine {
                 Text("you").dtFont(.meta, face: .plex(.semiBold)).foregroundStyle(Color.ink)
                 if let k = model.ownMaskKaomoji {
@@ -197,6 +258,10 @@ struct CheckEntry: View {
                 }
             } else if case .masked(_, let scramble) = model.author {
                 Text(scramble).dtFont(.meta, face: .plex(.medium)).foregroundStyle(.inkMuted)
+            } else if let cue = model.revealCue, revealing, revealPhase < 3 {
+                Text(cue.scramble).dtFont(.meta, face: .plex(.medium)).foregroundStyle(.inkMuted)
+            } else if revealing {
+                ScrambleText(text: model.author.label, style: .meta, duration: 0.6, revealed: true).foregroundStyle(.dtInk)
             } else {
                 Text(model.author.label).dtFont(.meta, face: .plex(.medium)).foregroundStyle(.dtInk)
             }
@@ -247,13 +312,30 @@ struct CheckEntry: View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                if !model.responders.isEmpty && !model.isMystery {
-                    AvatarStack(presences: model.responders, ring: model.tint.color, size: .small, dimmed: model.isExpired || model.isHidden)
+                if revealing && revealPhase < 4 {
+                    Text("guests revealed on the day").dtFont(.system).foregroundStyle(.inkMuted)
+                } else if revealing {
+                    if !model.responders.isEmpty {
+                        AvatarStack(presences: model.responders, ring: model.tint.color, size: .small)
+                            .transition(.scale(scale: 0.6, anchor: .bottom).combined(with: .opacity))
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(guestCount)").dtFont(.displayCount).foregroundStyle(Color.ink).contentTransition(.numericText(countsDown: false))
+                        Text(guestCount == 1 ? "down — revealed" : "down — revealed").dtFont(.label).foregroundStyle(.dtInk)
+                    }
+                    .transition(.opacity)
+                } else {
+                    Group {
+                        if !model.responders.isEmpty && !model.isMystery {
+                            AvatarStack(presences: model.responders, ring: model.tint.color, size: .small, dimmed: model.isExpired || model.isHidden)
+                        }
+                        Text(model.responseLine)
+                            .dtFont(model.isMystery ? .system : .bodySmall)
+                            .foregroundStyle(.inkMuted)
+                            .dtNumeric(model.responseLine)
+                    }
+                    .transition(.opacity)
                 }
-                Text(model.responseLine)
-                    .dtFont(model.isMystery ? .system : .bodySmall)
-                    .foregroundStyle(.inkMuted)
-                    .dtNumeric(model.responseLine)
                 Spacer(minLength: 8)
                 if !stacked { trailing }
             }

@@ -167,7 +167,8 @@ struct FeedView: View {
     private func checkRow(_ c: FeedCheck, isTopOfTimed: Bool) -> some View {
         let model = FeedModels.checkModel(c, pending: feed.inflightIds.contains(c.id),
                                           squadUnread: c.mySquad.map { env.squads.unread.contains($0.squadId) } ?? false,
-                                          highlighted: env.router.highlightedCheckId == c.id, isTopOfTimed: isTopOfTimed)
+                                          highlighted: env.router.highlightedCheckId == c.id, isTopOfTimed: isTopOfTimed,
+                                          revealing: feed.revealedNow.contains(c.id) && !Defaults.revealedSeen.contains(c.id))
         return VStack(spacing: 0) {
             CheckEntry(model: model,
                        onTap: { env.router.feedPath = [.checkDetail(c.id)] },
@@ -175,7 +176,8 @@ struct FeedView: View {
                        onOpenSquad: { if let s = c.mySquad { env.router.go(.squads(squadId: s.squadId), env: env) } },
                        onMore: { if !c.isSynthetic { env.router.present(.checkActions(c.id)) } },
                        onCoAuthor: { accept in Task { accept ? await feed.acceptTag(c.id) : await feed.declineTag(c.id) } },
-                       contextActions: contextActions(c))
+                       contextActions: contextActions(c),
+                       onRevealed: { var seen = Defaults.revealedSeen; seen.insert(c.id); Defaults.revealedSeen = seen })
                 .matchedTransitionSource(id: c.id, in: namespace)
                 .onScrollVisibilityChange(threshold: 0.6) { visible in if visible, c.isNew { seen(c.id) } }
             if let s = strip, s.checkId == c.id {

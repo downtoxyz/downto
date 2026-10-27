@@ -39,8 +39,11 @@ nonisolated enum FeedModels {
         return .idle
     }
 
-    static func checkModel(_ c: FeedCheck, pending: Bool = false, squadUnread: Bool = false, highlighted: Bool = false, isTopOfTimed: Bool = false, isHidden: Bool? = nil) -> CheckEntryModel {
+    static func checkModel(_ c: FeedCheck, pending: Bool = false, squadUnread: Bool = false, highlighted: Bool = false, isTopOfTimed: Bool = false, isHidden: Bool? = nil, revealing: Bool = false) -> CheckEntryModel {
         var m = CheckEntryModel(id: c.id.description, author: c.author, text: c.text)
+        if revealing, c.mystery == .revealedToday {
+            m.revealCue = .init(kaomoji: Censor.kaomoji(seed: c.id.description), scramble: Censor.wingdings(seed: c.id.description), guests: c.downs.count)
+        }
         m.isMine = c.isMine
         m.viaFriendName = c.via
         m.expiry = entryExpiry(c.expiry)

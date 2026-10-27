@@ -51,6 +51,12 @@ extension AppEnvironment {
             let id: SquadID? = switch args[i + 1] { case "movieNight": squadWorld.movieNight; case "karaoke": squadWorld.karaoke; case "mystery": squadWorld.mystery; default: nil }
             if let id { env.router.tab = .squads; env.router.squadPath = [id] }
         }
+        // `-DT_REVEAL_AFTER <seconds>`: jump the feed clock to the mystery check's day so the §5.7 reveal plays in place.
+        if let i = args.firstIndex(of: "-DT_REVEAL_AFTER"), i + 1 < args.count, let secs = Double(args[i + 1]) {
+            let feed = env.feed!
+            let target = Fixtures.calendar.date(byAdding: .day, value: 3, to: built.now)!.addingTimeInterval(60)
+            Task { try? await Task.sleep(for: .seconds(secs)); feed.jumpClock(to: target) }
+        }
         if let i = args.firstIndex(of: "-DT_TOAST"), i + 1 < args.count {
             let text = args[i + 1]
             Task { try? await Task.sleep(for: .seconds(1)); env.toasts.show(text) }
