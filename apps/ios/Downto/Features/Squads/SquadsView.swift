@@ -66,8 +66,7 @@ struct SquadsView: View {
     private func section(_ title: String, _ rows: [SquadRow], show: Bool, starred: Bool = false) -> some View {
         Section {
             ForEach(rows) { row in
-                SquadRowView(row: row, now: store.now, fading: starred)
-                    .onTapGesture { env.router.squadPath = [row.id] }
+                SquadRowView(row: row, now: store.now, fading: starred) { env.router.squadPath = [row.id] }
                     .hairline()
             }
         } header: {
@@ -86,6 +85,7 @@ struct SquadRowView: View {
     let row: SquadRow
     let now: Date
     var fading = false
+    var onTap: () -> Void = {}
     @State private var pressed = false
 
     var body: some View {
@@ -118,7 +118,8 @@ struct SquadRowView: View {
         .contentShape(Rectangle())
         .scaleEffect(pressed ? 0.99 : 1)
         .animation(DTSpring.ink, value: pressed)
-        .onLongPressGesture(minimumDuration: 0.04, maximumDistance: 20, perform: {}, onPressingChanged: { pressed = $0 })
+        // A real Button (same press primitive as CheckEntry): the earlier onLongPress(0.04 s) + onTapGesture pair raced and dropped taps.
+        .pressButton(onPressChange: { pressed = $0 }, onTap: onTap)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("squad-row")
